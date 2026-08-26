@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TukuToon · Muestrario de estilos de vocales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Comfortaa:wght@400;700&family=Plus+Jakarta+Sans:wght@600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;padding:0 0 60px;
+  font-family:'Comfortaa',system-ui,sans-serif;color:#fff;
+  background:linear-gradient(180deg,#6E4FD0 0%,#9B7BE8 48%,#CDBBF7 100%);
+  background-attachment:fixed;min-height:100vh;
+}
+header{padding:26px clamp(16px,4vw,40px) 6px;max-width:1100px;margin:0 auto}
+h1{font-family:'Fredoka',sans-serif;font-weight:600;font-size:clamp(20px,4.4vw,30px);
+  margin:0 0 6px;text-shadow:0 2px 0 rgba(0,0,0,.14)}
+.lead{font-size:clamp(12px,2.6vw,15px);opacity:.9;line-height:1.65;max-width:70ch;margin:0}
+.lead b{color:#FFD84D}
+.wrap{max-width:1100px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.card{
+  background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);
+  border-radius:24px;padding:clamp(14px,2.6vw,22px);margin-top:20px;
+  backdrop-filter:blur(2px);
+}
+.card h2{font-family:'Fredoka',sans-serif;font-weight:600;font-size:clamp(16px,3.2vw,22px);
+  margin:0 0 2px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.tag{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:11px;
+  letter-spacing:.06em;background:#FFD84D;color:#2B2140;border-radius:20px;padding:3px 10px}
+.card p{margin:4px 0 14px;font-size:clamp(11.5px,2.4vw,14px);opacity:.9;line-height:1.6;max-width:74ch}
+.row{display:flex;gap:clamp(10px,2.4vw,26px);flex-wrap:wrap;align-items:flex-end}
+.cell{text-align:center}
+.cell svg{display:block;width:clamp(96px,20vw,150px);height:auto;overflow:visible}
+.cell span{display:block;margin-top:6px;font-family:'Plus Jakarta Sans',sans-serif;
+  font-weight:600;font-size:10.5px;letter-spacing:.05em;opacity:.72;text-transform:uppercase}
+#row-minus .cell span{text-transform:none}   /* la seccion es sobre minusculas */
+footer{max-width:1100px;margin:26px auto 0;padding:0 clamp(16px,4vw,40px)}
+.nota{background:rgba(43,33,64,.35);border-radius:20px;padding:16px 20px;
+  font-size:clamp(11.5px,2.4vw,14px);line-height:1.7}
+.nota h3{font-family:'Fredoka',sans-serif;font-weight:600;margin:0 0 8px;font-size:16px}
+.nota ul{margin:6px 0 0;padding-left:18px}
+.nota li{margin-bottom:5px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Cinco pieles para las mismas vocales</h1>
+  <p class="lead">
+    La primera usa el esqueleto gordo del arte oficial; las otras cuatro usan <b>exactamente el mismo esqueleto</b> y la misma mecánica de trazado —
+    lo único que cambia es cómo se ve. Mirá cada fila en sus tres estados: vacía (como arranca),
+    a medio trazar (que es como se ve el 90% del tiempo) y terminada.
+    Elegí una y la aplico a las cinco vocales.
+  </p>
+</header>
+
+<div class="wrap" id="wrap"></div>
+
+<div class="wrap">
+  <div class="card" id="card-minus">
+    <h2>Minusculas <span class="tag">a e i o u</span></h2>
+    <p>Las cinco en el estilo neutro, con el orden y el sentido de la escritura escolar
+       marcados con numeritos. Son bastante mas dificiles de trazar que las mayusculas:
+       casi todas son curvas cerradas, y la <b>e</b> es de un solo trazo que se cruza a
+       si mismo.</p>
+    <div class="row" id="row-minus"></div>
+  </div>
+</div>
+
+<footer>
+  <div class="nota">
+    <h3>Dos cosas que se deciden por separado</h3>
+    <ul>
+      <li><b>La piel</b> (esto de acá arriba): bordes, colores, texturas, brillos. Se cambia en el CSS,
+        no toca la lógica del juego.</li>
+      <li><b>El esqueleto</b>: la forma de la letra en sí. Las de acá son geométricas (rectas y un
+        círculo). Se pueden redibujar más orgánicas, más gorditas, más angostas, con el vértice
+        de la A redondeado, etc. Eso sí sale de Figma, y es lo único que necesito que venga
+        dibujado.</li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg', uid=0;
+
+/* Paleta y grosor deducidos del arte oficial 3D de TukuToon */
+var OFICIAL={A:'#FFC93D',E:'#F14E8E',I:'#7B5FCB',O:'#FF8A3D',U:'#45C7D6'};
+var W3D=72;   // grosor del trazo gordo (vs 34 del esqueleto fino)
+
+/* Esqueleto gordo: mismas letras, redibujadas para aguantar el grosor oficial */
+var GORDAS={
+  A:{ strokes:['M150 96 L62 320','M150 96 L238 320','M90 250 L210 250'], face:{x:150,y:184,s:.46} },
+  E:{ strokes:['M78 96 L78 320','M78 96 L232 96','M78 208 L212 208','M78 320 L232 320'], face:{x:172,y:152,s:.46} },
+  I:{ strokes:['M150 96 L150 320'], face:{x:150,y:200,s:.6} },
+  O:{ strokes:['M150 96 C96 96 60 146 60 208 C60 270 96 320 150 320 C204 320 240 270 240 208 C240 146 204 96 150 96'], face:{x:150,y:208,s:.85} },
+  U:{ strokes:['M78 92 L78 254 C78 330 222 330 222 254 L222 92'], face:{x:150,y:198,s:.85} }
+};
+
+/* Minusculas. Caja x de 150 a 330; sin ascendentes salvo el punto de la i.
+   El orden y el sentido son los de la escritura escolar. */
+var MINUS={
+  a:{ nombre:'a', strokes:[
+       'M128 150 C92 150 62 190 62 240 C62 290 92 330 128 330 C164 330 194 290 194 240 C194 190 164 150 128 150',
+       'M194 150 L194 330'],
+      face:{x:128,y:240,s:.6} },
+
+  e:{ nombre:'e', strokes:[
+       'M62 240 L194 240 C194 190 164 150 128 150 C92 150 62 190 62 240 C62 290 92 330 128 330 C155 330 178 313 190 289'],
+      face:{x:128,y:283,s:.52} },
+
+  i:{ nombre:'i', strokes:[
+       'M150 180 L150 330'],
+      punto:{x:150,y:126,r:26},
+      face:{x:150,y:255,s:.5} },
+
+  o:{ nombre:'o', strokes:[
+       'M150 150 C114 150 84 190 84 240 C84 290 114 330 150 330 C186 330 216 290 216 240 C216 190 186 150 150 150'],
+      face:{x:150,y:240,s:.7} },
+
+  u:{ nombre:'u', strokes:[
+       'M84 150 L84 275 C84 322 216 322 216 275 L216 150'],
+      face:{x:150,y:238,s:.7} }
+};
+
+var LETTERS={
+  A:{ strokes:['M150 60 L70 340','M150 60 L230 340','M94 255 L206 255'], face:{x:150,y:172,s:.74} },
+  O:{ strokes:['M150 62 C104 62 66 124 66 200 C66 276 104 338 150 338 C196 338 234 276 234 200 C234 124 196 62 150 62'], face:{x:150,y:200,s:.92} }
+};
+
+/* Cada estilo declara sus capas. `w` = ancho del trazo, en unidades del viewBox. */
+var STYLES=[
+  { id:'globo3d', nombre:'Globo 3D', tag:'como el arte oficial', tresD:true,
+    desc:'El vector llevado lo mas cerca que da del render 3D de TukuToon: trazo gordo, degradado de arriba abajo, brillo especular arriba a la izquierda, rebote de luz en el borde de abajo y sombra proyectada. Usa el esqueleto gordo y la paleta del arte oficial.',
+    ojos:'#2B2140', flecha:'#fff' },
+
+  { id:'carretera', nombre:'Carretera', tag:'la actual',
+    desc:'Borde blanco, camino gris y línea punteada. Limpia y muy legible: el contraste entre el gris y el color hace que se lea clarísimo cuánto falta. Es la más neutra de todas — no compite con el resto de la pantalla.',
+    ojos:'#2B2140', flecha:'#fff',
+    capas:function(d,c,g){ return [
+      {d:d,s:'rgba(43,33,64,.18)',w:46,t:'translate(0 6)'},
+      {d:d,s:'#fff',w:46},
+      {d:d,s:'#CFC9DD',w:34},
+      {d:d,s:c,w:34,prog:true},
+      {d:d,s:'rgba(255,255,255,.95)',w:3.2,dash:'9 13',ocultarSiLleno:true}
+    ];}},
+
+  { id:'asfalto', nombre:'Carretera de verdad', tag:'la más literal',
+    desc:'Asfalto oscuro, líneas amarillas y pasto en el borde. A los chicos de 2 a 5 la metáfora del auto les cierra sola, y el color revelado brilla mucho contra el oscuro. La contra: es la que más "ruido" mete y la que menos se parece al resto de la app.',
+    ojos:'#FFFDF6', flecha:'#FFD84D',
+    capas:function(d,c,g){ return [
+      {d:d,s:'rgba(43,33,64,.20)',w:58,t:'translate(0 6)'},
+      {d:d,s:'#9ED972',w:56},
+      {d:d,s:'#F7F7F8',w:44},
+      {d:d,s:'#4A4458',w:36},
+      {d:d,s:c,w:36,prog:true},
+      {d:d,s:'#FFD84D',w:4,dash:'14 16',ocultarSiLleno:true}
+    ];}},
+
+  { id:'gel', nombre:'Caramelo', tag:'la más "app"',
+    desc:'Trazo con degradado, brillo arriba y sombra abajo: se lee como un caramelo de goma. Es la que mejor combina con los botones redondeados y el fondo violeta que ya tiene la app, y la que más "premio" se siente al revelarse.',
+    ojos:'#2B2140', flecha:'#fff', gradiente:true,
+    capas:function(d,c,g){ return [
+      {d:d,s:'rgba(43,33,64,.28)',w:36,t:'translate(0 8)'},
+      {d:d,s:'#E7E2F2',w:36},
+      {d:d,s:'url(#'+g+')',w:36,prog:true},
+      {d:d,s:'rgba(255,255,255,.55)',w:11,t:'translate(0 -9)',mask:true},
+      {d:d,s:'rgba(43,33,64,.16)',w:9,t:'translate(0 12)',mask:true},
+      {d:d,s:'rgba(255,255,255,.9)',w:3,dash:'2 14',ocultarSiLleno:true}
+    ];}},
+
+  { id:'papel', nombre:'Papel recortado', tag:'la más TukuToon',
+    desc:'Crema con sombra dura, como una letra recortada y apoyada sobre la hoja. Es la que dialoga con el juego de pintar (que ya usa la textura de hoja crema), así que los dos minijuegos se leerían como parte de lo mismo.',
+    ojos:'#2B2140', flecha:'#2B2140',
+    capas:function(d,c,g){ return [
+      {d:d,s:'#493C6B',w:34,t:'translate(6 7)'},
+      {d:d,s:'#FFFDF6',w:34},
+      {d:d,s:c,w:34,prog:true},
+      {d:d,s:'rgba(43,33,64,.35)',w:3,dash:'3 12',ocultarSiLleno:true}
+    ];}}
+];
+
+var MUESTRAS=[
+  { letra:'A', color:'#FFC94A', prog:[0,0,0],   rotulo:'vacía' },
+  { letra:'A', color:'#FFC94A', prog:[1,.55,0], rotulo:'a medio trazar' },
+  { letra:'O', color:'#FF8A3D', prog:[1],       rotulo:'terminada' }
+];
+
+function el(t,a){ var n=document.createElementNS(NS,t); for(var k in a){ n.setAttribute(k,a[k]); } return n; }
+
+function render3D(m){
+  var L=GORDAS[m.letra], W=W3D;
+  var svg=el('svg',{viewBox:'0 0 300 400',preserveAspectRatio:'xMidYMid meet'});
+  var defs=el('defs',{}); svg.appendChild(defs);
+
+  var blur='b'+(++uid);
+  // userSpaceOnUse: un trazo recto tiene bbox de area cero y en unidades
+  // relativas el filtro se queda sin region (la letra desaparece entera)
+  var fl=el('filter',{id:blur,filterUnits:'userSpaceOnUse',
+    x:'-60',y:'-60',width:'420',height:'520'});
+  fl.appendChild(el('feGaussianBlur',{stdDeviation:W*0.13}));
+  defs.appendChild(fl);
+
+  function degradado(base){
+    var id='g'+(++uid);
+    // idem: con bbox de area cero un degradado relativo no se dibuja
+    var lg=el('linearGradient',{id:id,gradientUnits:'userSpaceOnUse',
+      x1:'110',y1:'56',x2:'190',y2:'360'});
+    lg.appendChild(el('stop',{offset:'0',  'stop-color':aclarar(base,.34)}));
+    lg.appendChild(el('stop',{offset:'.45','stop-color':base}));
+    lg.appendChild(el('stop',{offset:'1',  'stop-color':oscurecer(base,.20)}));
+    defs.appendChild(lg); return id;
+  }
+  var gColor=degradado(m.color), gGris=degradado('#CFC9DD');
+
+  // sombra proyectada de toda la letra
+  L.strokes.forEach(function(d){
+    svg.appendChild(el('path',{d:d,fill:'none',stroke:'#3B2E63','stroke-width':W,
+      'stroke-linecap':'round','stroke-linejoin':'round',opacity:'.28',
+      transform:'translate(0 12)',filter:'url(#'+blur+')'}));
+  });
+
+  L.strokes.forEach(function(d,i){
+    var pr=m.prog[i]!==undefined?m.prog[i]:0;
+    var med=el('path',{d:d}); svg.appendChild(med);
+    var largo=med.getTotalLength(); svg.removeChild(med);
+
+    // mascara A: la silueta entera del trazo (recorta brillos y sombras adentro)
+    var mFull='mf'+(++uid);
+    var kf=el('mask',{id:mFull,maskUnits:'userSpaceOnUse',
+      x:'-60',y:'-60',width:'420',height:'520'});
+    kf.appendChild(el('path',{d:d,fill:'none',stroke:'#fff','stroke-width':W,
+      'stroke-linecap':'round','stroke-linejoin':'round'}));
+    defs.appendChild(kf);
+
+    // mascara B: solo la parte ya trazada
+    var mProg='mp'+(++uid);
+    var kp=el('mask',{id:mProg,maskUnits:'userSpaceOnUse',
+      x:'-60',y:'-60',width:'420',height:'520'});
+    kp.appendChild(el('path',{d:d,fill:'none',stroke:'#fff','stroke-width':W,
+      'stroke-linecap':'round','stroke-linejoin':'round',
+      'stroke-dasharray':(largo*pr)+' '+(largo+10)}));
+    defs.appendChild(kp);
+
+    // cuerpo 3D reutilizable, en gris o a color
+    function cuerpo(grad){
+      var g=el('g',{});
+      g.appendChild(el('path',{d:d,fill:'none',stroke:'url(#'+grad+')','stroke-width':W,
+        'stroke-linecap':'round','stroke-linejoin':'round'}));
+      g.appendChild(el('path',{d:d,fill:'none',stroke:'rgba(255,255,255,.7)',
+        'stroke-width':W*0.26,'stroke-linecap':'round',
+        transform:'translate('+(-W*0.1)+' '+(-W*0.24)+')',
+        filter:'url(#'+blur+')',mask:'url(#'+mFull+')'}));
+      g.appendChild(el('path',{d:d,fill:'none',stroke:'rgba(43,33,64,.30)',
+        'stroke-width':W*0.30,'stroke-linecap':'round',
+        transform:'translate('+(W*0.08)+' '+(W*0.28)+')',
+        filter:'url(#'+blur+')',mask:'url(#'+mFull+')'}));
+      g.appendChild(el('path',{d:d,fill:'none',stroke:'rgba(255,255,255,.4)',
+        'stroke-width':W*0.1,'stroke-linecap':'round',
+        transform:'translate(0 '+(W*0.42)+')',
+        filter:'url(#'+blur+')',mask:'url(#'+mFull+')'}));
+      return g;
+    }
+
+    svg.appendChild(cuerpo(gGris));                    // sin trazar
+    if(pr>0){
+      var gc=el('g',{mask:'url(#'+mProg+')'});         // ya trazado
+      gc.appendChild(cuerpo(gColor));
+      svg.appendChild(gc);
+    }
+
+    if(pr<1){
+      var m2=el('path',{d:d}); svg.appendChild(m2);
+      var a=m2.getPointAtLength(Math.max(0,largo-14)), b=m2.getPointAtLength(largo);
+      svg.removeChild(m2);
+      svg.appendChild(el('path',{d:'M-7 -7 L8 0 L-7 7 Z',fill:'rgba(255,255,255,.85)',
+        transform:'translate('+b.x+' '+b.y+') rotate('+(Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI)+')'}));
+    }
+  });
+
+  var f=L.face;
+  var cara=el('g',{transform:'translate('+f.x+' '+f.y+') scale('+f.s+')'});
+  cara.appendChild(el('circle',{cx:'-23',cy:'7',r:'5.5',fill:'rgba(239,101,142,.5)'}));
+  cara.appendChild(el('circle',{cx:'23',cy:'7',r:'5.5',fill:'rgba(239,101,142,.5)'}));
+  cara.appendChild(el('ellipse',{cx:'-13',cy:'-7',rx:'4.6',ry:'6.4',fill:'#2B2140'}));
+  cara.appendChild(el('ellipse',{cx:'13',cy:'-7',rx:'4.6',ry:'6.4',fill:'#2B2140'}));
+  cara.appendChild(el('path',{d:'M-11 7 Q0 17 11 7',fill:'none',stroke:'#2B2140',
+    'stroke-width':'3.4','stroke-linecap':'round'}));
+  svg.appendChild(cara);
+  return svg;
+}
+
+function render(estilo,m){
+  if(estilo.tresD) return render3D(m);
+  var L=m.def || LETTERS[m.letra];
+  var svg=el('svg',{viewBox:'0 0 300 400',preserveAspectRatio:'xMidYMid meet'});
+  var defs=el('defs',{});
+  svg.appendChild(defs);
+
+  var gid='g'+(++uid);
+  if(estilo.gradiente){
+    var lg=el('linearGradient',{id:gid,x1:'0',y1:'0',x2:'0',y2:'1'});
+    lg.appendChild(el('stop',{offset:'0',       'stop-color':aclarar(m.color,.42)}));
+    lg.appendChild(el('stop',{offset:'.55',     'stop-color':m.color}));
+    lg.appendChild(el('stop',{offset:'1',       'stop-color':oscurecer(m.color,.22)}));
+    defs.appendChild(lg);
+  }
+
+  L.strokes.forEach(function(d,i){
+    var p=m.prog[i]!==undefined?m.prog[i]:0;
+    var medidor=el('path',{d:d,fill:'none','stroke-width':1});
+    svg.appendChild(medidor);
+    var largo=medidor.getTotalLength();
+    svg.removeChild(medidor);
+
+    // mascara para recortar brillo y sombra dentro del propio trazo
+    var mid='m'+(++uid);
+    var mk=el('mask',{id:mid});
+    mk.appendChild(el('path',{d:d,fill:'none',stroke:'#fff','stroke-width':36,
+      'stroke-linecap':'round','stroke-linejoin':'round'}));
+    defs.appendChild(mk);
+
+    estilo.capas(d,m.color,gid).forEach(function(c){
+      if(c.ocultarSiLleno && p>=1) return;
+      if(c.prog && p<=0) return;
+      var n=el('path',{d:c.d,fill:'none',stroke:c.s,'stroke-width':c.w,
+        'stroke-linecap':'round','stroke-linejoin':'round'});
+      if(c.t) n.setAttribute('transform',c.t);
+      if(c.dash) n.setAttribute('stroke-dasharray',c.dash);
+      if(c.mask) n.setAttribute('mask','url(#'+mid+')');
+      if(c.prog) n.setAttribute('stroke-dasharray',(largo*p)+' '+(largo+10));
+      svg.appendChild(n);
+    });
+
+    // flecha de direccion, solo mientras falte trazar
+    if(p<1){
+      var med=el('path',{d:d}); svg.appendChild(med);
+      var a=med.getPointAtLength(Math.max(0,largo-14)), b=med.getPointAtLength(largo);
+      svg.removeChild(med);
+      var ang=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;
+      svg.appendChild(el('path',{d:'M-6 -6 L7 0 L-6 6 Z',fill:estilo.flecha,opacity:'.95',
+        transform:'translate('+b.x+' '+b.y+') rotate('+ang+')'}));
+    }
+  });
+
+  // punto de la i: no es un trazo, es un toque (ver nota abajo)
+  if(L.punto){
+    var pt=L.punto;
+    svg.appendChild(el('circle',{cx:pt.x,cy:pt.y,r:pt.r+6,fill:'#fff'}));
+    svg.appendChild(el('circle',{cx:pt.x,cy:pt.y,r:pt.r,fill:'#CFC9DD'}));
+    if(m.prog[0]>=1){
+      svg.appendChild(el('circle',{cx:pt.x,cy:pt.y,r:pt.r,fill:m.color}));
+    }else{
+      svg.appendChild(el('text',{x:pt.x,y:pt.y+7,'text-anchor':'middle',
+        'font-size':'22',fill:'#8D82A8','font-family':'Fredoka,sans-serif'})).textContent='?';
+    }
+  }
+
+  // numeritos de orden de escritura
+  if(m.orden){
+    L.strokes.forEach(function(d,i){
+      var mm=el('path',{d:d}); svg.appendChild(mm);
+      var b=mm.getPointAtLength(0); svg.removeChild(mm);
+      svg.appendChild(el('circle',{cx:b.x,cy:b.y,r:'15',fill:'#2B2140',opacity:'.85'}));
+      var t=el('text',{x:b.x,y:b.y+7,'text-anchor':'middle','font-size':'20',
+        fill:'#fff','font-family':'Fredoka,sans-serif','font-weight':'600'});
+      t.textContent=(i+1); svg.appendChild(t);
+    });
+  }
+
+  // carita
+  var f=L.face;
+  var cara=el('g',{transform:'translate('+f.x+' '+f.y+') scale('+f.s+')'});
+  cara.appendChild(el('circle',{cx:'-23',cy:'7',r:'5.5',fill:'rgba(239,101,142,.45)'}));
+  cara.appendChild(el('circle',{cx:'23',cy:'7',r:'5.5',fill:'rgba(239,101,142,.45)'}));
+  cara.appendChild(el('ellipse',{cx:'-13',cy:'-7',rx:'4.6',ry:'6.4',fill:estilo.ojos}));
+  cara.appendChild(el('ellipse',{cx:'13',cy:'-7',rx:'4.6',ry:'6.4',fill:estilo.ojos}));
+  cara.appendChild(el('path',{d:'M-11 7 Q0 17 11 7',fill:'none',stroke:estilo.ojos,
+    'stroke-width':'3.4','stroke-linecap':'round'}));
+  svg.appendChild(cara);
+
+  return svg;
+}
+
+function hex(c){ return [parseInt(c.substr(1,2),16),parseInt(c.substr(3,2),16),parseInt(c.substr(5,2),16)]; }
+function rgb(a){ return '#'+a.map(function(v){ v=Math.max(0,Math.min(255,Math.round(v)));
+  return (v<16?'0':'')+v.toString(16); }).join(''); }
+function aclarar(c,k){ return rgb(hex(c).map(function(v){ return v+(255-v)*k; })); }
+function oscurecer(c,k){ return rgb(hex(c).map(function(v){ return v*(1-k); })); }
+
+var rowMin=document.getElementById('row-minus');
+var estiloNeutro=null;
+var OFI={a:'#FFC93D',e:'#F14E8E',i:'#7B5FCB',o:'#FF8A3D',u:'#45C7D6'};
+
+var wrap=document.getElementById('wrap');
+STYLES.forEach(function(st){
+  var card=document.createElement('div'); card.className='card';
+  var h=document.createElement('h2');
+  h.textContent=st.nombre;
+  var tg=document.createElement('span'); tg.className='tag'; tg.textContent=st.tag;
+  h.appendChild(tg); card.appendChild(h);
+  var p=document.createElement('p'); p.textContent=st.desc; card.appendChild(p);
+  var row=document.createElement('div'); row.className='row';
+  MUESTRAS.forEach(function(m){
+    var cell=document.createElement('div'); cell.className='cell';
+    cell.appendChild(render(st,m));
+    var s=document.createElement('span'); s.textContent=m.rotulo; cell.appendChild(s);
+    row.appendChild(cell);
+  });
+  if(st.id==='carretera') estiloNeutro=st;
+  card.appendChild(row);
+
+  if(st.tresD){
+    var sub=document.createElement('p');
+    sub.textContent='Las cinco terminadas, con la paleta del arte oficial:';
+    sub.style.margin='18px 0 8px'; card.appendChild(sub);
+    var row2=document.createElement('div'); row2.className='row';
+    ['A','E','I','O','U'].forEach(function(k){
+      var cell=document.createElement('div'); cell.className='cell';
+      cell.appendChild(render(st,{letra:k,color:OFICIAL[k],prog:[1,1,1,1]}));
+      var sp=document.createElement('span'); sp.textContent=k; cell.appendChild(sp);
+      row2.appendChild(cell);
+    });
+    card.appendChild(row2);
+  }
+
+  wrap.appendChild(card);
+});
+
+['a','e','i','o','u'].forEach(function(k){
+  var cell=document.createElement('div'); cell.className='cell';
+  cell.appendChild(render(estiloNeutro,{letra:k,def:MINUS[k],color:OFI[k],
+    prog:[0,0],orden:true}));
+  var sp=document.createElement('span'); sp.textContent=k+' · '+MINUS[k].strokes.length+
+    (MINUS[k].strokes.length===1?' trazo':' trazos')+(MINUS[k].punto?' + punto':'');
+  cell.appendChild(sp);
+  rowMin.appendChild(cell);
+});
+
+})();
+</script>
+</body>
+</html>

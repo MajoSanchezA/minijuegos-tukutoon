@@ -1,0 +1,73 @@
+<!--
+  PLANTILLA — nuevo dibujo para "Colorea con TukuToon"
+  =======================================================
+  Este archivo YA NO lleva el motor adentro (los pinceles, colores,
+  balde, etc. viven en motor.css / motor.js, dentro de ../motor/, y se
+  comparten entre todos los dibujos). Para crear un dibujo nuevo:
+
+  1. Creá una carpeta nueva dentro de paginas/ con el nombre del dibujo,
+     ej: paginas/dinosaurio/  (seguí el mismo patrón que paginas/aida/).
+  2. Copiá este archivo DENTRO de esa carpeta nueva y renómbralo, ej:
+     paginas/dinosaurio/colorea-tukutoon-dinosaurio.html
+     (las rutas "../../motor/..." de este archivo ya están pensadas para
+     funcionar desde ahí — no las cambies).
+  3. Prepara tu dibujo como imagen HORIZONTAL (apaisada):
+       - Proporción recomendada: 3:2 o 4:3 (ej. 1500x1000 px, 1600x1200 px)
+       - Fondo BLANCO opaco (NO transparente) — si es transparente, el
+         balde de pintura interpretará esas zonas como "línea" y no pintará ahí.
+       - Líneas de contorno NEGRAS y bien cerradas (sin espacios entre trazos),
+         de unos 6-10 px de grosor, para que el relleno automático no se escape
+         de una región a otra.
+       - Formato PNG o JPG.
+  4. Coloca ese archivo de imagen en la MISMA carpeta que el HTML nuevo
+     (paginas/dinosaurio/dinosaurio.png, por ejemplo). Este .png queda ahí
+     como archivo "fuente" — sirve para la miniatura del menú (ver paso 7).
+  5. IMPORTANTE — imgSrc NO va como nombre de archivo, va como imagen
+     incrustada en base64:
+       imgSrc: "data:image/png;base64,AAAA...."
+     ¿Por qué? Si el juego se abre con doble clic (file://) y imgSrc
+     apunta a un archivo .png externo, Chrome/Edge bloquea por seguridad
+     la lectura de píxeles del dibujo (el balde deja de funcionar en
+     silencio, sin ningún error visible). Incrustando la imagen como
+     data:... ese bloqueo no existe. Pedile a Claude que convierta tu
+     .png a base64 y lo incruste (es un paso rápido con PowerShell), o
+     hacelo vos con este comando:
+       [Convert]::ToBase64String([IO.File]::ReadAllBytes("dibujo.png"))
+     y armá el string "data:image/png;base64," + eso.
+  6. Más abajo, en TukuToonColorPage({...}), también cambiá:
+       - title / titleHtml: el título que aparece en el encabezado
+       - subtitle: el texto de ayuda debajo del título
+       - palette: (opcional) tu propia lista de colores
+  7. Si el dibujo necesita algo extra (una paleta especial, otro emblema),
+     agrégalo como propiedad extra dentro de ese mismo objeto de
+     configuración — no hace falta tocar motor.js.
+  8. Sumá un objeto para este dibujo en ../../paginas.js (id, nombre,
+     miniatura, url). "miniatura" SÍ puede apuntar al .png externo del
+     paso 4 sin problema — el bloqueo de Chrome solo afecta la lectura
+     de píxeles del lienzo de pintar, no las miniaturas del menú (son
+     una <img> común, no un canvas).
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Colorea con TukuToon — Dibujo nuevo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Comfortaa:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../motor/motor.css">
+</head>
+<body>
+<script src="../../motor/motor.js"></script>
+<script>
+  TukuToonColorPage({
+    title: 'Dibujo nuevo',
+    subtitle: 'Toca para rellenar con el balde, o dibuja libre con el pincel',
+    imgSrc: 'data:image/png;base64,PEGA_ACA_EL_BASE64_DE_TU_PNG',
+    menuHref: '../../menu.html',
+    bgSrc: '../../fondo-dibujo.png'
+    // palette: ['#FF6F59','#FFC94A','#2EC4B6', ...]   // opcional
+  });
+</script>
+</body>
+</html>

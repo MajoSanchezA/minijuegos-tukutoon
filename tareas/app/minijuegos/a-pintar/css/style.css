@@ -1,0 +1,193 @@
+/* ============================================================
+   css/style.css — estilos del menú/index de "Colorea con TukuToon".
+   Esto NO es el motor de dibujo (eso vive en motor/motor.css).
+   ============================================================ */
+:root{
+  --mint:#EAF7F0; --wood:#F6DFA9; --wood-deep:#E9C27F; --cream:#FFFDF6;
+  --coral:#FF6F59; --sun:#FFC94A; --teal:#2EC4B6; --plum:#3D2C4E; --plum-soft:#7A6A8A;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:'Comfortaa',sans-serif;
+  color:var(--plum);
+  background:var(--wood);
+  padding:28px 20px 56px;
+  position:relative;
+  overflow-x:hidden;
+}
+
+/* Foto de fondo como <img> real (no background-image de CSS): en el
+   celular, cuando la foto era un background-image de un elemento cuyo
+   ANCESTRO tenía el transform:rotate() del truco de horizontal forzado
+   más abajo, la imagen no rotaba junto con el resto (quedaba pintada
+   "derecha" mientras todo lo demás sí giraba) — un bug de rendering
+   real en esa combinación en algunos navegadores. Un <img> normal, al
+   ser contenido (no "pintura de fondo"), sí hereda la rotación del
+   ancestro de forma confiable en todos los navegadores. */
+.bg-photo{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center bottom;
+  z-index:0;
+  pointer-events:none;
+}
+
+/* Fuerza horizontal en celular: si el teléfono está parado (vertical),
+   rotamos <html> 90° por CSS en vez de usar la API nativa de
+   orientación (screen.orientation.lock), que en Safari/iOS no funciona
+   fuera de una app instalada y en Chrome solo funciona en pantalla
+   completa — este truco funciona en cualquier navegador sin pedir
+   permisos. <body> (con la foto de fondo y todo el contenido) ocupa el
+   100% de <html> por flujo normal, sin transform propio. */
+@media screen and (orientation:portrait){
+  html{
+    width:100vh;
+    width:100dvh;
+    height:100vw;
+    position:absolute;
+    top:50%;
+    left:50%;
+    margin-top:-50vw;
+    margin-left:-50vh;
+    margin-left:-50dvh;
+    transform-origin:center center;
+    transform:rotate(90deg);
+    overflow:hidden;
+  }
+  body{
+    width:100%;
+    height:100%;
+    min-height:0;
+    overflow-y:auto;
+  }
+}
+
+.floaty{position:absolute; opacity:.5; pointer-events:none;}
+.floaty svg{display:block;}
+
+header{text-align:center; margin-bottom:34px; position:relative; z-index:2;}
+header h1{
+  font-family:'Sniglet',sans-serif;
+  font-weight:800;
+  font-size:clamp(30px,6vw,52px);
+  letter-spacing:.5px;
+  margin:0;
+  color:#fff;
+  -webkit-text-stroke:3px var(--plum);
+  text-shadow:0 5px 0 var(--plum);
+  text-transform:uppercase;
+}
+header p{
+  margin:14px 0 0;
+  color:var(--plum-soft);
+  font-weight:700;
+  font-size:14px;
+}
+
+.grid-wrap{
+  position:relative;
+  max-width:1180px;
+  margin:0 auto;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.grid-arrow{
+  flex:none;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  border:none;
+  background:#fff;
+  color:var(--plum);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  box-shadow:0 4px 0 rgba(61,44,78,.16), 0 10px 16px -8px rgba(61,44,78,.4);
+  transition:opacity .15s ease, transform .15s ease;
+  position:relative;
+  z-index:3;
+}
+.grid-arrow svg{width:20px; height:20px;}
+.grid-arrow:hover{transform:scale(1.08);}
+.grid-arrow:active{transform:scale(.96);}
+.grid-arrow[hidden]{display:none;}
+.grid{
+  flex:1;
+  min-width:0;
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:flex-start;
+  gap:26px;
+  overflow-x:auto;
+  overflow-y:visible;
+  padding:10px 8px 22px;
+  scroll-snap-type:x proximity;
+  -webkit-overflow-scrolling:touch;
+  position:relative;
+  z-index:2;
+  justify-content:safe center;
+  scrollbar-width:none;
+  -webkit-mask-image:linear-gradient(to right, transparent 0, black 36px, black calc(100% - 36px), transparent 100%);
+  mask-image:linear-gradient(to right, transparent 0, black 36px, black calc(100% - 36px), transparent 100%);
+}
+.grid::-webkit-scrollbar{display:none;}
+.card{
+  flex:0 0 190px;
+  scroll-snap-align:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-decoration:none;
+  color:var(--plum);
+  transition:transform .15s ease;
+}
+.card:hover, .card:focus-visible{transform:translateY(-5px) scale(1.03);}
+.card-thumb{
+  position:relative;
+  width:190px;
+  aspect-ratio:1/1;
+  border-radius:50%;
+  border:7px solid var(--card-color, var(--teal));
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  box-shadow:0 6px 0 rgba(61,44,78,.16), 0 14px 20px -10px rgba(61,44,78,.45);
+}
+.card-thumb img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  padding:16px;
+}
+.card-thumb .emoji-only{font-size:44px;}
+.empty{
+  max-width:420px;
+  margin:40px auto 0;
+  text-align:center;
+  background:var(--cream);
+  border-radius:20px;
+  padding:24px;
+  color:var(--plum-soft);
+  font-weight:600;
+  font-size:13px;
+  line-height:1.6;
+  position:relative;
+  z-index:2;
+}
+.empty code{background:rgba(61,44,78,.08); padding:1px 5px; border-radius:5px;}
+
+@media (max-width:480px){
+  header h1{-webkit-text-stroke:2px var(--plum); text-shadow:0 4px 0 var(--plum);}
+  .grid{gap:16px; padding:8px 8px 18px;}
+  .card{flex-basis:130px;}
+  .card-thumb{width:130px; border-width:5px;}
+}
