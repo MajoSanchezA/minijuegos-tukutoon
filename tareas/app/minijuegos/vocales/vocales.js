@@ -59,12 +59,20 @@ var VOCALES = [
       'M150 150 C114 150 84 190 84 240 C84 290 114 330 150 330 C186 330 216 290 216 240 C216 190 186 150 150 150'
     ], face:{x:150,y:240,s:.7} } },
 
-  { letter:'U', color:'#B388EB', emoji:'🍇', word:'Uvas',
-    mayus:{ strokes:[
-      // un solo trazo: bajo por la izquierda, curva abajo, subo por la derecha
-      'M76 62 L76 252 C76 322 224 322 224 252 L224 62'
-    ], face:{x:150,y:188,s:.88} },
-    minus:{ strokes:[
-      'M84 150 L84 275 C84 322 216 322 216 275 L216 150'
-    ], face:{x:150,y:238,s:.7} } }
+ { letter:'U', color:'#B388EB', emoji:'🍇', word:'Uvas',
+  mayus:{ strokes:[
+    // U mayúscula: curva completa sin palito
+    'M76 62 L76 240 C76 310 224 310 224 240 L224 62'
+  ], face:{x:150,y:188,s:.88} },
+  
+  minus:{ strokes:[
+    // Dos trazos, los dos hacia ABAJO (asi se ensena en el cuaderno).
+    // Trazo 1: baja por la izquierda, da la curva de abajo y sube un poco
+    //   por la derecha, hasta donde se junta con el palito.
+    'M84 150 L84 262 C84 310 216 310 216 252',
+    // Trazo 2: el palito derecho, de arriba hacia abajo, y sigue MAS ABAJO
+    //   que la panza — ese sobrante es la colita.
+    'M216 150 L216 330'
+  ], face:{x:150,y:228,s:.7} } 
+  }
 ];
