@@ -36,6 +36,26 @@
      display:none y aparece recien cuando hay avance real.
    - El punto de la i minuscula no es un trazo (un punto no tiene largo):
      se resuelve como un toque, ver `esperandoPunto`.
+
+   COMO SE REVELA EL COLOR
+   El arte va en dos capas: abajo el estado apagado, arriba el color,
+   recortado por una mascara que crece con el dedo. Hay dos calidades
+   segun lo que haya entregado el disenador:
+
+   a) SOLO EL RELLENO (minimo). La mascara es una linea gruesa de ancho
+      fijo sobre el eje del trazo. Funciona, pero como el arte no tiene
+      ancho constante deja algun borde sin cubrir, y en los cruces puede
+      revelar de mas.
+
+   b) CON LA TINTA DE CADA TRAZO (`tintas`). La mascara pasa a ser la
+      tinta real de ese trazo, dilatada para tapar tambien el contorno
+      (las piezas vienen sin borde: solo cubren ~80% de la letra), e
+      intersectada con el avance del dedo. Cobertura exacta y cero
+      invasion de los trazos vecinos — por eso ahi el `grosor` puede ser
+      generoso, la tinta lo recorta igual.
+
+   El estado apagado sale de `contorno` si el disenador lo mando; si no,
+   se genera desaturando el relleno.
    ===================================================================== */
 (function(global){
 'use strict';
@@ -83,7 +103,7 @@ function buildDOM(cfg){
 
     '<p class="prompt" id="prompt">Segu\u00ed el camino con el dedo</p>' +
 
-    '<main><svg id="stage" viewBox="0 0 300 400" ' +
+    '<main><svg id="stage" viewBox="0 0 1000 1000" ' +
       'preserveAspectRatio="xMidYMid meet"></svg></main>' +
 
     '<footer id="picker"></footer>' +
@@ -110,10 +130,12 @@ function forma(v){ return v[caso]; }
 function letraDe(v){ return caso === 'mayus' ? v.letter : v.letter.toLowerCase(); }
 
 /* ---------- parametros de trazado ---------- */
-var SAMPLE_STEP = 4;    // se muestrea el path cada 4 unidades del viewBox
-var TOL         = cfg.tolerancia || 46;  // tolerancia generosa: dedos chiquitos
+var SAMPLE_STEP = 12;   // se muestrea el path cada 12 unidades del viewBox
+var TOL         = cfg.tolerancia || 150; // tolerancia generosa: dedos chiquitos
 var LOOKAHEAD   = 14;   // muestras maximas de avance por movimiento: no se puede saltear
 var SVG_NS      = 'http://www.w3.org/2000/svg';
+var XLINK_NS    = 'http://www.w3.org/1999/xlink';
+var maskSeq     = 0;
 var STORE_KEY   = cfg.storeKey || 'tukutoon:vocales:completadas';
 
 /* ---------- estado ---------- */
@@ -130,6 +152,7 @@ var drawing    = false;
 var locked     = false; // true mientras se festeja / hay tarjeta
 var strokeData = [];
 var handEl     = null;
+var colorEl    = null;  // el grupo con el arte a color, para soltarle la mascara
 var puntoEl    = null;  // el punto de la i minuscula
 var puntoHalo  = null;
 var esperandoPunto = false;
@@ -242,40 +265,176 @@ function mkPath(d, cls){
 
 function loadVowel(i){
   vIdx = i; strokeIdx = 0; sampleIdx = 0; drawing = false; locked = false;
-  esperandoPunto = false; puntoEl = null; puntoHalo = null;
+  esperandoPunto = false; puntoEl = null; puntoHalo = null; colorEl = null;
   var v = VOWELS[vIdx], F = forma(v);
   svg.innerHTML = '';
   strokeData = [];
 
+  // cada forma se muestra con su propio encuadre (ver `caja` en vocales.js)
+  svg.setAttribute('viewBox', F.caja || '0 0 1000 1000');
+
   var gRoot = document.createElementNS(SVG_NS, 'g');
-  svg.appendChild(gRoot);
+
+  /* El arte del disenador va en dos capas superpuestas:
+       - abajo, la letra desaturada: el estado "todavia no trazada"
+       - arriba, la misma letra a color, recortada por una mascara que
+         crece con el dedo. Asi el color aparece por donde el chico paso.
+     La mascara tiene un path por trazo; su stroke-dasharray es el progreso. */
+  var maskId = 'revelado-' + (++maskSeq);
+  var defs = document.createElementNS(SVG_NS, 'defs');
+  // convierte la tinta de un trazo en mascara: la dilata para que tape
+  // tambien el contorno del arte, y la pinta de blanco (mascara = luminancia)
+  var dilId = 'tinta-' + maskSeq;
+  var fd = document.createElementNS(SVG_NS, 'filter');
+  fd.setAttribute('id', dilId);
+  fd.setAttribute('filterUnits', 'userSpaceOnUse');
+  fd.setAttribute('x', '-100'); fd.setAttribute('y', '-100');
+  fd.setAttribute('width', '1200'); fd.setAttribute('height', '1200');
+  var fm = document.createElementNS(SVG_NS, 'feMorphology');
+  fm.setAttribute('operator', 'dilate');
+  fm.setAttribute('radius', String(cfg.dilatado || 16));
+  fd.appendChild(fm);
+  var fc = document.createElementNS(SVG_NS, 'feColorMatrix');
+  fc.setAttribute('type', 'matrix');
+  fc.setAttribute('values', '0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0');
+  fd.appendChild(fc);
+
+  var blurId = 'suave-' + maskSeq;
+  var fl = document.createElementNS(SVG_NS, 'filter');
+  fl.setAttribute('id', blurId);
+  fl.setAttribute('filterUnits', 'userSpaceOnUse');
+  fl.setAttribute('x', '-200'); fl.setAttribute('y', '-200');
+  fl.setAttribute('width', '1400'); fl.setAttribute('height', '1400');
+  var gb = document.createElementNS(SVG_NS, 'feGaussianBlur');
+  gb.setAttribute('stdDeviation', String(cfg.suavizado || 8));
+  fl.appendChild(gb);
+  defs.appendChild(fl);
+  defs.appendChild(fd);
+
+  var mask = document.createElementNS(SVG_NS, 'mask');
+  mask.setAttribute('id', maskId);
+  mask.setAttribute('maskUnits', 'userSpaceOnUse');
+  mask.setAttribute('x', '0'); mask.setAttribute('y', '0');
+  mask.setAttribute('width', '1000'); mask.setAttribute('height', '1000');
+  defs.appendChild(mask);
+  svg.appendChild(defs);
+
+  // los paths del revelado van dentro de un grupo desenfocado
+  var maskG = document.createElementNS(SVG_NS, 'g');
+  maskG.setAttribute('filter', 'url(#' + blurId + ')');
+  mask.appendChild(maskG);
+
+  // Estado apagado: si el disenador mando un contorno, ese; si no, el
+  // relleno desaturado. El contorno se lee mejor como "esperando que lo
+  // llenen", y ademas trata igual a todas las letras (desaturar deja la
+  // E mucho mas oscura que la A, porque conserva la luminosidad original).
+  var gris = document.createElementNS(SVG_NS, 'image');
+  gris.setAttribute('class', F.contorno ? 'arte-contorno' : 'arte-gris');
+  gris.setAttribute('x', '0'); gris.setAttribute('y', '0');
+  gris.setAttribute('width', '1000'); gris.setAttribute('height', '1000');
+  gris.setAttributeNS(XLINK_NS, 'href', F.contorno || F.arte);
+  gris.setAttribute('href', F.contorno || F.arte);
+  svg.appendChild(gris);
+
+  // El arte a color. Con `tintas` se arma una capa por trazo (cada una
+  // recortada por su tinta Y por el avance del dedo); sin `tintas`, una
+  // sola capa recortada por la mascara de ejes.
+  //
+  // OJO con la estructura: NO se puede poner un `mask` sobre un grupo que
+  // vive DENTRO del contenido de otra <mask> — Chrome no lo aplica y no
+  // revela nada. Por eso las dos mascaras se apilan sobre contenido normal.
+  var gColor = document.createElementNS(SVG_NS, 'g');
+  if(!F.tintas){ gColor.setAttribute('mask', 'url(#' + maskId + ')'); }
+  colorEl = gColor;
+  if(!F.tintas){
+    var color = document.createElementNS(SVG_NS, 'image');
+    color.setAttribute('class', 'arte-color');
+    color.setAttribute('x', '0'); color.setAttribute('y', '0');
+    color.setAttribute('width', '1000'); color.setAttribute('height', '1000');
+    color.setAttributeNS(XLINK_NS, 'href', F.arte);
+    color.setAttribute('href', F.arte);
+    gColor.appendChild(color);
+  }
+  svg.appendChild(gColor);
+
+  svg.appendChild(gRoot);   // las guias van encima del arte
 
   F.strokes.forEach(function(d, si){
     var g = document.createElementNS(SVG_NS, 'g');
     g.setAttribute('class', 'stroke-g' + (si === 0 ? ' active' : ''));
 
-    var edge = mkPath(d, 'road-edge');
-    var road = mkPath(d, 'road');
-    var prog = mkPath(d, 'progress');
     var dash = mkPath(d, 'dashes');
-    prog.setAttribute('stroke', v.color);
-
-    g.appendChild(edge); g.appendChild(road); g.appendChild(prog); g.appendChild(dash);
+    g.appendChild(dash);
     gRoot.appendChild(g);
 
-    var len = road.getTotalLength();
+    // El path que marca cuanto avanzo el dedo.
+    var rev = mkPath(d, 'revelado');
+    rev.setAttribute('stroke', '#fff');
+    rev.setAttribute('stroke-width', F.grosor || 240);
+
+    var tinta = F.tintas && F.tintas[si];
+    if(tinta){
+      // mascara A: la tinta de este trazo, dilatada para tapar el contorno
+      var tintaId = 'tinta-' + maskSeq + '-' + si;
+      var mT = document.createElementNS(SVG_NS, 'mask');
+      mT.setAttribute('id', tintaId);
+      mT.setAttribute('maskUnits', 'userSpaceOnUse');
+      mT.setAttribute('x', '-100'); mT.setAttribute('y', '-100');
+      mT.setAttribute('width', '1200'); mT.setAttribute('height', '1200');
+      var imgT = document.createElementNS(SVG_NS, 'image');
+      imgT.setAttribute('x', '0'); imgT.setAttribute('y', '0');
+      imgT.setAttribute('width', '1000'); imgT.setAttribute('height', '1000');
+      imgT.setAttributeNS(XLINK_NS, 'href', tinta);
+      imgT.setAttribute('href', tinta);
+      imgT.setAttribute('filter', 'url(#' + dilId + ')');
+      mT.appendChild(imgT);
+      defs.appendChild(mT);
+
+      // mascara B: hasta donde llego el dedo
+      var avanceId = 'avance-' + maskSeq + '-' + si;
+      var mAv = document.createElementNS(SVG_NS, 'mask');
+      mAv.setAttribute('id', avanceId);
+      mAv.setAttribute('maskUnits', 'userSpaceOnUse');
+      mAv.setAttribute('x', '-100'); mAv.setAttribute('y', '-100');
+      mAv.setAttribute('width', '1200'); mAv.setAttribute('height', '1200');
+      var gAv = document.createElementNS(SVG_NS, 'g');
+      gAv.setAttribute('filter', 'url(#' + blurId + ')');
+      gAv.appendChild(rev);
+      mAv.appendChild(gAv);
+      defs.appendChild(mAv);
+
+      // las dos apiladas sobre una copia del arte a color
+      var capaAvance = document.createElementNS(SVG_NS, 'g');
+      capaAvance.setAttribute('mask', 'url(#' + avanceId + ')');
+      var capaTinta = document.createElementNS(SVG_NS, 'g');
+      capaTinta.setAttribute('mask', 'url(#' + tintaId + ')');
+      var imgC = document.createElementNS(SVG_NS, 'image');
+      imgC.setAttribute('class', 'arte-color');
+      imgC.setAttribute('x', '0'); imgC.setAttribute('y', '0');
+      imgC.setAttribute('width', '1000'); imgC.setAttribute('height', '1000');
+      imgC.setAttributeNS(XLINK_NS, 'href', F.arte);
+      imgC.setAttribute('href', F.arte);
+      capaTinta.appendChild(imgC);
+      capaAvance.appendChild(capaTinta);
+      gColor.appendChild(capaAvance);
+    }else{
+      maskG.appendChild(rev);
+    }
+
+    var len = rev.getTotalLength();
     var samples = [];
     for(var l = 0; l <= len; l += SAMPLE_STEP){
-      var pt = road.getPointAtLength(l);
+      var pt = rev.getPointAtLength(l);
       samples.push({ x:pt.x, y:pt.y, l:l });
     }
-    var last = road.getPointAtLength(len);
+    var last = rev.getPointAtLength(len);
     samples.push({ x:last.x, y:last.y, l:len });
 
-    prog.style.strokeDasharray = '0 ' + (len + 10);
-    prog.style.display = 'none';   // linecap round pinta un punto con largo 0
+    rev.style.strokeDasharray = '0 ' + (len + 10);
+    rev.style.display = 'none';   // linecap round revela un punto con largo 0
 
-    strokeData.push({ g:g, prog:prog, road:road, dash:dash, len:len, samples:samples });
+    strokeData.push({ g:g, prog:rev, road:rev, dash:dash, len:len,
+                      samples:samples, grosor:(F.grosor || 240) });
   });
 
   addArrows();
@@ -295,8 +454,10 @@ function loadVowel(i){
     puntoHalo = pg.querySelector('.punto-halo');
   }
 
-  // carita
-  var f = F.face;
+  // carita: apagada por defecto. El arte del disenador ya tiene su
+  // propio caracter, y una carita generica encima lo abarata.
+  var f = cfg.caritas ? F.face : null;
+  if(f){
   var face = document.createElementNS(SVG_NS, 'g');
   face.setAttribute('class', 'face');
   face.setAttribute('transform', 'translate(' + f.x + ' ' + f.y + ') scale(' + f.s + ')');
@@ -309,6 +470,7 @@ function loadVowel(i){
     '</g>' +
     '<path class="mouth" d="M-11 7 Q0 17 11 7"/>';
   svg.appendChild(face);
+  }
 
   // manita guia
   handEl = document.createElementNS(SVG_NS, 'text');
@@ -324,11 +486,11 @@ function loadVowel(i){
 
 function addArrows(){
   strokeData.forEach(function(s){
-    var a = s.road.getPointAtLength(Math.max(0, s.len - 14));
+    var a = s.road.getPointAtLength(Math.max(0, s.len - 45));
     var b = s.road.getPointAtLength(s.len);
     var ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
     var tri = document.createElementNS(SVG_NS, 'path');
-    tri.setAttribute('d', 'M-6 -6 L7 0 L-6 6 Z');
+    tri.setAttribute('d', 'M-20 -20 L23 0 L-20 20 Z');
     tri.setAttribute('fill', '#fff');
     tri.setAttribute('class', 'arrow');
     tri.setAttribute('opacity', '.95');
@@ -422,6 +584,12 @@ function completeStroke(){
   var s = strokeData[strokeIdx];
   s.prog.style.display = '';
   s.prog.style.strokeDasharray = 'none';
+  // NO ensanchar la mascara aca. Se probo (x1.22, para tapar el borde gris
+  // que deja el ancho fijo sobre un arte de ancho variable) y el remedio fue
+  // peor: en la A las dos diagonales terminaban tapando la barrita, asi que
+  // el chico veia la letra completa y el juego le pedia un trazo mas que ya
+  // no tenia nada que revelar. El borde gris que quede durante el trazado se
+  // limpia solo al completar la letra, cuando se suelta la mascara entera.
   s.g.classList.remove('active');
   s.g.classList.add('finished');
   s.dash.style.display = 'none';
@@ -457,6 +625,19 @@ function completeLetter(){
   var v = VOWELS[vIdx];
   if(done.indexOf(letraDe(v)) < 0){ done.push(letraDe(v)); saveDone(); }
   refreshChrome();
+  if(colorEl){
+    // el arte entero, sin ninguna mascara: asi no queda ningun resto
+    // apagado por mas que las tintas no cubran el 100% de la letra
+    colorEl.removeAttribute('mask');
+    colorEl.innerHTML = '';
+    var entero = document.createElementNS(SVG_NS, 'image');
+    entero.setAttribute('class', 'arte-color');
+    entero.setAttribute('x', '0'); entero.setAttribute('y', '0');
+    entero.setAttribute('width', '1000'); entero.setAttribute('height', '1000');
+    entero.setAttributeNS(XLINK_NS, 'href', forma(VOWELS[vIdx]).arte);
+    entero.setAttribute('href', forma(VOWELS[vIdx]).arte);
+    colorEl.appendChild(entero);
+  }
   promptEl.textContent = '¡Muy bien! 🎉';
   confetti(v.color);
   fanfare();
@@ -492,7 +673,7 @@ function startHand(){
       handEl.classList.remove('hide');
       var pt = s.road.getPointAtLength(Math.min(from + (to - from) * (t / dur), s.len));
       handEl.setAttribute('x', pt.x);
-      handEl.setAttribute('y', pt.y + 34);
+      handEl.setAttribute('y', pt.y + 115);
     }
     handRAF = requestAnimationFrame(frame);
   });

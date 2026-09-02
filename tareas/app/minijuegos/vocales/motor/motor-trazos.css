@@ -75,12 +75,18 @@ main{position:relative;z-index:2;flex:1 1 auto;min-height:0;display:flex;
   align-items:center;justify-content:center;padding:4px 8px}
 #stage{width:100%;height:100%;display:block;touch-action:none;overflow:visible}
 
-.road-edge{fill:none;stroke:#fff;stroke-width:46;stroke-linecap:round;stroke-linejoin:round}
-.road{fill:none;stroke:#CFC9DD;stroke-width:34;stroke-linecap:round;stroke-linejoin:round}
-.road.done{stroke:#BFB8D2}
-.dashes{fill:none;stroke:rgba(255,255,255,.95);stroke-width:3.2;stroke-linecap:round;
-  stroke-dasharray:9 13}
-.progress{fill:none;stroke-width:34;stroke-linecap:round;stroke-linejoin:round}
+/* El arte del disenador, en dos capas. La de abajo va desaturada: es el
+   estado "todavia no trazada". La de arriba, a color, la recorta la
+   mascara de revelado. Asi no hacen falta dos exports por letra. */
+.arte-gris{filter:grayscale(1) brightness(1.14) contrast(.88) opacity(.85)}
+.arte-color{}
+/* Contorno entregado por el disenador: no lleva filtro, ya viene apagado */
+.arte-contorno{}
+.revelado{fill:none;stroke:#fff;stroke-linecap:round;stroke-linejoin:round}
+
+/* Guias que van encima del arte */
+.dashes{fill:none;stroke:rgba(255,255,255,.9);stroke-width:9;stroke-linecap:round;
+  stroke-dasharray:26 38;filter:drop-shadow(0 1px 2px rgba(43,33,64,.45))}
 .stroke-g{opacity:.34;transition:opacity .3s}
 .stroke-g.active,.stroke-g.finished{opacity:1}
 
@@ -91,7 +97,7 @@ main{position:relative;z-index:2;flex:1 1 auto;min-height:0;display:flex;
 .face .mouth{fill:none;stroke:#2B2140;stroke-width:3.4;stroke-linecap:round}
 .face .cheek{fill:rgba(239,101,142,.45)}
 
-.hand{pointer-events:none;font-size:44px;transition:opacity .2s}
+.hand{pointer-events:none;font-size:130px;transition:opacity .2s}
 .hand.hide{opacity:0}
 
 /* ---------- selector de vocales ---------- */

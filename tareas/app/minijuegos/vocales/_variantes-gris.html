@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TukuToon · Variantes del estado apagado</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Comfortaa:wght@400;700&family=Plus+Jakarta+Sans:wght@600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;padding:0 0 70px;color:#fff;
+  font-family:'Comfortaa',system-ui,sans-serif;
+  background:linear-gradient(180deg,#6E4FD0 0%,#9B7BE8 48%,#CDBBF7 100%);
+  background-attachment:fixed;min-height:100vh;
+}
+header{max-width:1180px;margin:0 auto;padding:28px clamp(16px,4vw,40px) 4px}
+h1{font-family:'Fredoka',sans-serif;font-weight:600;margin:0 0 8px;
+  font-size:clamp(21px,4.4vw,31px);text-shadow:0 2px 0 rgba(0,0,0,.14)}
+.lead{font-size:clamp(12px,2.5vw,15px);opacity:.92;line-height:1.65;max-width:74ch;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.card{
+  background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);
+  border-radius:22px;padding:clamp(13px,2.4vw,20px);margin-top:18px;
+}
+.card h2{font-family:'Fredoka',sans-serif;font-weight:600;margin:0 0 3px;
+  font-size:clamp(15px,3vw,20px);display:flex;align-items:baseline;gap:9px;flex-wrap:wrap}
+.tag{font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:10.5px;
+  letter-spacing:.06em;background:#FFD84D;color:#2B2140;border-radius:20px;padding:3px 9px}
+.card p{margin:3px 0 12px;font-size:clamp(11px,2.3vw,13.5px);opacity:.9;line-height:1.55;max-width:78ch}
+.css{font-family:ui-monospace,Menlo,monospace;font-size:10.5px;opacity:.62;
+  margin:0 0 12px;word-break:break-all}
+.row{display:flex;gap:clamp(8px,2vw,20px);flex-wrap:wrap;align-items:flex-end}
+.cell{text-align:center}
+.cell svg{display:block;width:clamp(88px,17vw,132px);height:auto}
+.cell span{display:block;margin-top:4px;font-family:'Plus Jakarta Sans',sans-serif;
+  font-weight:600;font-size:9.5px;letter-spacing:.05em;opacity:.7;text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Cómo se ve la letra antes de trazarla</h1>
+  <p class="lead">
+    Seis tratamientos aplicados al mismo arte, sin pedir ninguna pieza nueva.
+    De cada uno vas a ver la letra apagada y la misma letra a medio trazar, que es
+    donde de verdad se juega: si el contraste entre lo apagado y lo revelado no es
+    claro, el chico no ve que está avanzando.
+  </p>
+</header>
+
+<div class="wrap" id="wrap"></div>
+
+<script>
+(function(){
+'use strict';
+var NS='http://www.w3.org/2000/svg', uid=0;
+
+/* mismos trazos y grosores que usa el juego */
+var LETRAS = {
+  'mayus-A':{ g:275, s:[
+    'M500 210 C420 300 320 420 285 545 C262 640 250 720 250 800',
+    'M500 210 C580 300 680 420 715 545 C738 640 750 720 750 800',
+    'M285 588 L715 588'] },
+  'minus-o':{ g:225, s:[
+    'M500 474 C420 474 354 543 354 630 C354 717 420 785 500 785 C580 785 647 717 647 630 C647 543 580 474 500 474'] },
+  'mayus-E':{ g:260, s:[
+    'M350 200 L350 758','M350 200 L700 200','M350 484 L560 484','M350 758 L700 758'] }
+};
+
+var VARIANTES = [
+  { id:'actual', nombre:'La que está puesta ahora', tag:'actual',
+    filtro:'grayscale(1) brightness(1.14) contrast(.88) opacity(.85)',
+    desc:'Gris neutro, bastante presente. Conserva los brillos y el sombreado del arte: se lee como la letra apagada, no como una letra vacía.' },
+
+  { id:'tenue', nombre:'Más tenue', tag:'',
+    filtro:'grayscale(1) brightness(1.3) contrast(.65) opacity(.5)',
+    desc:'El mismo gris pero más callado. El color revelado resalta muchísimo más, aunque la letra apagada casi se pierde contra el fondo violeta.' },
+
+  { id:'contorno', nombre:'Contorno simulado', tag:'sin arte nuevo',
+    filtro:'grayscale(1) brightness(1.75) contrast(3.2)',
+    desc:'Revienta el relleno a blanco y deja solo el contorno oscuro del dibujo. Es el intento de conseguir el efecto "libro para colorear" sin pedirle las diez piezas al diseñador.' },
+
+  { id:'contorno2', nombre:'Contorno simulado, más duro', tag:'sin arte nuevo',
+    filtro:'grayscale(1) brightness(2.1) contrast(5) opacity(.9)',
+    desc:'Lo mismo llevado al extremo. Más limpio como contorno, pero se come los detalles finos y las letras de trazo delgado pueden desaparecer.' },
+
+  { id:'violeta', nombre:'Tinte violeta', tag:'',
+    filtro:'grayscale(1) sepia(1) hue-rotate(212deg) saturate(1.7) brightness(.95) opacity(.75)',
+    desc:'En vez de gris neutro, un violeta apagado que vive en el mismo mundo que el fondo de la app. Se integra mejor, pero pierde algo de contraste contra ese mismo fondo.' },
+
+  { id:'hueco', nombre:'Blanco fantasma', tag:'',
+    filtro:'brightness(0) invert(1) opacity(.3)',
+    desc:'Silueta blanca translúcida. Es la que más se lee como "hueco esperando que lo llenen", pero pierde toda la forma interna: el agujero de la A y el de la o se notan menos.' }
+];
+
+var MUESTRAS = [
+  { letra:'mayus-A', prog:[0,0,0],     rotulo:'apagada' },
+  { letra:'mayus-A', prog:[1,.5,0],    rotulo:'a medio trazar' },
+  { letra:'minus-o', prog:[0],         rotulo:'apagada' },
+  { letra:'minus-o', prog:[.55],       rotulo:'a medio trazar' },
+  { letra:'mayus-E', prog:[1,1,.6,0],  rotulo:'a medio trazar' }
+];
+
+function el(t,a){ var n=document.createElementNS(NS,t); for(var k in a) n.setAttribute(k,a[k]); return n; }
+
+function render(variante, m){
+  var L = LETRAS[m.letra];
+  var svg = el('svg',{viewBox:'0 0 1000 1000'});
+  var defs = el('defs',{});
+  svg.appendChild(defs);
+
+  var mid = 'm'+(++uid);
+  var mask = el('mask',{id:mid, maskUnits:'userSpaceOnUse',
+                        x:'0', y:'0', width:'1000', height:'1000'});
+  defs.appendChild(mask);
+
+  // capa apagada
+  var gris = el('image',{x:'0',y:'0',width:'1000',height:'1000'});
+  gris.setAttribute('href','letras/'+m.letra+'-relleno.svg');
+  gris.style.filter = variante.filtro;
+  svg.appendChild(gris);
+
+  // capa a color, recortada por la mascara
+  var g = el('g',{mask:'url(#'+mid+')'});
+  var color = el('image',{x:'0',y:'0',width:'1000',height:'1000'});
+  color.setAttribute('href','letras/'+m.letra+'-relleno.svg');
+  g.appendChild(color);
+  svg.appendChild(g);
+
+  L.s.forEach(function(d,i){
+    var p = el('path',{d:d, fill:'none', stroke:'#fff',
+      'stroke-width':L.g, 'stroke-linecap':'round', 'stroke-linejoin':'round'});
+    mask.appendChild(p);
+    var pr = m.prog[i] !== undefined ? m.prog[i] : 0;
+    var largo = p.getTotalLength();
+    if(pr <= 0){ p.style.display = 'none'; }
+    else if(pr < 1){ p.style.strokeDasharray = (largo*pr) + ' ' + (largo+10); }
+  });
+
+  return svg;
+}
+
+var wrap = document.getElementById('wrap');
+VARIANTES.forEach(function(v){
+  var card = document.createElement('div'); card.className = 'card';
+  var h = document.createElement('h2'); h.textContent = v.nombre;
+  if(v.tag){ var t = document.createElement('span'); t.className='tag'; t.textContent=v.tag; h.appendChild(t); }
+  card.appendChild(h);
+  var p = document.createElement('p'); p.textContent = v.desc; card.appendChild(p);
+  var c = document.createElement('div'); c.className='css'; c.textContent='filter: '+v.filtro; card.appendChild(c);
+  var row = document.createElement('div'); row.className='row';
+  MUESTRAS.forEach(function(m){
+    var cell = document.createElement('div'); cell.className='cell';
+    cell.appendChild(render(v,m));
+    var s = document.createElement('span'); s.textContent = m.rotulo; cell.appendChild(s);
+    row.appendChild(cell);
+  });
+  card.appendChild(row);
+  wrap.appendChild(card);
+});
+
+})();
+</script>
+</body>
+</html>
