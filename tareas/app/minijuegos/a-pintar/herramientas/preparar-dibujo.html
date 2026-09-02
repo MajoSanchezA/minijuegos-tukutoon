@@ -1,0 +1,819 @@
+<!--
+  preparar-dibujo.html — herramienta interna (NO es parte del juego)
+  =================================================================
+  Se abre con doble clic, funciona sin servidor. Convierte el PNG de
+  línea que manda el diseñador en la página de colorear terminada, ya
+  con el base64 incrustado.
+
+  Por qué existe: motor.js lee los píxeles del dibujo con
+  getImageData(), y con file:// el navegador bloquea esa lectura si la
+  imagen viene de un archivo externo. Por eso imgSrc SIEMPRE va como
+  data:image/png;base64,... incrustado (ver CLAUDE.md). Pegar 170.000
+  caracteres a mano no es viable: esto lo hace solo.
+
+  Además valida el PNG contra GUIA-DISENADORES.md ANTES de que el
+  dibujo llegue al juego, replicando exactamente la lógica del motor
+  (umbral de luminancia 175 + flood fill de 4 vecinos). Si esos valores
+  cambian en motor.js, hay que cambiarlos acá también (THRESH).
+-->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Preparar dibujo — Colorea con TukuToon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Comfortaa:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#FFFDF6; --coral:#FF6F59; --sun:#FFC94A; --teal:#2EC4B6;
+  --plum:#3D2C4E; --plum-soft:#7A6A8A; --line:#E6DFEC;
+  --ok:#2E9E6B; --warn:#C98A00; --err:#D6455B;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0; padding:0 0 80px;
+  font-family:'Comfortaa',sans-serif; color:var(--plum);
+  background:#F4F0F8;
+}
+.wrap{max-width:1080px; margin:0 auto; padding:0 22px;}
+header.top{
+  background:linear-gradient(180deg,#fff,var(--cream));
+  border-bottom:1px solid var(--line); padding:26px 0 22px; margin-bottom:26px;
+}
+h1{font-family:'Fredoka',sans-serif; font-weight:700; font-size:26px; margin:0 0 6px;}
+h1 span{color:var(--coral);}
+.lede{margin:0; color:var(--plum-soft); font-size:13.5px; line-height:1.6; max-width:70ch;}
+section{
+  background:#fff; border:1px solid var(--line); border-radius:18px;
+  padding:22px 24px; margin-bottom:18px;
+}
+h2{
+  font-family:'Fredoka',sans-serif; font-weight:600; font-size:16px;
+  margin:0 0 4px; display:flex; align-items:center; gap:10px;
+}
+.step-n{
+  width:26px; height:26px; border-radius:50%; flex:none;
+  background:var(--teal); color:#fff; font-size:13px;
+  display:flex; align-items:center; justify-content:center;
+}
+h2 + .hint{margin:0 0 16px 36px;}
+.hint{color:var(--plum-soft); font-size:12.5px; line-height:1.6;}
+section[hidden]{display:none;}
+
+/* ---- paso 1: soltar el archivo ---- */
+#drop{
+  border:3px dashed #CFC4DC; border-radius:16px; padding:34px 20px;
+  text-align:center; cursor:pointer; background:#FBF9FD;
+  transition:background .15s ease, border-color .15s ease;
+}
+#drop:hover, #drop.over{background:#F1EAFA; border-color:var(--teal);}
+#drop .ico{font-size:38px;}
+#drop b{display:block; font-family:'Fredoka',sans-serif; font-weight:600; margin:8px 0 4px; font-size:15px;}
+#drop small{color:var(--plum-soft); font-size:12px;}
+.opts{display:flex; flex-wrap:wrap; gap:18px; margin-top:16px;}
+label.chk{display:flex; align-items:flex-start; gap:8px; font-size:12.5px; color:var(--plum-soft); max-width:44ch; cursor:pointer;}
+label.chk input{margin-top:2px; flex:none;}
+label.chk b{color:var(--plum); font-weight:700;}
+
+/* ---- paso 2: informe ---- */
+.verdict{
+  border-radius:14px; padding:14px 18px; margin-bottom:16px;
+  font-family:'Fredoka',sans-serif; font-weight:600; font-size:15px;
+}
+.verdict.ok{background:#E6F6EE; color:var(--ok);}
+.verdict.warn{background:#FFF5DE; color:var(--warn);}
+.verdict.err{background:#FDEAED; color:var(--err);}
+.verdict small{display:block; font-family:'Comfortaa',sans-serif; font-weight:600; font-size:12px; margin-top:5px; opacity:.85;}
+ul.checks{list-style:none; margin:0; padding:0;}
+ul.checks li{
+  display:flex; gap:11px; padding:11px 2px;
+  border-bottom:1px solid #F2EEF6; font-size:13px; line-height:1.55;
+}
+ul.checks li:last-child{border-bottom:none;}
+.dot{width:9px; height:9px; border-radius:50%; flex:none; margin-top:6px;}
+.dot.ok{background:var(--ok);} .dot.warn{background:var(--warn);} .dot.err{background:var(--err);}
+.checks b{display:block; font-weight:700; margin-bottom:1px;}
+.checks span{color:var(--plum-soft);}
+
+.preview-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:20px 0 10px;}
+.preview-head h3{font-family:'Fredoka',sans-serif; font-weight:600; font-size:14px; margin:0; flex:1;}
+.seg{display:flex; border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+.seg button{
+  border:none; background:#fff; color:var(--plum-soft); cursor:pointer;
+  font-family:'Comfortaa',sans-serif; font-weight:700; font-size:11.5px; padding:7px 13px;
+}
+.seg button.on{background:var(--plum); color:#fff;}
+#preview-box{
+  position:relative; border-radius:12px; overflow:hidden; border:1px solid var(--line);
+  background:repeating-conic-gradient(#EDE8F2 0% 25%, #F8F5FB 0% 50%) 50%/18px 18px;
+}
+#preview{display:block; width:100%; height:auto; cursor:crosshair;}
+#region-info{margin-top:9px; font-size:12.5px; color:var(--plum-soft); min-height:19px;}
+#region-info b{color:var(--plum);}
+
+/* ---- paso 3: datos ---- */
+.grid{display:grid; grid-template-columns:1fr 1fr; gap:14px 18px;}
+.f{display:flex; flex-direction:column; gap:5px;}
+.f.wide{grid-column:1 / -1;}
+.f label{font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:11.5px; color:var(--plum-soft);}
+.f label em{font-style:normal; font-weight:400; opacity:.75;}
+.f input[type=text]{
+  font-family:'Comfortaa',sans-serif; font-size:13px; color:var(--plum);
+  border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:#FCFBFD;
+}
+.f input:focus{outline:2px solid var(--teal); outline-offset:-1px;}
+.pal-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:9px;}
+.pal-sw{width:28px; height:28px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--line);}
+button.ghost{
+  border:1px solid var(--line); background:#fff; color:var(--plum);
+  font-family:'Comfortaa',sans-serif; font-weight:700; font-size:12px;
+  padding:9px 14px; border-radius:10px; cursor:pointer;
+}
+button.ghost:hover{background:#F7F3FB;}
+
+/* ---- paso 4: salida ---- */
+.out-actions{display:flex; flex-wrap:wrap; gap:10px; margin-bottom:18px;}
+button.cta{
+  border:none; border-radius:12px; padding:13px 20px; cursor:pointer;
+  font-family:'Fredoka',sans-serif; font-weight:600; font-size:14px; color:#fff;
+  background:linear-gradient(180deg,#FF8266,var(--coral)); box-shadow:0 4px 0 #C94A38;
+}
+button.cta.alt{background:linear-gradient(180deg,#3DD4C4,var(--teal)); box-shadow:0 4px 0 #219488;}
+button.cta:active{transform:translateY(2px); box-shadow:none;}
+button.cta:disabled{background:#D8D0E0; box-shadow:0 4px 0 #C2B8CE; cursor:not-allowed;}
+pre{
+  background:#2B2140; color:#EDE6F5; border-radius:12px; padding:15px 17px;
+  font-size:12px; line-height:1.65; overflow-x:auto; margin:0 0 10px;
+  font-family:'Consolas','Menlo',monospace; white-space:pre;
+}
+.saveto{
+  background:#FBF9FD; border:1px solid var(--line); border-radius:12px;
+  padding:14px 16px; font-size:12.5px; line-height:1.75; color:var(--plum-soft);
+}
+.saveto code{background:#EFEAF5; color:var(--plum); padding:1px 6px; border-radius:5px; font-size:11.5px;}
+.saveto b{color:var(--plum);}
+@media (max-width:640px){ .grid{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <h1>Preparar dibujo para <span>TukuToon</span></h1>
+  <p class="lede">
+    Herramienta interna. Soltá el PNG de línea que mandó el diseñador: se valida contra la
+    guía de entrega, se te muestran las zonas que el motor va a poder pintar, y te genera la
+    página lista para guardar — con la imagen ya incrustada, sin tocar base64 a mano.
+  </p>
+</div></header>
+
+<div class="wrap">
+
+  <section>
+    <h2><span class="step-n">1</span> El PNG del dibujo</h2>
+    <p class="hint">De línea, horizontal, fondo blanco, sin colorear.</p>
+    <div id="drop">
+      <div class="ico">🖼️</div>
+      <b>Arrastrá el PNG acá</b>
+      <small>o hacé clic para buscarlo</small>
+      <input type="file" id="file" accept="image/png,image/jpeg" hidden>
+    </div>
+    <div class="opts">
+      <label class="chk">
+        <input type="checkbox" id="opt-flat" checked>
+        <span><b>Aplanar sobre blanco.</b> Salva los PNG que vinieron con fondo
+        transparente — si no, el motor los lee como si todo el fondo fuera línea.</span>
+      </label>
+      <label class="chk">
+        <input type="checkbox" id="opt-resize" checked>
+        <span><b>Reescalar a 1500 px de ancho</b> si viene más grande. El motor recorre el
+        dibujo píxel por píxel: de más no sirve y se nota al abrir en tablets.</span>
+      </label>
+    </div>
+  </section>
+
+  <section id="sec-report" hidden>
+    <h2><span class="step-n">2</span> Revisión</h2>
+    <p class="hint">Esto es exactamente lo que va a ver el motor del juego.</p>
+    <div id="verdict" class="verdict"></div>
+    <ul class="checks" id="checks"></ul>
+
+    <div class="preview-head">
+      <h3>Vista previa</h3>
+      <div class="seg" id="seg">
+        <button data-view="zonas" class="on">Zonas</button>
+        <button data-view="lineas">Líneas detectadas</button>
+        <button data-view="original">Original</button>
+      </div>
+    </div>
+    <p class="hint" style="margin:0 0 10px;">
+      En <b>Zonas</b>, cada área que el balde puede rellenar por separado sale de un color
+      distinto. Si dos partes que deberían ser distintas salen del <b>mismo</b> color, hay un
+      contorno abierto entre las dos. Tocá cualquier zona para medirla.
+    </p>
+    <div id="preview-box"><canvas id="preview"></canvas></div>
+    <div id="region-info"></div>
+  </section>
+
+  <section id="sec-data" hidden>
+    <h2><span class="step-n">3</span> Datos del dibujo</h2>
+    <p class="hint">El nombre corto define la carpeta, el archivo y el id del menú.</p>
+    <div class="grid">
+      <div class="f">
+        <label for="in-id">Nombre corto <em>— minúsculas, sin acentos ni espacios</em></label>
+        <input type="text" id="in-id" placeholder="dinosaurio">
+      </div>
+      <div class="f">
+        <label for="in-nombre">Nombre en el menú</label>
+        <input type="text" id="in-nombre" placeholder="Dinosaurio">
+      </div>
+      <div class="f">
+        <label for="in-emoji">Emoji <em>— para la tarjeta y el emblema</em></label>
+        <input type="text" id="in-emoji" placeholder="🦕">
+      </div>
+      <div class="f">
+        <label for="in-titulo">Título del encabezado</label>
+        <input type="text" id="in-titulo" placeholder="Dinosaurio">
+      </div>
+      <div class="f wide">
+        <label for="in-sub">Texto de ayuda</label>
+        <input type="text" id="in-sub" placeholder="Colorea al dinosaurio — toca para rellenar, o dibuja libre con el pincel">
+      </div>
+      <div class="f wide">
+        <label for="in-pal">Paleta <em>— hex separados por coma. Vacío = paleta genérica del motor</em></label>
+        <input type="text" id="in-pal" placeholder="#B35D8A, #F9DBBC, #D64973, ...">
+        <div class="pal-row">
+          <button class="ghost" id="btn-sample">Muestrear del arte a color…</button>
+          <input type="file" id="file-color" accept="image/png,image/jpeg" hidden>
+          <div id="pal-preview" style="display:flex; gap:6px;"></div>
+        </div>
+        <p class="hint" style="margin:4px 0 0;">
+          Si el diseñador mandó la versión a color del mismo dibujo, cargala ahí y se sacan
+          solos los 9 colores principales.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-out" hidden>
+    <h2><span class="step-n">4</span> Listo para guardar</h2>
+    <p class="hint">Dos archivos y una línea de texto. Nada más.</p>
+    <div class="out-actions">
+      <button class="cta" id="btn-html" disabled>⬇ Descargar la página</button>
+      <button class="cta alt" id="btn-mini" disabled>⬇ Descargar la miniatura</button>
+      <button class="ghost" id="btn-copy" disabled>Copiar la entrada de paginas.js</button>
+    </div>
+    <pre id="snippet"></pre>
+    <div class="saveto" id="saveto"></div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  // Mismos valores que motor.js — si allá cambian, acá también.
+  var THRESH = 175;
+  var TARGET_W = 1500;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var A = null;              // resultado del análisis
+  var ultimoArchivo = null;
+
+  /* ---------------------------------------------------------------
+     Carga del archivo
+     --------------------------------------------------------------- */
+  var drop = $('drop'), fileInput = $('file');
+  drop.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(e){
+    if (e.target.files[0]) cargar(e.target.files[0]);
+  });
+  ['dragenter','dragover'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); });
+  });
+  drop.addEventListener('drop', function(e){
+    if (e.dataTransfer.files[0]) cargar(e.dataTransfer.files[0]);
+  });
+  $('opt-flat').addEventListener('change', reprocesar);
+  $('opt-resize').addEventListener('change', reprocesar);
+
+  function cargar(file){
+    ultimoArchivo = file;
+    drop.querySelector('b').textContent = file.name;
+    drop.querySelector('small').textContent = 'Procesando…';
+    var fr = new FileReader();
+    // Se lee como data: URL a propósito: un canvas pintado desde un
+    // data: URL NO queda "tainted", así que getImageData funciona
+    // aunque esta página se haya abierto con doble clic (file://).
+    fr.onload = function(){
+      var img = new Image();
+      img.onload = function(){
+        // setTimeout para que el navegador alcance a pintar "Procesando…"
+        // antes de bloquearse con el flood fill de un dibujo grande.
+        setTimeout(function(){ procesar(img, file); }, 30);
+      };
+      img.onerror = function(){
+        drop.querySelector('small').textContent = 'No se pudo leer la imagen.';
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  }
+  function reprocesar(){ if (ultimoArchivo) cargar(ultimoArchivo); }
+
+  /* ---------------------------------------------------------------
+     Pipeline: aplanar + reescalar -> analizar -> informe
+     --------------------------------------------------------------- */
+  function procesar(img, file){
+    var ow = img.naturalWidth, oh = img.naturalHeight;
+    var w = ow, h = oh, reescalado = false;
+    if ($('opt-resize').checked && ow > TARGET_W * 1.2) {
+      w = TARGET_W;
+      h = Math.round(oh * (TARGET_W / ow));
+      reescalado = true;
+    }
+
+    // La transparencia se mide sobre el ORIGINAL, antes de aplanar,
+    // para poder avisarla aunque la hayamos arreglado solos.
+    var probe = document.createElement('canvas');
+    probe.width = ow; probe.height = oh;
+    var pctx = probe.getContext('2d');
+    pctx.drawImage(img, 0, 0);
+    var pd = pctx.getImageData(0, 0, ow, oh).data;
+    var transp = 0;
+    for (var i = 3; i < pd.length; i += 4) if (pd[i] < 250) transp++;
+
+    var cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    var ctx = cv.getContext('2d');
+    if ($('opt-flat').checked) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, w, h); }
+    ctx.drawImage(img, 0, 0, w, h);
+
+    A = analizar(ctx.getImageData(0, 0, w, h), w, h);
+    A.canvas = cv;
+    A.ow = ow; A.oh = oh;
+    A.reescalado = reescalado;
+    A.pctTransp = transp / (ow * oh) * 100;
+    A.nombreArchivo = file.name;
+    A.dataUrl = cv.toDataURL('image/png');
+
+    drop.querySelector('small').textContent =
+      ow + ' × ' + oh + ' px' + (reescalado ? '  →  reescalado a ' + w + ' × ' + h : '');
+
+    informe();
+    dibujarPreview();
+    prefill();
+    $('sec-report').hidden = false;
+    $('sec-data').hidden = false;
+    $('sec-out').hidden = false;
+    actualizarSalida();
+    $('sec-report').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  // Réplica exacta de lo que hace motor.js: umbral de luminancia y
+  // flood fill de 4 vecinos con pila explícita.
+  function analizar(imgData, w, h){
+    var d = imgData.data, n = w * h;
+    var wall = new Uint8Array(n);
+    var muros = 0, medios = 0, alLimite = 0;
+    for (var i = 0, p = 0; p < n; i += 4, p++) {
+      var lum = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+      if (lum < THRESH) { wall[p] = 1; muros++; }
+      if (lum > 60 && lum < 200) medios++;
+      if (lum >= THRESH && lum < 215) alLimite++;
+    }
+
+    var labels = new Int32Array(n).fill(-1);
+    for (var k = 0; k < n; k++) if (wall[k]) labels[k] = -2;
+    var pixels = [], bounds = [], id = 0, stack = [];
+    for (var s = 0; s < n; s++) {
+      if (labels[s] !== -1) continue;
+      stack.length = 0; stack.push(s); labels[s] = id;
+      var count = 0, minX = w, minY = h, maxX = 0, maxY = 0;
+      while (stack.length) {
+        var idx = stack.pop(); count++;
+        var x = idx % w, y = (idx / w) | 0;
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+        var nb;
+        if (x > 0)     { nb = idx - 1; if (labels[nb] === -1) { labels[nb] = id; stack.push(nb); } }
+        if (x < w - 1) { nb = idx + 1; if (labels[nb] === -1) { labels[nb] = id; stack.push(nb); } }
+        if (y > 0)     { nb = idx - w; if (labels[nb] === -1) { labels[nb] = id; stack.push(nb); } }
+        if (y < h - 1) { nb = idx + w; if (labels[nb] === -1) { labels[nb] = id; stack.push(nb); } }
+      }
+      pixels.push(count);
+      bounds.push([minX, minY, maxX - minX + 1, maxY - minY + 1]);
+      id++;
+    }
+
+    // El "afuera" del dibujo es la zona que toca la esquina superior
+    // izquierda: es una zona pintable más, pero no cuenta como parte
+    // del personaje al medir la zona más grande.
+    var fondoId = labels[0] >= 0 ? labels[0] : -1;
+    var minLado = Math.max(Math.round(w / 25), 8);   // 60 px a 1500 de ancho
+    var motitas = 0, chicas = 0, pintables = 0, mayorInt = 0;
+    for (var r = 0; r < id; r++) {
+      if (pixels[r] < 30) { motitas++; continue; }
+      pintables++;
+      if (bounds[r][2] < minLado && bounds[r][3] < minLado) chicas++;
+      if (r !== fondoId && pixels[r] > mayorInt) mayorInt = pixels[r];
+    }
+    var areaPintable = n - muros;
+
+    return {
+      w:w, h:h, n:n, wall:wall, labels:labels, pixels:pixels, bounds:bounds,
+      areaPintable:areaPintable, regiones:id, fondoId:fondoId, minLado:minLado,
+      motitas:motitas, chicas:chicas, pintables:pintables,
+      pctMuros: muros / n * 100,
+      pctMedios: medios / n * 100,
+      pctLimite: alLimite / n * 100,
+      pctMayorInt: areaPintable > 0 ? mayorInt / areaPintable * 100 : 0
+    };
+  }
+
+  /* ---------------------------------------------------------------
+     Informe
+     --------------------------------------------------------------- */
+  function informe(){
+    var c = [];
+    var mp = A.n / 1e6;
+
+    if (A.pctTransp > 0.1) {
+      c.push($('opt-flat').checked
+        ? ['warn','El PNG venía con fondo transparente',
+           A.pctTransp.toFixed(1) + '% de los píxeles no eran opacos. Se aplanó sobre blanco, así que el dibujo funciona igual — pero pedile al diseñador que lo exporte con fondo blanco opaco: es el error que más rompe el juego.']
+        : ['err','Fondo transparente',
+           A.pctTransp.toFixed(1) + '% de los píxeles no son opacos. El motor lee el transparente como negro y toma todo el fondo como línea: el dibujo va a salir como un rectángulo negro. Activá "Aplanar sobre blanco" o pedí el PNG bien exportado.']);
+    } else {
+      c.push(['ok','Fondo opaco','Ni un píxel transparente. Perfecto.']);
+    }
+
+    var ratio = A.w / A.h;
+    if (ratio < 1) {
+      c.push(['err','El dibujo es vertical',
+        A.w + ' × ' + A.h + ' px (proporción ' + ratio.toFixed(2) + '). El juego se ve siempre apaisado y las barras van a los costados: un dibujo vertical queda chiquito en el medio con huecos grandes a los lados. Hay que pedirlo horizontal.']);
+    } else if (ratio < 1.2 || ratio > 1.8) {
+      c.push(['warn','Proporción fuera de lo recomendado',
+        ratio.toFixed(2) + ':1. Funciona, pero 3:2 (1.5) aprovecha mejor la pantalla.']);
+    } else {
+      c.push(['ok','Horizontal', A.w + ' × ' + A.h + ' px (proporción ' + ratio.toFixed(2) + ':1).']);
+    }
+
+    if (A.reescalado) {
+      c.push(['ok','Reescalado',
+        'Venía en ' + A.ow + ' × ' + A.oh + ' y se bajó a ' + A.w + ' × ' + A.h + '. Lo que ves acá es lo que se va a guardar.']);
+    } else if (mp > 2.5) {
+      c.push(['warn','Pesado para tablets',
+        mp.toFixed(1) + ' millones de píxeles. El motor los recorre uno por uno al abrir la página. Conviene activar el reescalado.']);
+    } else if (mp < 0.8) {
+      c.push(['warn','Resolución baja',
+        mp.toFixed(1) + ' millones de píxeles. Puede verse borroso en pantallas grandes.']);
+    } else {
+      c.push(['ok','Resolución adecuada', mp.toFixed(1) + ' millones de píxeles.']);
+    }
+
+    if (A.pctMuros < 1) {
+      c.push(['err','No se detectaron líneas',
+        'Solo el ' + A.pctMuros.toFixed(1) + '% del dibujo es más oscuro que el umbral. Las líneas deben ser negras o casi negras: si son grises claras, para el motor no existen y las zonas quedan abiertas.']);
+    } else if (A.pctMuros > 50) {
+      c.push(['err','Demasiado oscuro',
+        A.pctMuros.toFixed(1) + '% del dibujo cuenta como línea. Suele pasar cuando el fondo no es blanco o el PNG vino invertido.']);
+    } else {
+      c.push(['ok','Líneas detectadas', A.pctMuros.toFixed(1) + '% del dibujo es línea.']);
+    }
+
+    if (A.pctMedios > 10) {
+      c.push(['warn','Hay medios tonos',
+        A.pctMedios.toFixed(1) + '% del dibujo es gris intermedio. Si son sombras o degradados, los que sean más oscuros que el umbral quedan como manchas que el nene no va a poder pintar. Debería ser solo línea negra sobre blanco.']);
+    }
+    if (A.pctLimite > 3) {
+      c.push(['warn','Trazos al borde del umbral',
+        A.pctLimite.toFixed(1) + '% del dibujo es gris apenas más claro que el umbral: el motor lo ignora. Si son líneas, las zonas de al lado quedan conectadas entre sí.']);
+    }
+
+    if (A.pintables < 3) {
+      c.push(['err','Casi no hay zonas para pintar',
+        'Se detectaron ' + A.pintables + '. Suele significar que los contornos están abiertos y todo el dibujo terminó siendo una sola zona.']);
+    } else {
+      c.push(['ok','Zonas para pintar', A.pintables + ' zonas rellenables con el balde (contando el afuera del dibujo).']);
+    }
+
+    if (A.pctMayorInt > 45) {
+      c.push(['warn','Hay una zona muy grande',
+        'La zona más grande del dibujo ocupa el ' + A.pctMayorInt.toFixed(0) + '% del área pintable. Puede ser correcto, o puede ser un contorno abierto que unió varias partes. Miralo en la vista de Zonas.']);
+    }
+    if (A.chicas > 0) {
+      c.push(['warn','Zonas difíciles de tocar',
+        A.chicas + ' zona(s) miden menos de ' + A.minLado + ' × ' + A.minLado + ' px. Un dedo de 3 años no las acierta: conviene simplificar esos detalles o unirlos a la zona vecina.']);
+    }
+    if (A.motitas > 30) {
+      c.push(['warn','Export ruidoso',
+        A.motitas + ' motitas sueltas de menos de 30 píxeles, típicas de un export con mucho suavizado o de un dibujo rasterizado. No rompen nada, pero ensucian.']);
+    }
+
+    var errores = c.filter(function(x){ return x[0] === 'err'; }).length;
+    var avisos  = c.filter(function(x){ return x[0] === 'warn'; }).length;
+    var v = $('verdict');
+    if (errores) {
+      v.className = 'verdict err';
+      v.innerHTML = '✕ Este dibujo no va a funcionar bien' +
+        '<small>' + errores + ' problema(s) para resolver antes de subirlo. Igual podés generar la página para probar.</small>';
+    } else if (avisos) {
+      v.className = 'verdict warn';
+      v.innerHTML = '! Funciona, con reparos' +
+        '<small>' + avisos + ' aviso(s) para revisar. Nada que impida usarlo.</small>';
+    } else {
+      v.className = 'verdict ok';
+      v.innerHTML = '✓ El dibujo cumple con todo' +
+        '<small>Listo para generar la página.</small>';
+    }
+
+    $('checks').innerHTML = c.map(function(x){
+      return '<li><span class="dot ' + x[0] + '"></span><div><b>' + x[1] + '</b><span>' + x[2] + '</span></div></li>';
+    }).join('');
+  }
+
+  /* ---------------------------------------------------------------
+     Vista previa
+     --------------------------------------------------------------- */
+  var vista = 'zonas', resaltada = -1;
+  $('seg').addEventListener('click', function(e){
+    var b = e.target.closest('button'); if (!b) return;
+    vista = b.dataset.view;
+    [].forEach.call(this.children, function(x){ x.classList.toggle('on', x === b); });
+    resaltada = -1;
+    $('region-info').textContent = '';
+    dibujarPreview();
+  });
+
+  function dibujarPreview(){
+    var cv = $('preview'), w = A.w, h = A.h;
+    cv.width = w; cv.height = h;
+    var ctx = cv.getContext('2d');
+
+    if (vista === 'original') { ctx.drawImage(A.canvas, 0, 0); return; }
+
+    var out = ctx.createImageData(w, h), o = out.data;
+
+    if (vista === 'lineas') {
+      for (var p = 0, i = 0; p < A.n; p++, i += 4) {
+        var esMuro = A.wall[p];
+        o[i]   = esMuro ? 40 : 255;
+        o[i+1] = esMuro ? 30 : 255;
+        o[i+2] = esMuro ? 55 : 255;
+        o[i+3] = 255;
+      }
+      ctx.putImageData(out, 0, 0);
+      return;
+    }
+
+    // Zonas: un tono por región. El ángulo áureo hace que regiones con
+    // ids consecutivos (que suelen ser vecinas) queden bien distintas.
+    var cache = {};
+    for (var q = 0, j = 0; q < A.n; q++, j += 4) {
+      var id = A.labels[q];
+      if (id < 0) { o[j] = 40; o[j+1] = 30; o[j+2] = 55; o[j+3] = 255; continue; }
+      var col = cache[id];
+      if (!col) {
+        if (id === resaltada)      col = [255, 45, 130];
+        else if (id === A.fondoId) col = [244, 240, 248];
+        else                       col = hsl((id * 137.508) % 360, 0.62, 0.68);
+        cache[id] = col;
+      }
+      o[j] = col[0]; o[j+1] = col[1]; o[j+2] = col[2]; o[j+3] = 255;
+    }
+    ctx.putImageData(out, 0, 0);
+  }
+
+  function hsl(hDeg, s, l){
+    var c = (1 - Math.abs(2*l - 1)) * s, hp = hDeg / 60;
+    var x = c * (1 - Math.abs(hp % 2 - 1)), r = 0, g = 0, b = 0;
+    if (hp < 1)      { r = c; g = x; }
+    else if (hp < 2) { r = x; g = c; }
+    else if (hp < 3) { g = c; b = x; }
+    else if (hp < 4) { g = x; b = c; }
+    else if (hp < 5) { r = x; b = c; }
+    else             { r = c; b = x; }
+    var m = l - c / 2;
+    return [Math.round((r+m)*255), Math.round((g+m)*255), Math.round((b+m)*255)];
+  }
+
+  $('preview').addEventListener('click', function(e){
+    if (!A) return;
+    var r = this.getBoundingClientRect();
+    var x = Math.floor((e.clientX - r.left) / r.width * A.w);
+    var y = Math.floor((e.clientY - r.top) / r.height * A.h);
+    if (x < 0 || y < 0 || x >= A.w || y >= A.h) return;
+    var id = A.labels[y * A.w + x];
+    var info = $('region-info');
+    if (id < 0) { info.innerHTML = 'Ahí hay una <b>línea</b> — el balde no pinta encima.'; return; }
+    var b = A.bounds[id], px = A.pixels[id];
+    var pct = A.areaPintable > 0 ? px / A.areaPintable * 100 : 0;
+    info.innerHTML =
+      (id === A.fondoId ? '<b>El afuera del dibujo</b> — ' : '<b>Zona ' + id + '</b> — ') +
+      b[2] + ' × ' + b[3] + ' px · ' + px.toLocaleString('es') + ' píxeles · ' +
+      pct.toFixed(1) + '% del área pintable' +
+      (b[2] < A.minLado && b[3] < A.minLado ? ' · <b style="color:#C98A00">muy chica para un dedo</b>' : '');
+    if (vista === 'zonas') { resaltada = id; dibujarPreview(); }
+  });
+
+  /* ---------------------------------------------------------------
+     Datos + paleta
+     --------------------------------------------------------------- */
+  function prefill(){
+    if ($('in-id').value) return;
+    var base = A.nombreArchivo.replace(/\.[^.]+$/, '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    $('in-id').value = base;
+    var lindo = base.charAt(0).toUpperCase() + base.slice(1).replace(/-/g, ' ');
+    $('in-nombre').value = lindo;
+    $('in-titulo').value = lindo;
+    $('in-sub').value = 'Colorea a ' + lindo + ' — toca para rellenar, o dibuja libre con el pincel';
+  }
+  ['in-id','in-nombre','in-emoji','in-titulo','in-sub','in-pal'].forEach(function(id){
+    $(id).addEventListener('input', actualizarSalida);
+  });
+
+  $('btn-sample').addEventListener('click', function(){ $('file-color').click(); });
+  $('file-color').addEventListener('change', function(e){
+    var f = e.target.files[0]; if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      var im = new Image();
+      im.onload = function(){ $('in-pal').value = muestrear(im).join(', '); actualizarSalida(); };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(f);
+  });
+
+  // Cuantiza a una grilla de 32 niveles por canal, cuenta, y elige los
+  // más frecuentes descartando los que se parecen demasiado entre sí.
+  function muestrear(img){
+    var W = 260, H = Math.max(1, Math.round(img.naturalHeight * (260 / img.naturalWidth)));
+    var cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    var ctx = cv.getContext('2d');
+    ctx.drawImage(img, 0, 0, W, H);
+    var d = ctx.getImageData(0, 0, W, H).data, cuenta = {};
+    for (var i = 0; i < d.length; i += 4) {
+      if (d[i+3] < 200) continue;
+      var lum = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+      if (lum > 248) continue;                       // el blanco del papel no es paleta
+      var key = ((d[i] >> 3) << 10) | ((d[i+1] >> 3) << 5) | (d[i+2] >> 3);
+      cuenta[key] = (cuenta[key] || 0) + 1;
+    }
+    var orden = Object.keys(cuenta).sort(function(a, b){ return cuenta[b] - cuenta[a]; });
+    var elegidos = [];
+    for (var k = 0; k < orden.length && elegidos.length < 9; k++) {
+      var key2 = +orden[k];
+      var c = [((key2 >> 10) & 31) * 8 + 4, ((key2 >> 5) & 31) * 8 + 4, (key2 & 31) * 8 + 4];
+      var lejos = elegidos.every(function(e){
+        return Math.abs(e[0]-c[0]) + Math.abs(e[1]-c[1]) + Math.abs(e[2]-c[2]) > 90;
+      });
+      if (lejos) elegidos.push(c);
+    }
+    return elegidos.map(function(c){
+      return '#' + c.map(function(v){
+        return ('0' + Math.min(255, v).toString(16)).slice(-2);
+      }).join('').toUpperCase();
+    });
+  }
+
+  function leerPaleta(){
+    var raw = $('in-pal').value.trim();
+    if (!raw) return null;
+    var cols = raw.split(/[,\s]+/)
+      .map(function(s){ return s.trim().toUpperCase(); })
+      .filter(function(s){ return /^#[0-9A-F]{6}$/.test(s); });
+    return cols.length ? cols : null;
+  }
+
+  /* ---------------------------------------------------------------
+     Salida
+     --------------------------------------------------------------- */
+  function esc(s){ return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+
+  function armarHtml(){
+    var id = $('in-id').value.trim() || 'dibujo';
+    var titulo = $('in-titulo').value.trim() || id;
+    var sub = $('in-sub').value.trim() || 'Toca para rellenar con el balde, o dibuja libre con el pincel';
+    var emoji = $('in-emoji').value.trim();
+    var pal = leerPaleta();
+
+    var cfg = [];
+    cfg.push("    title: '" + esc(titulo) + "',");
+    cfg.push("    titleHtml: '" + esc(titulo) + " de <span>TukuToon</span>',");
+    cfg.push("    subtitle: '" + esc(sub) + "',");
+    if (emoji) cfg.push("    badgeEmoji: '" + esc(emoji) + "',");
+    if (pal)   cfg.push("    palette: ['" + pal.join("','") + "'],");
+    cfg.push('    imgSrc: "' + A.dataUrl + '",');
+    cfg.push("    menuHref: '../../menu.html',");
+    cfg.push("    bgSrc: '../../fondo-dibujo.png'");
+
+    // La etiqueta de cierre de script va armada por concatenación: si
+    // estuviera escrita entera acá adentro (ni siquiera dentro de un
+    // comentario, como pasó al escribir esto), el navegador la leería
+    // como el cierre del bloque de script de ESTA página y cortaría el
+    // código justo ahí.
+    var cierre = '<' + '/script>';
+    return [
+      '<!DOCTYPE html>',
+      '<html lang="es">',
+      '<head>',
+      '<meta charset="UTF-8">',
+      '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">',
+      '<title>Colorea con TukuToon — ' + titulo + '</title>',
+      '<link rel="preconnect" href="https://fonts.googleapis.com">',
+      '<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Comfortaa:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">',
+      '<link rel="stylesheet" href="../../motor/motor.css">',
+      '</head>',
+      '<body>',
+      '<script src="../../motor/motor.js">' + cierre,
+      '<script>',
+      '  TukuToonColorPage({',
+      cfg.join('\n'),
+      '  });',
+      cierre,
+      '</body>',
+      '</html>',
+      ''
+    ].join('\n');
+  }
+
+  function actualizarSalida(){
+    if (!A) return;
+    var id = $('in-id').value.trim();
+    var ok = /^[a-z0-9-]+$/.test(id);
+    $('btn-html').disabled = !ok;
+    $('btn-mini').disabled = !ok;
+    $('btn-copy').disabled = !ok;
+
+    var nombre = $('in-nombre').value.trim() || id;
+    var emoji = $('in-emoji').value.trim();
+    var l = ['  {', "    id: '" + id + "',", "    nombre: '" + esc(nombre) + "',"];
+    if (emoji) l.push("    emoji: '" + esc(emoji) + "',");
+    l.push("    miniatura: 'paginas/" + id + "/" + id + ".png',");
+    l.push("    url: 'paginas/" + id + "/colorea-tukutoon-" + id + ".html'");
+    l.push('  }');
+    $('snippet').textContent = l.join('\n');
+
+    var pal = leerPaleta();
+    $('pal-preview').innerHTML = (pal || []).map(function(c){
+      return '<span class="pal-sw" style="background:' + c + '"></span>';
+    }).join('');
+
+    $('saveto').innerHTML = ok
+      ? 'Creá la carpeta <code>paginas/' + id + '/</code> y guardá adentro los dos archivos que ' +
+        'bajaste. Después pegá la entrada de arriba dentro de <code>PAGINAS</code>, en ' +
+        '<code>paginas.js</code> — y listo, aparece en el menú. <b>No hace falta tocar ' +
+        'menu.html, script.js ni el motor.</b>'
+      : '<b>El nombre corto solo puede tener minúsculas, números y guiones</b> — es el nombre ' +
+        'de la carpeta y de los archivos.';
+  }
+
+  function bajar(blob, nombre){
+    var a = document.createElement('a');
+    var url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 3000);
+  }
+
+  $('btn-html').addEventListener('click', function(){
+    bajar(new Blob([armarHtml()], { type:'text/html;charset=utf-8' }),
+          'colorea-tukutoon-' + $('in-id').value.trim() + '.html');
+  });
+
+  // La miniatura del menú es una <img> común, no un canvas: puede ser
+  // un archivo externo y bastante más chica que el dibujo.
+  $('btn-mini').addEventListener('click', function(){
+    var id = $('in-id').value.trim();
+    var mw = 600, mh = Math.round(A.h * (600 / A.w));
+    var cv = document.createElement('canvas');
+    cv.width = mw; cv.height = mh;
+    var ctx = cv.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, mw, mh);
+    ctx.drawImage(A.canvas, 0, 0, mw, mh);
+    cv.toBlob(function(b){ bajar(b, id + '.png'); }, 'image/png');
+  });
+
+  $('btn-copy').addEventListener('click', function(){
+    var self = this;
+    navigator.clipboard.writeText($('snippet').textContent).then(function(){
+      self.textContent = '¡Copiado!';
+      setTimeout(function(){ self.textContent = 'Copiar la entrada de paginas.js'; }, 1600);
+    });
+  });
+})();
+</script>
+</body>
+</html>
