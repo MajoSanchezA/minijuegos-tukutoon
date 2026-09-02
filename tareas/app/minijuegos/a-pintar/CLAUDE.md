@@ -31,6 +31,9 @@ a-pintar/
 │                             # (sin el violeta ni el lápiz), fondo de `.paper` en
 │                             # motor.css (ver más abajo)
 ├── CLAUDE.md                # este archivo
+├── GUIA-DISENADORES.md      # spec de entrega de los PNG de linea, para mandarle
+│                             # al equipo de diseno (formato, tamano, errores que rompen
+│                             # el juego, checklist)
 │
 ├── css/
 │   └── style.css           # estilos del menú/index (NO del motor de dibujo)
@@ -43,6 +46,12 @@ a-pintar/
 │
 ├── plantillas/
 │   └── plantilla-horizontal.html   # molde para crear una página de colorear nueva
+│                                   # (queda como referencia del formato; el flujo
+│                                   # normal ahora usa herramientas/preparar-dibujo.html)
+│
+├── herramientas/            # utilidades internas, NO son parte del juego
+│   └── preparar-dibujo.html # se abre con doble clic: valida el PNG del diseñador y
+│                            # genera la página de colorear con el base64 ya incrustado
 │
 └── paginas/                 # una carpeta por dibujo (autocontenida)
     ├── aida/
@@ -173,18 +182,30 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
 
 ## Flujo para agregar un dibujo nuevo
 
-1. Crear una carpeta nueva dentro de `paginas/` con el nombre del dibujo, ej. `paginas/dinosaurio/`.
-2. Copiar `plantillas/plantilla-horizontal.html` dentro de esa carpeta y renombrarlo.
-3. Preparar el PNG de línea: horizontal (3:2 o 4:3 recomendado), fondo blanco opaco (NO
-   transparente), líneas negras cerradas de 6-10px. Ponerlo en la misma carpeta que el HTML.
-4. En `TukuToonColorPage({...})` de ese HTML, poner `imgSrc` como `data:image/png;base64,...`
-   (NO como nombre de archivo — ver por qué en "Cómo funciona el motor" más arriba), y ajustar
-   `title`/`titleHtml`, `subtitle` y, si hace falta, `palette` propia.
-5. Sumar un objeto a `PAGINAS` en `paginas.js` (`id`, `nombre`, `miniatura`, `url`, `emoji`
-   opcional) para que aparezca en el menú. No hace falta tocar `menu.html` ni `js/script.js`.
+El PNG de línea lo prepara el equipo de diseño siguiendo `GUIA-DISENADORES.md` (ese archivo
+está escrito para mandárselo tal cual: formato, tamaño, los errores que rompen el juego y una
+checklist). Con el PNG en la mano:
 
-No hay todavía una herramienta de vectorización/preparación de assets (tipo la de otros
-prototipos de TukuToon) — los PNG de línea se preparan a mano antes de este flujo.
+1. Abrir `herramientas/preparar-dibujo.html` con doble clic y soltar el PNG adentro.
+2. Leer la revisión que devuelve. Mirar la vista de **Zonas**: cada área que el balde puede
+   rellenar por separado sale de un color distinto, así que dos partes que deberían ser
+   distintas y salen del mismo color = contorno abierto → se rebota al diseñador.
+3. Completar nombre corto, título, emoji y paleta (si el diseñador mandó la versión a color,
+   el botón "Muestrear del arte a color" saca los 9 colores principales solo).
+4. Bajar los dos archivos que genera, crear `paginas/<nombre-corto>/` y guardarlos ahí.
+5. Pegar la entrada que da la herramienta dentro de `PAGINAS`, en `paginas.js`. No hace falta
+   tocar `menu.html`, `js/script.js` ni el motor.
+
+La herramienta se encarga sola de las dos cosas que antes se hacían a mano y eran fáciles de
+olvidar: incrustar el PNG como `data:image/png;base64,...` (obligatorio, ver "Cómo funciona el
+motor" más arriba) y aplanar sobre blanco los PNG que hayan venido con fondo transparente.
+
+`preparar-dibujo.html` replica la lógica del motor (umbral de luminancia `175` + flood fill de
+4 vecinos) para que la revisión coincida con lo que el juego va a hacer de verdad. **Si esos
+valores cambian en `motor.js`, hay que cambiarlos también en la herramienta** (`THRESH`).
+
+Si por algún motivo hace falta armar la página a mano, `plantillas/plantilla-horizontal.html`
+sigue ahí con el formato de referencia y los pasos explicados en sus comentarios.
 
 ## Pendientes conocidos
 
@@ -194,4 +215,10 @@ prototipos de TukuToon) — los PNG de línea se preparan a mano antes de este f
 - Sello de textura/patrón como herramienta extra (rayas, puntos, estrellas…).
 - Solo hay tres dibujos cargados (Aida, Ana, Tuku) — falta sumar más personajes siguiendo
   el flujo de arriba.
+- Los tres dibujos actuales no cumplen la spec de `GUIA-DISENADORES.md`: Aida (720×755) y Ana
+  (1904×2082) son **verticales**, y el layout es horizontal — quedan chicos y centrados con
+  huecos grandes a los lados. Además Ana (4,0 MP) y Tuku (3,7 MP) son ~7× más pesados que Aida
+  (0,5 MP) para `buildRegions()`, que recorre píxel por píxel al abrir. Conviene volver a
+  pedirlos horizontales a 1500×1000, o al menos pasarlos por `herramientas/preparar-dibujo.html`
+  con el reescalado activado.
 - Juego de trazos (tracing): sin empezar, pendiente de las plantillas de trayectorias.
