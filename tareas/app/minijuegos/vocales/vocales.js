@@ -35,15 +35,18 @@ var VOCALES = [
       'M80 340 L225 340'      // barra de abajo
     ], face:{x:160,y:130,s:.78} },
     minus:{ strokes:[
-      // un solo trazo que se cruza a si mismo: barrita, vuelta completa y salida
-      'M84 240 L216 240 C216 190 186 150 150 150 C114 150 84 190 84 240 C84 290 114 330 150 330 C177 330 200 313 212 289'
+      // 1: la barrita horizontal, de izquierda a derecha
+      'M84 240 L216 240',
+      // 2: desde el extremo derecho de la barrita, la vuelta completa en
+      //    contra del reloj. Partida en dos, el trazo ya no se cruza a si mismo.
+      'M216 240 C216 190 186 150 150 150 C114 150 84 190 84 240 C84 290 114 330 150 330 C177 330 200 313 212 289'
     ], face:{x:150,y:283,s:.52} } },
 
   { letter:'I', color:'#2EC4B6', emoji:'🦎', word:'Iguana',
     mayus:{ strokes:[
-      'M88 60 L212 60',       // barra de arriba
-      'M150 60 L150 340',     // palito vertical
-      'M88 340 L212 340'      // barra de abajo
+      'M150 60 L150 340',     // 1: el palito vertical, de arriba abajo
+      'M88 60 L212 60',       // 2: barra de arriba
+      'M88 340 L212 340'      // 3: barra de abajo
     ], face:{x:150,y:205,s:.54} },
     minus:{ strokes:[
       'M150 180 L150 330'     // solo el palito...
