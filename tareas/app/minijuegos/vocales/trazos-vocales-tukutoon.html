@@ -14,13 +14,18 @@
 <script src="vocales.js"></script>
 <script src="motor/motor-trazos.js"></script>
 <script>
+  // Que vocal mostrar sale de la URL: menu.html enlaza a ?vocal=A, ?vocal=E...
+  // Sin el parametro, la pagina cae al modo viejo — las cinco con el selector
+  // de abajo — que sigue sirviendo para probar todo de una.
+  var pedida = (location.search.match(/[?&]vocal=([AEIOUaeiou])/) || [])[1];
+
   TukuToonTracePage({
     letras: VOCALES,
+    vocal: pedida || null,
+    menuHref: 'menu.html',
     titulo: 'TukuToon',
-    subtitulo: 'TRAZA LAS VOCALES'
-    // menuHref: '../a-pintar/menu.html',   // cuando haya menu comun
-    // caso: 'minus',                       // para arrancar en minusculas
-    // tolerancia: 46                       // subir si cuesta con dedos chicos
+    subtitulo: pedida ? 'LA VOCAL ' + pedida.toUpperCase() : 'TRAZA LAS VOCALES'
+    // tolerancia: 150   // subir si cuesta con dedos chicos
   });
 </script>
 

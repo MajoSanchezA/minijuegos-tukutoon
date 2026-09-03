@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>TukuToon · Las vocales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Comfortaa:wght@400;700&family=Plus+Jakarta+Sans:wght@600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overscroll-behavior:none}
+body{
+  /* 100dvh, nunca 100vh: el chrome dinamico del navegador movil corta la pantalla */
+  height:100vh; height:100dvh;
+  font-family:'Comfortaa',system-ui,-apple-system,sans-serif;
+  color:#2B2140;
+  background:linear-gradient(180deg,#6E4FD0 0%,#9B7BE8 48%,#CDBBF7 100%);
+  overflow:hidden;
+  display:flex; flex-direction:column;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* ---------- nubes ---------- */
+.sky{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.cloud{position:absolute;background:rgba(255,255,255,.45);border-radius:100px}
+.cloud::before,.cloud::after{content:'';position:absolute;background:inherit;border-radius:100px}
+.cloud::before{width:55%;height:150%;left:12%;top:-70%}
+.cloud::after{width:40%;height:120%;right:14%;top:-50%}
+.c1{width:150px;height:52px;top:8%;left:-30%;animation:drift 54s linear infinite}
+.c2{width:105px;height:38px;top:74%;left:-30%;animation:drift 70s linear infinite 9s;opacity:.7}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(170vw)}}
+
+/* ---------- encabezado ---------- */
+header{
+  position:relative;z-index:3;flex:0 0 auto;text-align:center;
+  padding:clamp(8px,2.4vh,20px) 16px clamp(4px,1vh,8px);
+}
+h1{
+  font-family:'Fredoka',sans-serif;font-weight:600;color:#fff;
+  font-size:clamp(18px,5vw,30px);margin:0;line-height:1.1;
+  text-shadow:0 2px 0 rgba(0,0,0,.14);
+}
+h1 small{
+  display:block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;
+  font-size:.46em;opacity:.85;letter-spacing:.06em;margin-top:2px;
+}
+
+/* ---------- el pizarron ---------- */
+main{
+  position:relative;z-index:2;flex:1 1 auto;min-height:0;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 clamp(8px,2.5vw,26px) clamp(6px,1.6vh,16px);
+}
+.pizarron{
+  /* Proporcion fija: las vocales van posicionadas en porcentajes, asi que el
+     pizarron tiene que conservar su forma o la distribucion se deforma. */
+  position:relative;aspect-ratio:16/10;
+  width:100%;max-width:min(100%, calc((100dvh - 150px) * 1.6));
+  max-height:100%;
+  background:linear-gradient(180deg,#FFFDF7 0%,#F6F1E6 100%);
+  border-radius:clamp(12px,2.2vw,22px);
+  box-shadow:0 clamp(6px,1.4vw,12px) 0 rgba(43,33,64,.28),
+             inset 0 0 0 clamp(4px,1vw,9px) #FFF,
+             inset 0 0 0 clamp(8px,1.8vw,16px) #C9B08A;
+}
+/* la bandeja del pizarron, como la de los marcadores */
+.pizarron::after{
+  content:'';position:absolute;left:6%;right:6%;bottom:clamp(-11px,-2vw,-7px);
+  height:clamp(7px,1.5vw,13px);border-radius:0 0 8px 8px;
+  background:linear-gradient(180deg,#C9B08A,#A98D66);
+  box-shadow:0 3px 0 rgba(43,33,64,.22);
+}
+
+/* ---------- cada vocal, suelta sobre el pizarron ---------- */
+.vocal{
+  position:absolute;display:flex;flex-direction:column;align-items:center;gap:2px;
+  text-decoration:none;color:inherit;cursor:pointer;touch-action:manipulation;
+  transition:transform .14s;
+}
+.vocal:active{transform:scale(.93) rotate(0deg) !important}
+.vocal:focus-visible{outline:4px solid #FFD84D;outline-offset:6px;border-radius:14px}
+.vocal .par{display:flex;align-items:flex-end;justify-content:center;width:100%}
+.vocal img{display:block;width:50%;height:auto;aspect-ratio:1;object-fit:contain}
+.vocal .palabra{
+  font-family:'Fredoka',sans-serif;font-weight:600;color:var(--c);
+  font-size:clamp(10px,1.9vw,15px);white-space:nowrap;
+  display:flex;align-items:center;gap:4px;margin-top:-6%;
+}
+.vocal .estrellas{
+  position:absolute;top:-4%;right:2%;font-size:clamp(11px,2vw,17px);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));
+}
+
+/* Distribucion suelta, no en fila. Cada una con su leve inclinacion, como
+   letras magneticas pegadas en el pizarron por una mano de tres anos. */
+.v-A{left:2%;  top:6%;  width:30%; transform:rotate(-3deg)}
+.v-E{left:35%; top:15%; width:29%; transform:rotate(2deg)}
+.v-I{left:70%; top:4%;  width:25%; transform:rotate(-2deg)}
+.v-O{left:9%;  top:52%; width:30%; transform:rotate(3deg)}
+.v-U{left:47%; top:55%; width:29%; transform:rotate(-2deg)}
+
+/* ---------- pie ---------- */
+footer{
+  position:relative;z-index:3;flex:0 0 auto;text-align:center;
+  padding:clamp(8px,1.6vh,14px) 16px max(8px,env(safe-area-inset-bottom));
+}
+.reinicio{
+  border:none;background:rgba(255,255,255,.22);color:#fff;
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:12px;
+  letter-spacing:.04em;border-radius:20px;padding:7px 16px;cursor:pointer;
+  touch-action:manipulation;
+}
+.reinicio:active{background:rgba(255,255,255,.32)}
+
+/* En vertical (el celular parado) un pizarron apaisado desperdicia media
+   pantalla: se hace mas alto que ancho y las vocales se reparten en zigzag. */
+@media (orientation:portrait){
+  .pizarron{aspect-ratio:5/7;max-width:min(100%, calc((100dvh - 150px) * 0.714))}
+  .v-A{left:1%;  top:3%;  width:50%; transform:rotate(-3deg)}
+  .v-E{left:48%; top:18%; width:48%; transform:rotate(2deg)}
+  .v-I{left:6%;  top:37%; width:40%; transform:rotate(-2deg)}
+  .v-O{left:45%; top:53%; width:50%; transform:rotate(3deg)}
+  .v-U{left:3%;  top:72%; width:48%; transform:rotate(-2deg)}
+  .vocal .palabra{font-size:clamp(11px,3vw,16px)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .cloud{animation:none !important}
+  .vocal{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="sky" aria-hidden="true">
+  <div class="cloud c1"></div><div class="cloud c2"></div>
+</div>
+
+<header>
+  <h1>Las vocales<small>ELEGÍ UNA PARA TRAZARLA</small></h1>
+</header>
+
+<main><div class="pizarron" id="pizarron"></div></main>
+
+<footer><button class="reinicio" id="reinicio">Empezar de nuevo</button></footer>
+
+<script src="vocales.js"></script>
+<script>
+(function(){
+'use strict';
+
+var STORE_KEY = 'tukutoon:vocales:completadas';
+
+function hechas(){
+  try{
+    var raw = localStorage.getItem(STORE_KEY);
+    var a = raw ? JSON.parse(raw) : [];
+    return Array.isArray(a) ? a : [];
+  }catch(e){ return []; }
+}
+
+function pintar(){
+  var listas = hechas();
+  var box = document.getElementById('pizarron');
+  box.innerHTML = '';
+
+  VOCALES.forEach(function(v){
+    var may = v.letter, min = v.letter.toLowerCase();
+    var nMay = listas.indexOf(may) >= 0, nMin = listas.indexOf(min) >= 0;
+
+    var a = document.createElement('a');
+    a.className = 'vocal v-' + may;
+    a.href = 'trazos-vocales-tukutoon.html?vocal=' + may;
+    a.style.setProperty('--c', v.color);
+    a.setAttribute('aria-label',
+      'Vocal ' + may + ' ' + min + ', ' + v.word +
+      (nMay && nMin ? '. Completa' : (nMay || nMin) ? '. A medias' : ''));
+
+    // Las dos formas juntas: que el chico vea desde el menu que la A y la a
+    // son la misma vocal. A color si ya la hizo, en contorno si no — asi el
+    // pizarron es tambien el mapa de lo que lleva hecho.
+    var par = document.createElement('div');
+    par.className = 'par';
+    [[v.mayus, nMay, may], [v.minus, nMin, min]].forEach(function(f){
+      var img = document.createElement('img');
+      img.src = f[1] ? f[0].arte : (f[0].contorno || f[0].arte);
+      img.alt = f[2];
+      par.appendChild(img);
+    });
+    a.appendChild(par);
+
+    var p = document.createElement('div');
+    p.className = 'palabra';
+    p.innerHTML = '<span>' + v.emoji + '</span>' + v.word;
+    a.appendChild(p);
+
+    if(nMay || nMin){
+      var e = document.createElement('div');
+      e.className = 'estrellas';
+      e.textContent = (nMay && nMin) ? '⭐⭐' : '⭐';
+      a.appendChild(e);
+    }
+
+    box.appendChild(a);
+  });
+}
+
+document.getElementById('reinicio').addEventListener('click', function(){
+  try{ localStorage.removeItem(STORE_KEY); }catch(e){}
+  pintar();
+});
+
+// al volver del juego (incluso desde el cache de atras) se repinta el progreso
+window.addEventListener('pageshow', pintar);
+pintar();
+
+})();
+</script>
+
+</body>
+</html>

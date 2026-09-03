@@ -21,6 +21,10 @@
      caso       'mayus' | 'minus' con que arranca   (default 'mayus')
      storeKey   clave de localStorage del progreso  (default abajo)
      tolerancia radio de perdon del trazo, en unidades del viewBox (default 46)
+     vocal      si viene (ej. 'A'), la pagina muestra SOLO esa vocal y encadena
+                sus dos formas: primero la mayuscula, y al terminarla pasa sola
+                a la minuscula. Es el modo que usa el menu. Sin `vocal`, la
+                pagina muestra las cinco con el selector de abajo.
 
    COMO FUNCIONA EL TRAZADO
    - Cada trazo es un path abierto que se muestrea cada SAMPLE_STEP unidades
@@ -36,6 +40,16 @@
      display:none y aparece recien cuando hay avance real.
    - El punto de la i minuscula no es un trazo (un punto no tiene largo):
      se resuelve como un toque, ver `esperandoPunto`.
+
+   QUE VE EL CHICO MIENTRAS TRAZA
+   El dedo NO va destapando la letra de a poco. Lo que se pinta detras del
+   dedo es la LINEA GUIA (`rastro`): la raya punteada se va llenando del
+   color de la vocal a medida que el chico avanza. La figura de la letra
+   aparece de golpe recien cuando el trazo esta completo.
+
+   Es a proposito: la linea es lo que el chico esta siguiendo, asi que es
+   ahi donde tiene que ver que va bien; y que la letra se pinte entera de
+   una sirve de premio y marca con claridad que ese trazo termino.
 
    COMO SE REVELA EL COLOR
    El arte va en dos capas: abajo el estado apagado, arriba el color,
@@ -64,6 +78,15 @@ function TukuToonTracePage(cfg){
   cfg = cfg || {};
 
   var VOWELS = cfg.letras || global.VOCALES;
+  // Modo "una vocal": la vista muestra la A y la a juntas, encadenadas. El
+  // vinculo entre mayuscula y minuscula no es obvio a los 2-5 anos, y verlas
+  // como dos caras de la misma vocal es justamente lo que hay que ensenar.
+  var unaSola = false;
+  if(cfg.vocal && VOWELS){
+    var solo = VOWELS.filter(function(v){
+      return v.letter.toUpperCase() === String(cfg.vocal).toUpperCase(); });
+    if(solo.length){ VOWELS = solo; unaSola = true; }
+  }
   if(!VOWELS || !VOWELS.length){
     document.body.innerHTML = '<p style="font:16px sans-serif;padding:24px">' +
       'No llegaron las letras: falta cargar vocales.js antes que el motor.</p>';
@@ -232,6 +255,26 @@ function buildStars(){
 function buildPicker(){
   var box = document.getElementById('picker');
   box.innerHTML = '';
+
+  if(unaSola){
+    // el par de la vocal: A y a, con la activa marcada y la hecha con tilde
+    var v0 = VOWELS[0];
+    [['mayus', v0.letter], ['minus', v0.letter.toLowerCase()]].forEach(function(par){
+      var b = document.createElement('button');
+      var hecha = done.indexOf(par[1]) >= 0;
+      b.className = 'vbtn par' + (caso === par[0] ? ' sel' : '') + (hecha ? ' done' : '');
+      b.style.setProperty('--c', v0.color);
+      b.textContent = par[1];
+      b.setAttribute('aria-label', (par[0] === 'mayus' ? 'May\u00fascula ' : 'Min\u00fascula ') + par[1]);
+      b.addEventListener('click', function(){
+        if(caso === par[0]) return;
+        hideCard(); caso = par[0]; loadVowel(0);
+      });
+      box.appendChild(b);
+    });
+    return;
+  }
+
   VOWELS.forEach(function(v, i){
     var b = document.createElement('button');
     b.className = 'vbtn' + (i === vIdx ? ' sel' : '') + (done.indexOf(letraDe(v)) >= 0 ? ' done' : '');
@@ -249,6 +292,8 @@ function refreshChrome(){
   buildPicker();
   cardEl.style.setProperty('--c', VOWELS[vIdx].color);
   var cb = document.getElementById('caso-btn');
+  // en modo una vocal el flujo encadena las dos formas: el boton sobra
+  cb.style.display = unaSola ? 'none' : '';
   cb.textContent = caso === 'mayus' ? 'Aa' : 'aA';
   cb.className = 'icon-btn caso-btn' + (caso === 'minus' ? ' min' : '');
 }
@@ -364,6 +409,11 @@ function loadVowel(i){
     g.setAttribute('class', 'stroke-g' + (si === 0 ? ' active' : ''));
 
     var dash = mkPath(d, 'dashes');
+    // El rastro va DEBAJO del punteado: la raya blanca queda encima del
+    // color, como la linea del medio de una calle recien pintada.
+    var rastro = mkPath(d, 'rastro');
+    rastro.setAttribute('stroke', v.color);
+    g.appendChild(rastro);
     g.appendChild(dash);
     gRoot.appendChild(g);
 
@@ -433,24 +483,58 @@ function loadVowel(i){
     rev.style.strokeDasharray = '0 ' + (len + 10);
     rev.style.display = 'none';   // linecap round revela un punto con largo 0
 
-    strokeData.push({ g:g, prog:rev, road:rev, dash:dash, len:len,
-                      samples:samples, grosor:(F.grosor || 240) });
+    rastro.style.strokeDasharray = '0 ' + (len + 10);
+    rastro.style.display = 'none';   // linecap round pinta un punto con largo 0
+
+    strokeData.push({ g:g, prog:rev, road:rev, dash:dash, rastro:rastro,
+                      len:len, samples:samples, grosor:(F.grosor || 240) });
   });
 
   addArrows();
 
-  // punto de la i minuscula: aparece apagado y se enciende recien cuando
-  // el palito esta trazado (ver completeStroke)
+  /* Punto de la i. Antes se dibujaba con circulos propios encima del arte,
+     y como el contorno del disenador YA trae su punto, quedaban los dos
+     superpuestos: un pegote gris tapando el dibujo. Ahora el punto apagado
+     es el del contorno, y al tocarlo se revela su tinta igual que un trazo.
+     Lo unico dibujado es el aro que late, para que se note que hay que
+     tocarlo ahi. */
   if(F.punto){
     var pt = F.punto;
+
+    if(F.tintaPunto){
+      var mPt = document.createElementNS(SVG_NS, 'mask');
+      mPt.setAttribute('id', 'punto-' + maskSeq);
+      mPt.setAttribute('maskUnits', 'userSpaceOnUse');
+      mPt.setAttribute('x', '-100'); mPt.setAttribute('y', '-100');
+      mPt.setAttribute('width', '1200'); mPt.setAttribute('height', '1200');
+      var imPt = document.createElementNS(SVG_NS, 'image');
+      imPt.setAttribute('x', '0'); imPt.setAttribute('y', '0');
+      imPt.setAttribute('width', '1000'); imPt.setAttribute('height', '1000');
+      imPt.setAttributeNS(XLINK_NS, 'href', F.tintaPunto);
+      imPt.setAttribute('href', F.tintaPunto);
+      imPt.setAttribute('filter', 'url(#' + dilId + ')');
+      mPt.appendChild(imPt);
+      defs.appendChild(mPt);
+
+      var capaPt = document.createElementNS(SVG_NS, 'g');
+      capaPt.setAttribute('mask', 'url(#punto-' + maskSeq + ')');
+      capaPt.style.display = 'none';
+      var imgPt = document.createElementNS(SVG_NS, 'image');
+      imgPt.setAttribute('class', 'arte-color');
+      imgPt.setAttribute('x', '0'); imgPt.setAttribute('y', '0');
+      imgPt.setAttribute('width', '1000'); imgPt.setAttribute('height', '1000');
+      imgPt.setAttributeNS(XLINK_NS, 'href', F.arte);
+      imgPt.setAttribute('href', F.arte);
+      capaPt.appendChild(imgPt);
+      gColor.appendChild(capaPt);
+      puntoEl = capaPt;
+    }
+
     var pg = document.createElementNS(SVG_NS, 'g');
     pg.setAttribute('class', 'punto-g');
     pg.innerHTML =
-      '<circle class="punto-edge" cx="' + pt.x + '" cy="' + pt.y + '" r="' + (pt.r + 6) + '"/>' +
-      '<circle class="punto-base" cx="' + pt.x + '" cy="' + pt.y + '" r="' + pt.r + '"/>' +
-      '<circle class="punto-halo" cx="' + pt.x + '" cy="' + pt.y + '" r="' + (pt.r + 4) + '"/>';
+      '<circle class="punto-halo" cx="' + pt.x + '" cy="' + pt.y + '" r="' + (pt.r + 10) + '"/>';
     svg.appendChild(pg);
-    puntoEl   = pg.querySelector('.punto-base');
     puntoHalo = pg.querySelector('.punto-halo');
   }
 
@@ -490,8 +574,8 @@ function addArrows(){
     var b = s.road.getPointAtLength(s.len);
     var ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI;
     var tri = document.createElementNS(SVG_NS, 'path');
-    tri.setAttribute('d', 'M-20 -20 L23 0 L-20 20 Z');
-    tri.setAttribute('fill', '#fff');
+    tri.setAttribute('d', 'M-13 -13 L15 0 L-13 13 Z');
+    tri.setAttribute('fill', 'rgba(48,34,86,.6)');
     tri.setAttribute('class', 'arrow');
     tri.setAttribute('opacity', '.95');
     tri.setAttribute('transform', 'translate(' + b.x + ' ' + b.y + ') rotate(' + ang + ')');
@@ -512,17 +596,33 @@ function toSvg(evt){
 }
 function dist2(a, b){ var dx = a.x - b.x, dy = a.y - b.y; return dx * dx + dy * dy; }
 
+/* El perdon no puede ser mayor que el propio trazo: si TOL (150) supera al
+   largo, cualquier punto del trazo queda al alcance desde cualquier otro y
+   el trazo se puede dar por hecho sin recorrerlo. Pasa en los trazos cortos
+   — el palito de la i mide 176 y la barrita de la e, 175. */
+function tolDe(s){
+  return Math.min(TOL, Math.max(70, s.len * 0.6));
+}
+
 function paintProgress(){
   var s = strokeData[strokeIdx]; if(!s) return;
   var l = s.samples[sampleIdx].l;
-  s.prog.style.display = l > 0 ? '' : 'none';
-  s.prog.style.strokeDasharray = l + ' ' + (s.len + 10);
+  // Se pinta la LINEA, no la letra. La mascara del arte (s.prog) se queda
+  // en cero hasta que el trazo este completo — ver completeStroke.
+  s.rastro.style.display = l > 0 ? '' : 'none';
+  s.rastro.style.strokeDasharray = l + ' ' + (s.len + 10);
 }
 
 function advance(p){
   var s = strokeData[strokeIdx]; if(!s) return;
-  var top = Math.min(sampleIdx + LOOKAHEAD, s.samples.length - 1);
-  var best = -1, tol2 = TOL * TOL;
+  // El tope de avance no puede superar una fraccion del propio trazo. En
+  // los trazos cortos LOOKAHEAD queda mas largo que el trazo entero (la
+  // barra del medio de la E mide 134 unidades y LOOKAHEAD permite 168), y
+  // entonces un solo toque lo completaba de una.
+  var tope = Math.max(2, Math.min(LOOKAHEAD, Math.floor(s.samples.length * 0.35)));
+  var top = Math.min(sampleIdx + tope, s.samples.length - 1);
+  var tolS = tolDe(s);
+  var best = -1, tol2 = tolS * tolS;
   for(var i = sampleIdx; i <= top; i++){
     if(dist2(p, s.samples[i]) <= tol2){ best = i; }  // la mas avanzada dentro de la tolerancia
   }
@@ -544,7 +644,7 @@ function onDown(e){
     if(dist2(q, pu) <= (pu.r + TOL) * (pu.r + TOL)){
       esperandoPunto = false;
       puntoHalo.classList.remove('on');
-      puntoEl.style.fill = VOWELS[vIdx].color;
+      if(puntoEl) puntoEl.style.display = '';
       pop(760, .18);
       sparkles(pu, VOWELS[vIdx].color);
       completeLetter();
@@ -555,7 +655,7 @@ function onDown(e){
 
   var s = strokeData[strokeIdx]; if(!s) return;
   var p = toSvg(e);
-  var startTol = TOL * 1.25;
+  var startTol = tolDe(s) * 1.25;
   if(dist2(p, s.samples[sampleIdx]) <= startTol * startTol){
     drawing = true;
     stopHand();
@@ -592,7 +692,9 @@ function completeStroke(){
   // limpia solo al completar la letra, cuando se suelta la mascara entera.
   s.g.classList.remove('active');
   s.g.classList.add('finished');
+  // el trazo ya esta hecho: se van las guias y queda la letra pintada
   s.dash.style.display = 'none';
+  s.rastro.style.display = 'none';
   var ar = s.g.querySelector('.arrow'); if(ar){ ar.style.display = 'none'; }
   s.road.classList.add('done');
   drawing = false;
@@ -638,9 +740,23 @@ function completeLetter(){
     entero.setAttribute('href', forma(VOWELS[vIdx]).arte);
     colorEl.appendChild(entero);
   }
-  promptEl.textContent = '¡Muy bien! 🎉';
   confetti(v.color);
   fanfare();
+
+  if(unaSola && caso === 'mayus' && v.minus){
+    // Termino la mayuscula: se festeja corto y pasa sola a la minuscula.
+    // La tarjeta con la palabra se guarda para el final, cuando estan las dos:
+    // asi el premio es de la vocal completa, no de media.
+    promptEl.textContent = '¡Muy bien! Ahora la chiquita';
+    setTimeout(function(){ speak(v.letter); }, 380);
+    setTimeout(function(){
+      caso = 'minus';
+      loadVowel(0);
+    }, 1500);
+    return;
+  }
+
+  promptEl.textContent = '¡Muy bien! 🎉';
   setTimeout(function(){ speak(v.letter); }, 420);
   setTimeout(function(){ speak(v.word); }, 1250);
   setTimeout(showCard, 900);
@@ -673,7 +789,7 @@ function startHand(){
       handEl.classList.remove('hide');
       var pt = s.road.getPointAtLength(Math.min(from + (to - from) * (t / dur), s.len));
       handEl.setAttribute('x', pt.x);
-      handEl.setAttribute('y', pt.y + 115);
+      handEl.setAttribute('y', pt.y + 92);
     }
     handRAF = requestAnimationFrame(frame);
   });
@@ -769,6 +885,9 @@ function showCard(){
   document.getElementById('card-emoji').textContent = v.emoji;
   document.getElementById('card-word').innerHTML =
     '<b>' + letraDe(v) + '</b>' + v.word.slice(1).toLowerCase();
+  if(unaSola && cfg.menuHref){
+    document.getElementById('btn-next').innerHTML = 'Al men\u00fa \u2192';
+  }
   cardEl.classList.add('show');
 }
 function hideCard(){ cardEl.classList.remove('show'); }
@@ -777,7 +896,9 @@ document.getElementById('btn-again').addEventListener('click', function(e){
   e.stopPropagation(); hideCard(); loadVowel(vIdx);
 });
 document.getElementById('btn-next').addEventListener('click', function(e){
-  e.stopPropagation(); hideCard(); loadVowel((vIdx + 1) % VOWELS.length);
+  e.stopPropagation();
+  if(unaSola && cfg.menuHref){ location.href = cfg.menuHref; return; }
+  hideCard(); loadVowel((vIdx + 1) % VOWELS.length);
 });
 cardEl.addEventListener('click', function(e){
   if(e.target === cardEl){ hideCard(); loadVowel((vIdx + 1) % VOWELS.length); }
@@ -799,6 +920,8 @@ window.addEventListener('resize', function(){
 });
 document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
 
+  // en modo una vocal se arranca siempre por la mayuscula
+  if(unaSola) caso = 'mayus';
   loadVowel(0);
 
 

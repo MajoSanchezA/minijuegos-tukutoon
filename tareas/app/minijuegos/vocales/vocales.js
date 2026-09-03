@@ -5,170 +5,156 @@
    doble clic (file://) como servida por http, sin depender de fetch().
 
    SISTEMA DE COORDENADAS: 1000 x 1000, el mismo lienzo en el que el
-   disenador exporto el arte. Todas las letras comparten linea de base
-   (y ~ 885) y estan centradas en x = 500.
+   disenador exporto el arte. Las diez letras estan centradas en x = 500 y
+   apoyadas en la misma linea de base.
 
    Cada forma (mayus / minus) tiene:
-     arte     el SVG del disenador, que se muestra en gris (sin trazar)
-              y a color (revelado por donde ya paso el dedo).
-     strokes  las lineas de trazado. NUNCA se ven: solo manejan por donde
-              va el dedo, cuanto color se revela y donde se para la manita.
-              Estan medidas contra el arte real, pasando por el centro de
-              cada trazo — se verificaron muestreandolas contra el mapa de
-              opacidad del PNG (cero puntos fuera de la letra).
-     grosor   ancho de la mascara de revelado, en unidades del viewBox.
-              Un poco mas ancho que el trazo del arte, para que el color
-              lo cubra entero incluido el contorno.
-     punto    solo la i: el puntito no es un trazo (un punto no tiene
-              largo, no se puede recorrer). Se toca. Ver el motor.
-     caja     el viewBox con que se muestra esa forma. Las minusculas
-              viven en la mitad de abajo del lienzo, asi que si se
-              mostraran con el lienzo entero quedarian al 59% del tamano
-              de una mayuscula: correcto tipograficamente, pero un blanco
-              innecesariamente chico para un dedo de 3 anos. Con su propio
-              encuadre quedan al 86% — se siguen leyendo mas chicas, pero
-              se pueden trazar. El arte y las lineas escalan juntos porque
-              comparten el mismo sistema de coordenadas.
+     arte      el PNG a color: es lo que se ve cuando el trazo esta hecho.
+     contorno  la letra hueca: el estado "todavia sin trazar".
+     tintas    la tinta de cada trazo por separado. Con esto la mascara de
+               revelado es exacta — cubre justo ese trazo y ni un pixel de
+               los vecinos. Sin tintas el motor cae al modo viejo (una
+               linea de ancho fijo sobre el eje), que deja borde sin cubrir
+               y se mete en los trazos de al lado.
+     strokes   los ejes de trazado. NUNCA se ven: manejan por donde va el
+               dedo, cuanto se pinta de la linea guia y donde se para la
+               manita.
+     grosor    ancho de la mascara de avance. Con `tintas` puede ser
+               generoso: la tinta lo recorta igual.
+     punto     solo la i: el puntito no es un trazo (un punto no tiene
+               largo, no se puede recorrer). Se toca.
 
-   El ORDEN de `strokes` es el orden de escritura, y el sentido de cada
-   path es la direccion en la que hay que trazarlo. Coincide con la lamina
-   de referencia: A(3) E(4) I(3) O(1) U(1) · a(2) e(2) i(1+punto) o(1) u(2).
+   DE DONDE SALEN LOS EJES
+   No estan dibujados a ojo ni calcados de una tipografia: se extrajeron
+   del propio arte. Para cada tinta se calcula la distancia de cada pixel
+   al borde y se camina por la cresta —el centro del trazo— sondeando tres
+   pasos hacia adelante para no cortarse en las curvas. Las veinte se
+   verificaron muestreandolas contra el mapa de opacidad: cero puntos fuera
+   de la letra. Si el disenador cambia el arte, se vuelven a extraer; no
+   hace falta redibujarlos.
+
+   El ORDEN de `strokes` sigue la numeracion t1, t2... del disenador, y el
+   sentido de cada path es la direccion en que hay que trazarlo.
    ===================================================================== */
 var VOCALES = [
 
-<<<<<<< Updated upstream
-  { letter:'E', color:'#EF658E', emoji:'🐘', word:'Elefante',
-    mayus:{ strokes:[
-      'M80 60 L80 340',       // palito vertical
-      'M80 60 L225 60',       // barra de arriba
-      'M80 200 L205 200',     // barra del medio
-      'M80 340 L225 340'      // barra de abajo
-    ], face:{x:160,y:130,s:.78} },
-    minus:{ strokes:[
-      // 1: la barrita horizontal, de izquierda a derecha
-      'M84 240 L216 240',
-      // 2: desde el extremo derecho de la barrita, la vuelta completa en
-      //    contra del reloj. Partida en dos, el trazo ya no se cruza a si mismo.
-      'M216 240 C216 190 186 150 150 150 C114 150 84 190 84 240 C84 290 114 330 150 330 C177 330 200 313 212 289'
-    ], face:{x:150,y:283,s:.52} } },
-
-  { letter:'I', color:'#2EC4B6', emoji:'🦎', word:'Iguana',
-    mayus:{ strokes:[
-      'M150 60 L150 340',     // 1: el palito vertical, de arriba abajo
-      'M88 60 L212 60',       // 2: barra de arriba
-      'M88 340 L212 340'      // 3: barra de abajo
-    ], face:{x:150,y:205,s:.54} },
-    minus:{ strokes:[
-      'M150 180 L150 330'     // solo el palito...
-    ], punto:{x:150,y:126,r:26},   // ...el punto no se traza, se toca
-      face:{x:150,y:255,s:.5} } },
-=======
-  { letter:'A', color:'#FCCC54', emoji:'🐝', word:'Abeja',
+  { letter:'A', color:'#FCCC4C', emoji:'🐝', word:'Abeja',
     mayus:{
-      caja:'0 0 1000 1000',
       arte:'letras/mayus-A.png',
       contorno:'letras/mayus-A-contorno.png',
-      // La tinta de cada trazo, entregada por el disenador. Con esto la
-      // mascara es exacta, asi que el grosor puede ser generoso: la tinta
-      // lo recorta igual y no invade los trazos vecinos.
       tintas:['letras/mayus-A-t1.png','letras/mayus-A-t2.png','letras/mayus-A-t3.png'],
       grosor:420,
       strokes:[
-        // 1: diagonal izquierda, DE ABAJO HACIA ARRIBA — arranca en el pie
-        //    izquierdo y sube hasta la punta. Asi lo marco el disenador con
-        //    el punto de arranque en su guia, y es mejor para chicos chicos:
-        //    el trazo 1 termina en la punta y el trazo 2 arranca ahi mismo,
-        //    sin tener que volver a ubicar el dedo en un punto lejano.
-        //    (Los lados de esta A son curvos, no rectos.)
-        'M250 800 C250 720 262 640 285 545 C320 420 420 300 500 210',
-        // 2: diagonal derecha, igual
-        'M500 210 C580 300 680 420 715 545 C738 640 750 720 750 800',
+        // 1: diagonal izquierda, DE ABAJO HACIA ARRIBA — del pie a la punta.
+        //    Lo marco asi el disenador con el punto de arranque, y encadena
+        //    con el trazo 2, que sale de esa misma punta: el chico sube por
+        //    un lado y baja por el otro sin reubicar el dedo.
+        'M210 791 L491 206',
+        // 2: diagonal derecha, de la punta hacia abajo
+        'M570 327 L774 764',
         // 3: la barrita, de izquierda a derecha
-        'M285 588 L715 588'
+        'M341 620 L647 619'
       ] },
     minus:{
-      caja:'155 330 690 690', arte:'letras/minus-a-relleno.svg', grosor:232,
+      arte:'letras/minus-a.png',
+      contorno:'letras/minus-a-contorno.png',
+      tintas:['letras/minus-a-t1.png','letras/minus-a-t2.png'],
+      grosor:380,
       strokes:[
-        // Un solo trazo: el ovalo, arrancando arriba y en contra del reloj.
-        //
-        // La caligrafia parte la `a` en dos (ovalo + palito derecho), y asi
-        // estaba antes. Pero en ESTE arte la panza y el palito son la misma
-        // tinta: el lado derecho del ovalo ES el palito. Al trazar la panza
-        // se revelaba la letra entera y el segundo trazo se quedaba sin nada
-        // que pintar — el chico veia la `a` terminada y el juego le pedia
-        // otro trazo igual.
-        //
-        // Si el disenador dibuja el palito sobresaliendo un poco de la panza
-        // (como la colita de la u), vuelve a tener territorio propio y esto
-        // se parte en dos otra vez.
-        'M500 534 C420 534 354 594 354 668 C354 742 420 803 500 803 C580 803 646 742 646 668 C646 594 580 534 500 534'
+        // 1: la panza, arrancando arriba y en contra del reloj (anillo cerrado)
+        'M471 373 L396 397 L351 426 L318 463 L285 523 L274 573 L273 622 L282 669 L296 707 L344 770 L379 797 L416 816 L465 828 L511 829 L534 826 L574 809 L615 778 L653 733 L671 696 L684 652 L688 581 L678 530 L662 486 L626 437 L583 403 L548 382 L471 373',
+        // 2: el palito derecho, de arriba hacia abajo. Tiene tinta propia
+        //    (el disenador la separo), asi que le queda algo para revelar.
+        'M728 393 L731 797'
       ] } },
 
-  { letter:'E', color:'#CC5444', emoji:'🐘', word:'Elefante',
+  { letter:'E', color:'#E45444', emoji:'🐘', word:'Elefante',
     mayus:{
-      caja:'0 0 1000 1000', arte:'letras/mayus-E-relleno.svg', grosor:270,
+      arte:'letras/mayus-E.png',
+      contorno:'letras/mayus-E-contorno.png',
+      tintas:['letras/mayus-E-t1.png','letras/mayus-E-t2.png',
+              'letras/mayus-E-t3.png','letras/mayus-E-t4.png'],
+      grosor:420,
       strokes:[
-        'M350 200 L350 758',   // 1: el palito vertical, de arriba abajo
-        'M350 200 L700 200',   // 2: barra de arriba
-        'M350 484 L560 484',   // 3: barra del medio (mas corta que las otras)
-        'M350 758 L700 758'    // 4: barra de abajo
+        'M292 220 L292 781',            // 1: el palito
+        'M381 194 L697 194',            // 2: barra de arriba
+        'M367 494 L561 493',                     // 3: barra del medio
+        'M381 805 L705 804'    // 4: barra de abajo
       ] },
     minus:{
-      caja:'155 330 690 690', arte:'letras/minus-e-relleno.svg', grosor:236,
+      arte:'letras/minus-e.png',
+      contorno:'letras/minus-e-contorno.png',
+      tintas:['letras/minus-e-t1.png','letras/minus-e-t2.png'],
+      grosor:380,
       strokes:[
         // 1: la barrita horizontal, de izquierda a derecha
-        'M363 654 L637 654',
-        // 2: desde ese extremo derecho, la vuelta completa en contra del
-        //    reloj. Partida en dos, el trazo no se cruza a si mismo.
-        'M637 654 C637 573 575 507 500 507 C425 507 363 573 363 654 C363 735 425 801 500 801 C555 801 600 770 620 725'
+        'M339 602 L712 595',
+        // 2: desde ese extremo, la vuelta en contra del reloj y salida abajo
+        'M710 471 L698 448 L664 408 L603 374 L533 361 L462 367 L400 388 L344 431 L313 473 L288 536 L284 629 L291 675 L316 734 L333 758 L369 794 L428 826 L504 843 L578 841 L657 824'
       ] } },
->>>>>>> Stashed changes
 
-  { letter:'I', color:'#946CCC', emoji:'🦎', word:'Iguana',
+  { letter:'I', color:'#A46CCC', emoji:'🦎', word:'Iguana',
     mayus:{
-      caja:'0 0 1000 1000', arte:'letras/mayus-I-relleno.svg', grosor:290,
+      arte:'letras/mayus-I.png',
+      contorno:'letras/mayus-I-contorno.png',
+      tintas:['letras/mayus-I-t1.png','letras/mayus-I-t2.png','letras/mayus-I-t3.png'],
+      grosor:420,
       strokes:[
-        'M500 204 L500 785',   // 1: el palito, de arriba abajo
-        'M370 204 L630 204',   // 2: barra de arriba
-        'M370 785 L630 785'    // 3: barra de abajo
+        'M500 220 L498 776',    // 1: el palito, de arriba abajo
+        'M426 193 L567 193',    // 2: barra de arriba
+        'M426 804 L567 803'     // 3: barra de abajo
       ] },
     minus:{
-      caja:'155 330 690 690', arte:'letras/minus-i-relleno.svg', grosor:242,
+      arte:'letras/minus-i.png',
+      contorno:'letras/minus-i-contorno.png',
+      tintas:['letras/minus-i-t1.png'],
+      grosor:380,
       strokes:[
-        'M500 614 L500 790'    // 1: solo el palito...
+        'M512 388 L512 792'     // 1: solo el palito...
       ],
-      punto:{ x:500, y:409, r:95 }   // ...el punto no se traza, se toca
-    } },
+      // ...el punto no se traza, se toca. El disenador lo mando como pieza
+      // aparte (minus-i-t2.png); de ahi salen el centro y el radio.
+      punto:{ x:513, y:166, r:78 },
+      tintaPunto:'letras/minus-i-t2.png' } },
 
-  { letter:'O', color:'#F49444', emoji:'🐻', word:'Oso',
+  { letter:'O', color:'#F48C34', emoji:'🐻', word:'Oso',
     mayus:{
-      caja:'0 0 1000 1000', arte:'letras/mayus-O-relleno.svg', grosor:282,
+      arte:'letras/mayus-O.png',
+      contorno:'letras/mayus-O-contorno.png',
+      tintas:['letras/mayus-O-t1.png'],
+      grosor:420,
       strokes:[
         // una sola vuelta: arranca arriba y gira en contra del reloj
-        'M500 228 C365 228 255 345 255 489 C255 633 365 750 500 750 C635 750 745 633 745 489 C745 345 635 228 500 228'
+        'M483 186 L433 194 L392 207 L351 229 L313 256 L265 306 L238 351 L212 417 L204 468 L203 518 L215 590 L233 638 L269 698 L299 729 L332 756 L392 790 L443 805 L491 811 L559 805 L600 793 L661 761 L712 716 L742 680 L773 619 L791 557 L796 488 L786 420 L771 373 L736 310 L703 273 L666 241 L616 212 L547 192 L483 186'
       ] },
     minus:{
-      caja:'155 330 690 690', arte:'letras/minus-o-relleno.svg', grosor:236,
+      arte:'letras/minus-o.png',
+      contorno:'letras/minus-o-contorno.png',
+      tintas:['letras/minus-o-t1.png'],
+      grosor:380,
       strokes:[
-        'M500 474 C420 474 354 543 354 630 C354 717 420 785 500 785 C580 785 647 717 647 630 C647 543 580 474 500 474'
+        'M491 360 L441 368 L399 383 L355 410 L318 446 L278 517 L267 568 L266 613 L275 663 L289 702 L333 762 L373 794 L410 813 L462 829 L513 832 L562 822 L606 806 L671 757 L705 711 L723 666 L732 616 L732 568 L715 501 L694 463 L666 428 L620 393 L577 373 L491 360'
       ] } },
 
-  { letter:'U', color:'#64CCDC', emoji:'🍇', word:'Uvas',
+  { letter:'U', color:'#04CCDC', emoji:'🍇', word:'Uvas',
     mayus:{
-      caja:'0 0 1000 1000', arte:'letras/mayus-U-relleno.svg', grosor:310,
+      arte:'letras/mayus-U.png',
+      contorno:'letras/mayus-U-contorno.png',
+      tintas:['letras/mayus-U-t1.png'],
+      grosor:420,
       strokes:[
-        // un solo trazo: baja por la izquierda, dobla abajo y sube por la
-        // derecha. Los lados de esta U se abren hacia abajo.
-        'M316 240 C280 350 245 440 241 530 C238 650 350 763 500 763 C650 763 762 650 759 530 C755 440 720 350 684 240'
+        // un solo trazo: baja por la izquierda, dobla abajo y sube por la derecha
+        'M254 203 L254 523 L261 594 L274 646 L313 719 L353 760 L402 789 L484 807 L541 803 L591 790 L616 778 L664 743 L683 722 L699 700 L723 651 L737 599 L744 542 L744 206'
       ] },
     minus:{
-      caja:'155 330 690 690', arte:'letras/minus-u-relleno.svg', grosor:236,
+      arte:'letras/minus-u.png',
+      contorno:'letras/minus-u-contorno.png',
+      tintas:['letras/minus-u-t1.png','letras/minus-u-t2.png'],
+      grosor:380,
       strokes:[
-        // 1: baja por la izquierda y da la curva de abajo
-        'M377 529 L377 690 C377 775 450 792 500 792 C550 792 629 775 629 690',
-        // 2: el palito derecho, de arriba hacia abajo.
-        //    OJO: en este arte la u NO tiene colita — las dos patas terminan
-        //    a la misma altura. Si el disenador la agrega, este trazo baja mas.
-        'M629 529 L629 690'
+        // 1: baja por la izquierda, dobla abajo y sube por la derecha
+        'M291 405 L292 650 L301 699 L318 742 L349 784 L387 812 L431 830 L478 838 L521 835 L611 790 L647 758 L677 716 L696 679 L707 640 L709 441',
+        // 2: el palito derecho, de arriba hacia abajo
+        'M709 464 L711 813'
       ] } }
 ];
