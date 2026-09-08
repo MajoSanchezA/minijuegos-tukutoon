@@ -31,12 +31,6 @@
 
   const DEFAULT_PALETTE = ['#FF6F59','#FFC94A','#2EC4B6','#5AA9E6','#B388EB','#FFB4C6','#8BC34A','#E8735A','#2B2140','#FFFFFF'];
 
-  // Único ícono que sigue siendo SVG: el tilde de "Listo", que va en
-  // blanco sobre el círculo coral. Los demás (salir, reiniciar y las
-  // herramientas) son PNG ilustrados del arte, en iconos/.
-  const ICON = {
-    done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-  };
 
   // Herramientas de trazo libre (todas menos balde/borrador comparten
   // "aplicar color en un punto"; cada una tiene su propia textura).
@@ -174,7 +168,7 @@
             <span>Grosor</span>
             <input type="range" id="brush-size" min="4" max="30" value="14">
           </div>
-          <button class="nav-arrow restart" id="clear-btn" title="Empezar de nuevo" aria-label="Empezar de nuevo"><img src="${cfg.iconsBase || ICONS_BASE}reiniciar.png" alt="" draggable="false"></button>
+          <button class="nav-arrow descargar" id="done-btn" title="Guardar el dibujo" aria-label="Guardar el dibujo"><img src="${cfg.iconsBase || ICONS_BASE}descargar.png" alt="" draggable="false"></button>
         </div>
 
         <div class="stage-wrap">
@@ -194,7 +188,7 @@
 
         <div class="rail rail-right">
           <div class="swatches" id="swatches"></div>
-          <button class="nav-arrow done" id="done-btn" title="¡Listo!" aria-label="Listo">${ICON.done}</button>
+          <button class="nav-arrow restart" id="clear-btn" title="Empezar de nuevo" aria-label="Empezar de nuevo"><img src="${cfg.iconsBase || ICONS_BASE}reiniciar.png" alt="" draggable="false"></button>
         </div>
       </div>
 
@@ -318,7 +312,8 @@
       aire:      0.025,   // separación entre iconos
       grosor:    0.095,   // grosor del lápiz (38px sobre 402)
       largoLapiz: 2.74,   // largo visible / grosor
-      largoSel:   3.65    // ídem, para el elegido
+      largoSel:   3.65,   // ídem, para el elegido
+      lapicesVisibles: 6  // cuántos entran sin deslizar, como en el prototipo
     };
     function fitStage() {
       // Fijamos la altura de .app "a mano" en vez de confiar en que
@@ -352,17 +347,16 @@
       raiz.style.setProperty('--ico', ico + 'px');
       raiz.style.setProperty('--rail-gap', aire + 'px');
 
-      // Los lápices usan el grosor del diseño, salvo que la paleta sea
-      // tan larga que no entre: ahí se achican lo necesario. Es a
-      // propósito que nunca aparezca la barra de scroll — un chico de 3
-      // años no la va a usar, y además se come 15px de ancho y los
-      // lápices dejan de llegar al borde de la pantalla.
-      const n = Math.max(PALETTE.length, 1);
+      // Los lápices van SIEMPRE al grosor del diseño, aunque la paleta
+      // no entre entera: se ven seis y el resto se desliza. (Antes se
+      // achicaban para que entraran todos, y quedaban finitos.) La barra
+      // de scroll se oculta por CSS: si se viera, se comería 15px de
+      // ancho y los lápices dejarían de llegar al borde de la pantalla.
+      const grosor = Math.max(Math.round(availAppH * P.grosor), 12);
       const altoColores = availAppH - ico - aire;
-      const grosor = Math.max(Math.min(
-        Math.round(availAppH * P.grosor),
-        Math.floor((altoColores - (n - 1) * 2) / n)), 12);
+      const alto = Math.min(P.lapicesVisibles * (grosor + 2) - 2, altoColores);
       raiz.style.setProperty('--grosor', grosor + 'px');
+      raiz.style.setProperty('--colores-alto', Math.max(alto, grosor) + 'px');
       raiz.style.setProperty('--lapiz', Math.round(grosor * P.largoLapiz) + 'px');
       raiz.style.setProperty('--lapiz-sel', Math.round(grosor * P.largoSel) + 'px');
 
@@ -754,14 +748,46 @@
       pctx.putImageData(paintData, 0, 0);
     });
 
-    // listo + recompensa
+    // Guardar: baja el dibujo como PNG, deja la miniatura para el menú
+    // y celebra. La descarga es lo que promete el icono naranja del
+    // diseño; el confeti y la miniatura ya estaban y se conservan.
     const overlay = document.getElementById('modal-overlay');
     document.getElementById('done-btn').addEventListener('click', () => {
       if (!paintData) return;
       saveProgressSnapshot();
+      descargarDibujo();
       overlay.classList.add('show');
       spawnConfetti();
     });
+
+    // El PNG se arma aparte, sobre fondo blanco: los dos lienzos del
+    // juego son transparentes (se ve la hoja de atrás), y un PNG
+    // transparente se vería raro al abrirlo o imprimirlo.
+    function descargarDibujo() {
+      try {
+        const out = document.createElement('canvas');
+        out.width = W; out.height = H;
+        const octx = out.getContext('2d');
+        octx.fillStyle = '#ffffff';
+        octx.fillRect(0, 0, W, H);
+        octx.drawImage(paintCanvas, 0, 0);
+        octx.drawImage(inkCanvas, 0, 0);
+        out.toBlob((blob) => {
+          if (!blob) return;
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'tukutoon-' + progressKey().split(':').pop() + '.png';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 3000);
+        }, 'image/png');
+      } catch (e) {
+        // Si el navegador bloquea la descarga, el resto (miniatura y
+        // confeti) tiene que seguir funcionando igual.
+      }
+    }
     document.getElementById('modal-close').addEventListener('click', () => {
       overlay.classList.remove('show');
     });
