@@ -143,7 +143,7 @@ body{
    ellos. margin-bottom:auto lo pega arriba y empuja al de reiniciar
    abajo, que ya usa margin-top:auto. */
 .salir-btn{
-  --salir-ico:calc(var(--ico) * 0.92);
+  --salir-ico:var(--ico);
   width:var(--ico); height:var(--ico);
   flex:none;
   display:flex;
@@ -160,7 +160,7 @@ body{
   -webkit-user-drag:none;
   transition:width .14s ease, height .14s ease;
 }
-.salir-btn:hover img{--salir-ico:var(--ico);}
+.salir-btn:hover img{--salir-ico:calc(var(--ico) * 1.06);}
 
 /* El dibujo va HORIZONTAL: el escenario es más ancho que alto, y las
    barras de pinceles/colores quedan a los costados para no robarle
@@ -399,9 +399,14 @@ canvas{
    El PNG trae el dibujo al 83% de su caja, así que a 48px de caja el
    dibujo mide unos 40px — que es lo que se midió en el prototipo. */
 .tool-btn{
-  --tool-ico:calc(var(--ico) * 0.92);
-  --tool-ico-hover:calc(var(--ico) * 0.96);
-  --tool-ico-sel:var(--ico);
+  /* El dibujo llena la caja, como en el prototipo: ahí los iconos miden
+     entre el 100% y el 119% de su caja de 48. Los PNG venían con un 17%
+     de margen adentro, y por eso se veían chicos Y más separados — ese
+     aire se sumaba al hueco entre iconos. Ahora los PNG están recortados
+     al dibujo, así que la caja y el dibujo son lo mismo. */
+  --tool-ico:var(--ico);
+  --tool-ico-hover:calc(var(--ico) * 1.06);
+  --tool-ico-sel:calc(var(--ico) * 1.14);
   width:var(--ico);height:var(--ico);
   border-radius:50%;
   display:flex;

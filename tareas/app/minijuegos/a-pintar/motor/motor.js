@@ -142,7 +142,14 @@
       // lo que faltaba para blanco, y con colores pastel eso son 5
       // puntos: el lápiz quedaba plano, sin volumen.
       brillo: l <= 85 ? hslAHex(h, s, Math.min(97, l + 10)) : hslAHex(h, s, l - 8),
-      punta:  hslAHex(h, Math.max(0, s - 16), Math.min(l * 0.906, l - 4)),
+      // La punta va del MISMO color que el contorno. Cuando tenía un tono
+      // propio —apenas más claro que el borde— se leía como un contorno
+      // doble: el trazo del borde, después la punta en otro oscuro, y
+      // recién ahí el cuerpo. Del mismo color queda una sola forma
+      // oscura, con el brillito interno encima, como en el diseño.
+      punta:  l > 20
+        ? hslAHex(h, Math.min(100, s * 1.05), Math.max(0, Math.min(l * 0.62, l - 10)))
+        : hslAHex(h, Math.min(100, s * 1.05), l + 12),
       // Contorno: el lápiz del selector viene plano en el archivo de
       // diseño, pero en el prototipo los de la paleta llevan borde. Se
       // deriva del propio color, como en los lápices decorativos del
