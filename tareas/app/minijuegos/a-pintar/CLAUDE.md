@@ -25,11 +25,12 @@ a-pintar/
 ├── menu.html               # molde vacío del grid de miniaturas (sin contenido de dibujos)
 ├── paginas.js              # fuente de verdad del menú: const PAGINAS = [...]
 ├── fondo-menu.png          # imagen de fondo (playa) usada SOLO en el menú
-├── fondo-dibujo.png        # imagen de fondo (lápiz + hoja sobre violeta), usada en
-│                             # motor.css, se ve en TODAS las páginas de dibujo
-├── hoja-dibujo.png          # recorte de SOLO la hoja crema de fondo-dibujo.png
-│                             # (sin el violeta ni el lápiz), fondo de `.paper` en
-│                             # motor.css (ver más abajo)
+├── fondo-dibujo.png        # la mesa vista desde arriba (03_CENITAL_MESA del arte),
+│                             # opaca, 1920x1080. Capa de más abajo
+├── decoracion-dibujo.png    # útiles y stickers sueltos, con alfa, 1920x1080. Va
+│                             # encima de la mesa; el centro está vacío a propósito
+├── hoja-dibujo.png          # la hoja crema, 880x982, con su borde irregular y su
+│                             # sombra ya dibujados. Fondo de `.paper`
 ├── CLAUDE.md                # este archivo
 ├── GUIA-DISENADORES.md      # spec de entrega de los PNG de linea, para mandarle
 │                             # al equipo de diseno (formato, tamano, errores que rompen
@@ -51,7 +52,9 @@ a-pintar/
 │   ├── lapiz.png            # lápiz
 │   ├── pincel.png           # acuarela
 │   ├── especial.png         # brillantina
-│   └── borrador.png         # borrador
+│   ├── borrador.png         # borrador
+│   └── salir.png            # la X de volver al menú (no es herramienta, pero
+│                            # comparte el estilo suelto y el mismo tamaño)
 │
 ├── plantillas/
 │   └── plantilla-horizontal.html   # molde para crear una página de colorear nueva
@@ -95,17 +98,25 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   normal, no un canvas, así que ahí sí es seguro usar el archivo externo). Si `init()` ve
   algo raro al procesar la imagen, ahora lo muestra en el marcador de posición en vez de
   fallar en silencio (`try/catch` en `motor.js`).
-- El fondo de página es `fondo-dibujo.png` (lápiz + hoja sobre violeta), igual que en el resto
-  del sitio. **Es un `<img class="bg-photo">` real** (agregado en `buildDOM()`, primer elemento
-  del `body`, posicionado `absolute; inset:0; object-fit:cover` detrás de todo por z-index), NO
-  un `background-image` de CSS — ver más abajo, en "Horizontal forzado en celular", por qué. El
-  contenedor `.paper` (donde vive el lienzo) usa por separado `hoja-dibujo.png` (recorte de SOLO
-  la hoja crema, sin el violeta ni el lápiz) como fondo CSS estirado
-  (`background-size:100% 100%`) — así el dibujo queda "apoyado" sobre una hoja con la misma
-  textura que la de la imagen de fondo, en vez de sobre un rectángulo crema liso. No están
-  alineados píxel a píxel con la hoja de `fondo-dibujo.png` (la posición de esta varía según el
-  tamaño/proporción de pantalla porque usa `object-fit:cover`), pero al compartir la misma
-  textura se leen como una sola hoja.
+- **El fondo son tres capas separadas**, como venía armado el arte:
+  1. `fondo-dibujo.png` — la mesa, opaca. `<img class="bg-photo">`, z-index 0.
+  2. `decoracion-dibujo.png` — los útiles y stickers, con alfa. `<img class="bg-deco">`,
+     z-index 1. El centro de esta capa está vacío a propósito: ahí va la hoja.
+  3. `hoja-dibujo.png` — fondo CSS de `.paper`, que se posiciona por separado.
+
+  Las dos primeras son **`<img>` reales**, no `background-image` de CSS — ver más abajo, en
+  "Horizontal forzado en celular", por qué. Las dos miden 1920x1080 y usan el mismo
+  `object-fit:cover`, así que recortan igual y **la decoración nunca se despega de la mesa**.
+  Si alguna vez se cambia una, la otra tiene que mantener la misma proporción.
+- **La hoja es la que manda la geometría del escenario, y por eso `fitStage()` calcula al
+  revés que antes.** Ya no es un rectángulo al que le poníamos borde y sombra por CSS (eso se
+  podía estirar a la proporción que pidiera cada dibujo): ahora es un asset con su propio borde
+  irregular y su propia sombra dibujada, así que estirarla la deforma. `fitStage()` primero
+  calcula cuánto puede medir la hoja respetando `HOJA_RATIO` (880/982, la proporción real del
+  archivo) y recién después acomoda el lienzo adentro, en el 80% de su ancho. Ese 80% sale de
+  medir el PNG: el área crema ocupa el 89,8% del ancho, así que el dibujo queda con aire parejo
+  adentro del crema. `.paper` ya no lleva `border-radius` ni `box-shadow` — se los sumaría a los
+  que la imagen ya trae.
 - Capas: canvas de pintura debajo (`#paint-canvas`) + canvas de tinta (líneas) encima
   (`#ink-canvas`). Los trazos nunca pisan las líneas (se respeta `wallMask`).
 - Herramientas (`TOOLS` en motor.js): la barra muestra **cinco** — balde, lápiz (fino,
@@ -194,9 +205,36 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   afectadas por el transform de un ancestro. Si se cambia el ángulo de rotación o el
   centrado del `<html>` en motor.css, hay que volver a deducir esta fórmula — no es genérica
   para cualquier transform, es específica de esta rotación de 90° centrada en el viewport.
-- Botón "volver al menú" arriba a la izquierda: usa `cfg.menuHref` (por defecto `'menu.html'`,
-  pero las páginas dentro de `paginas/<nombre>/` necesitan pasar `'../../menu.html'` porque
-  están dos niveles más abajo).
+- **No hay encabezado.** El diseño no lleva píldora con título ni subtítulo: la pantalla es la
+  hoja y los dos rails, nada más. `cfg.title` sigue usándose para el `document.title` (la
+  pestaña del navegador), y `cfg.titleHtml`, `cfg.subtitle` y `cfg.badgeEmoji` quedaron sin uso
+  visible — no los borré de las páginas porque no molestan y documentan qué dibujo es cada una.
+  Sacar el encabezado no fue solo estético: liberó 57px de alto, que son los que necesitaba la
+  hoja vertical para no dejar sin lugar a los rails en celular.
+- Botón "volver al menú": es la X (`iconos/salir.png`), arriba del todo en el rail izquierdo,
+  suelta y sin pastilla igual que las herramientas. Usa `cfg.menuHref` (por defecto
+  `'menu.html'`, pero las páginas dentro de `paginas/<nombre>/` necesitan pasar
+  `'../../menu.html'` porque están dos niveles más abajo).
+- **Los colores son lápices, no círculos.** `lapizSVG(hex)` en motor.js los dibuja: los paths
+  salen de `BOTONES/LAPIZ_BASE_SELECTOR DE COLOR.ai` del arte — que por dentro es un PDF, así
+  que se descomprimieron sus flujos de contenido y se pasaron los operadores de dibujo a SVG,
+  invirtiendo el eje Y. Van **parametrizados por color en vez de un PNG por lápiz**: las paletas
+  son propias de cada dibujo (9 o 10 colores por personaje), así que un archivo por color no era
+  viable. Las relaciones de tono salen del mismo archivo de diseño: sobre un cuerpo `#C94BFE`,
+  el brillo sube 10 puntos de luminosidad (un 28% de lo que le falta para llegar a blanco) y la
+  punta baja a 0.906 con 16 puntos menos de saturación. La madera es fija (`#FCD6B5` /
+  `#C88B74`), es la misma en todos los lápices del arte. Pasado 85 de luminosidad el brillo se
+  invierte y pasa a ser sombra: un lápiz casi blanco no tiene margen para aclarar y quedaría
+  plano.
+  - En el archivo el lápiz está parado (191x1418); en la barra va **acostado con la punta hacia
+    el dibujo**, así que `lapizSVG` lo rota 90°.
+  - El ancho del rail es **fijo** (`--lapiz-sel`) y el lápiz elegido es el que se estira hasta
+    ese ancho, creciendo hacia la izquierda. Así se marca la selección sin mover a los demás ni
+    cambiar el ancho del rail — mismo motivo que en las herramientas: el rail tiene
+    `overflow-y:auto`, y eso obliga a calcular `overflow-x` como `auto`, así que cualquier cosa
+    que se pase del ancho dispara una barra de scroll horizontal.
+  - El grosor del lápiz sale de su largo (proporción 7,42:1 del archivo). Si se lo acorta mucho
+    deja de leerse como lápiz y parece una rayita: 110px de largo es el mínimo razonable.
 - Al tocar "Listo" (`done-btn`), además del confeti, `motor.js` guarda una foto del
   dibujo ya pintado (fondo blanco + color + líneas, achicada a 480px) en `localStorage`, con
   clave `tukutoon:progreso:<carpeta>` (la carpeta se deduce sola de la URL, ej. `.../paginas/

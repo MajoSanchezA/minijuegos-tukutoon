@@ -22,7 +22,12 @@
   // se resuelven solos: así agregar un dibujo nuevo no obliga a pasar
   // una ruta más. cfg.iconsBase lo puede pisar si alguna vez hace falta.
   const SCRIPT_SRC = (document.currentScript && document.currentScript.src) || '';
-  const ICONS_BASE = SCRIPT_SRC ? SCRIPT_SRC.replace(/\/[^/]*$/, '/../iconos/') : 'iconos/';
+  // Raíz de a-pintar/ vista desde motor/. De acá salen los assets que
+  // son iguales para todas las páginas (iconos, capa de decoración), así
+  // no hay que pasarles una ruta por página como sí pasa con bgSrc.
+  const RAIZ = SCRIPT_SRC ? SCRIPT_SRC.replace(/\/[^/]*$/, '/../') : '';
+  const ICONS_BASE = RAIZ + 'iconos/';
+  const DECO_SRC = RAIZ + 'decoracion-dibujo.png';
 
   const DEFAULT_PALETTE = ['#FF6F59','#FFC94A','#2EC4B6','#5AA9E6','#B388EB','#FFB4C6','#8BC34A','#E8735A','#2B2140','#FFFFFF'];
 
@@ -54,27 +59,106 @@
     { id: 'eraser', title: 'Borrar', icon: 'borrador.png' }
   ];
 
+
+  /* ---------------------------------------------------------------
+     Lápices de color
+     Los paths salen de BOTONES/LAPIZ_BASE_SELECTOR DE COLOR.ai — que por
+     dentro es un PDF — pasados a SVG. El cuerpo va parametrizado en vez
+     de tener un PNG por color: las paletas son propias de cada dibujo
+     (9 o 10 colores por personaje), así que un archivo por lápiz no era
+     viable. Las relaciones de tono salen del mismo archivo de diseño:
+     sobre un cuerpo #C94BFE, el brillo sube 10 puntos de luminosidad y
+     la punta baja a 0.906 con 16 puntos menos de saturación. La madera
+     es fija, es la misma en todos los lápices del arte.
+     En el archivo el lápiz está parado (191 x 1418). En la barra va
+     acostado con la punta hacia el dibujo, así que se rota 90°.
+     --------------------------------------------------------------- */
+  const LAPIZ_W = 191, LAPIZ_H = 1418;
+  const LAPIZ_FIGURAS = [
+    ['punta','M96.0 1363.0C90.8 1361.9 85.8 1364.0 80.6 1363.8C77.5 1363.7 77.2 1365.4 78.6 1367.6C83.5 1375.1 88.4 1382.5 93.4 1389.9C94.7 1391.8 96.1 1392.2 97.6 1389.9C102.6 1382.3 107.7 1374.7 112.7 1367.2C114.2 1364.8 113.4 1363.7 110.8 1363.8C105.8 1364.1 101.0 1361.9 96.0 1363.0M141.7 1357.5C132.2 1375.2 122.1 1392.6 109.2 1408.1C100.5 1418.5 91.4 1418.5 82.3 1408.5C72.8 1398.2 65.9 1386.0 58.6 1374.1C55.0 1368.2 51.2 1362.3 48.6 1355.8C49.6 1350.1 52.6 1345.9 58.6 1345.1C60.8 1344.8 62.9 1344.1 65.0 1343.7C76.1 1343.9 87.1 1341.5 98.2 1341.7C107.6 1341.8 116.8 1344.1 126.2 1343.7C127.7 1344.0 129.1 1344.4 130.6 1344.7C139.0 1346.1 141.4 1348.9 141.7 1357.5Z'],
+    ['madera2','M141.7 1357.5C141.4 1348.9 139.0 1346.1 130.6 1344.7C129.1 1344.4 127.7 1344.0 126.3 1343.7C126.8 1342.5 127.4 1341.2 128.0 1340.1C140.6 1318.1 153.2 1296.1 165.7 1274.0C167.9 1270.2 171.0 1266.6 170.5 1261.7C171.3 1262.8 172.2 1263.7 172.9 1264.8C178.0 1272.3 183.6 1273.2 190.6 1267.6C190.8 1270.6 189.3 1273.0 188.0 1275.5C176.1 1298.9 162.4 1321.4 149.4 1344.2C146.9 1348.7 144.2 1353.1 141.7 1357.5Z'],
+    ['madera2','M65.0 1343.7C62.9 1344.1 60.8 1344.8 58.6 1345.1C52.6 1345.9 49.6 1350.1 48.6 1355.8C32.8 1329.1 17.5 1302.1 3.0 1274.7C1.9 1272.5 0.0 1270.4 0.6 1267.6C6.5 1273.6 15.7 1271.4 18.6 1264.4C19.1 1263.3 19.6 1262.3 20.7 1261.8C20.5 1263.8 21.1 1265.7 22.1 1267.5C36.4 1292.9 50.7 1318.3 65.0 1343.7Z'],
+    ['cuerpo','M61.9 1116.7C49.9 1121.6 34.3 1111.5 33.5 1100.6C32.6 1089.4 32.9 1078.3 32.8 1067.2C32.7 1020.8 32.7 974.3 32.7 927.8C30.3 929.9 28.3 932.3 26.6 934.9C28.3 932.3 30.3 929.9 32.7 927.8C32.7 791.2 32.8 654.6 32.8 518.0C32.8 434.9 32.8 351.8 32.7 268.6C32.7 259.4 36.4 252.4 44.3 248.0C55.2 242.0 74.4 247.3 75.8 263.9C77.4 281.9 76.6 299.9 76.6 317.8C76.7 426.6 76.7 535.4 76.7 644.2C76.7 721.7 76.7 799.3 76.7 876.8C76.7 949.1 76.6 1021.4 76.7 1093.7C76.7 1104.6 72.2 1112.5 61.9 1116.7M32.8 147.4C33.1 143.7 32.8 139.2 33.4 134.7C34.3 127.6 43.1 118.7 49.8 117.9C60.5 116.6 70.2 121.0 74.3 129.3C75.9 132.5 76.2 136.1 76.4 139.5C76.8 146.6 77.3 153.7 75.9 160.8C73.4 173.6 63.4 178.8 54.1 178.4C41.5 177.9 33.0 168.8 32.8 156.6C32.7 153.8 32.8 150.9 32.8 147.4M172.6 14.6C172.6 10.7 171.1 9.1 167.6 8.0C149.7 2.4 131.1 2.0 112.7 1.1C91.6 0.0 70.6 1.1 49.6 3.0C40.2 3.8 31.0 5.8 21.9 8.1C20.3 8.5 17.9 9.1 18.2 10.9C19.1 15.1 17.6 19.3 18.1 23.2C19.7 35.1 18.5 47.0 18.6 58.9C19.0 87.0 18.7 115.1 18.8 143.2C18.8 155.4 18.2 167.6 18.7 179.8C19.1 189.5 18.8 199.3 18.8 209.0C18.8 229.6 18.8 250.2 18.8 270.8C18.8 283.9 18.8 296.9 18.8 310.0C18.8 333.3 18.8 356.5 18.8 379.8C18.8 426.7 18.7 473.6 18.8 520.5C18.9 533.1 18.5 545.6 18.6 558.2C19.0 599.6 18.8 640.9 18.8 682.2C18.8 710.9 18.8 739.5 18.8 768.1C18.8 799.3 18.8 830.6 18.8 861.9C18.8 889.5 18.8 917.2 18.8 944.8C19.2 944.8 19.5 944.7 19.8 944.6C20.4 944.4 20.9 944.1 21.4 943.7C20.9 944.1 20.4 944.4 19.8 944.6C19.5 944.7 19.2 944.8 18.8 944.8C18.8 979.8 18.7 1014.8 18.9 1049.8C18.9 1052.9 18.4 1056.0 18.5 1059.2C18.9 1070.1 19.1 1081.1 18.6 1092.0C18.3 1099.3 18.4 1106.8 18.3 1114.1C18.1 1120.9 18.3 1127.8 18.6 1134.7C19.0 1143.9 17.9 1153.4 18.2 1162.5C18.9 1181.3 18.4 1200.1 18.8 1218.8C18.8 1221.5 18.5 1224.1 18.3 1226.7C18.2 1228.4 17.9 1231.2 19.7 1232.2C21.1 1232.9 22.6 1230.9 23.9 1230.1C30.5 1225.5 38.0 1223.6 45.9 1224.1C56.9 1224.9 65.2 1231.3 73.4 1237.9C79.9 1243.1 85.8 1248.9 93.0 1253.1C97.2 1255.6 100.7 1255.2 104.5 1252.5C110.4 1248.2 115.1 1242.4 120.4 1237.5C135.5 1223.5 150.1 1219.5 167.6 1229.9C172.3 1232.6 172.5 1232.5 172.5 1226.8C172.5 1105.5 172.5 984.1 172.5 862.8C172.5 580.1 172.5 297.4 172.6 14.6Z'],
+    ['madera','M153.5 1245.9L143.6 1245.8C146.9 1244.2 150.2 1244.3 153.5 1245.9Z'],
+    ['cuerpo','M96.0 1363.0C101.0 1361.9 105.8 1364.1 110.8 1363.8C113.4 1363.7 114.2 1364.8 112.7 1367.2C107.7 1374.7 102.6 1382.3 97.6 1389.9C96.1 1392.2 94.7 1391.8 93.4 1389.9C88.4 1382.5 83.5 1375.1 78.6 1367.6C77.2 1365.4 77.5 1363.7 80.6 1363.8C85.8 1364.0 90.8 1361.9 96.0 1363.0Z'],
+    ['brillo','M76.7 876.8C76.7 949.1 76.6 1021.4 76.7 1093.7C76.7 1104.6 72.2 1112.5 61.9 1116.7C49.9 1121.6 34.3 1111.5 33.5 1100.6C32.6 1089.4 32.9 1078.3 32.8 1067.2C32.7 1020.8 32.7 974.3 32.7 927.8C32.7 791.2 32.8 654.6 32.8 518.0C32.8 434.9 32.8 351.8 32.7 268.6C32.7 259.4 36.4 252.4 44.3 248.0C55.2 242.0 74.4 247.3 75.8 263.9C77.4 281.9 76.6 299.9 76.6 317.8C76.7 426.6 76.7 535.4 76.7 644.2C76.7 721.7 76.7 799.3 76.7 876.8Z'],
+    ['brillo','M32.8 147.4C33.1 143.7 32.8 139.2 33.4 134.7C34.3 127.6 43.1 118.7 49.8 117.9C60.5 116.6 70.2 121.0 74.3 129.3C75.9 132.5 76.2 136.1 76.4 139.5C76.8 146.6 77.3 153.7 75.9 160.8C73.4 173.6 63.4 178.8 54.1 178.4C41.5 177.9 33.0 168.8 32.8 156.6C32.7 153.8 32.8 150.9 32.8 147.4Z'],
+    ['madera','M120.6 1265.9C124.5 1264.8 126.6 1261.9 128.6 1258.8L128.6 1258.8C128.9 1258.5 129.3 1258.1 129.7 1257.8C129.9 1257.5 130.3 1257.1 130.6 1256.8L130.6 1256.9C130.9 1256.5 131.3 1256.1 131.6 1255.8L132.6 1254.7L132.5 1254.8C132.9 1254.5 133.3 1254.1 133.6 1253.8C133.9 1253.5 134.3 1253.1 134.6 1252.8L134.5 1252.8C134.9 1252.5 135.3 1252.1 135.6 1251.8L135.5 1251.8C136.1 1251.5 136.6 1251.2 137.1 1250.8C137.9 1250.1 138.7 1249.5 139.6 1248.8C139.9 1248.5 140.2 1248.2 140.6 1247.9L140.6 1247.8C142.0 1247.7 143.4 1247.7 143.6 1245.8L143.6 1245.8L153.5 1245.9L153.5 1245.9C153.9 1246.8 154.7 1246.7 155.6 1246.7C155.8 1246.8 156.1 1246.9 156.4 1247.0C156.7 1247.5 157.1 1248.0 157.4 1248.5C163.4 1251.3 167.3 1256.2 170.5 1261.7C171.0 1266.6 167.9 1270.2 165.7 1274.0C153.2 1296.1 140.6 1318.1 128.0 1340.1C127.4 1341.2 126.8 1342.5 126.3 1343.7C116.8 1344.1 107.6 1341.8 98.2 1341.7C87.1 1341.5 76.1 1343.9 65.0 1343.7C50.7 1318.3 36.4 1292.9 22.1 1267.5C21.1 1265.7 20.5 1263.8 20.7 1261.8C24.1 1255.1 29.9 1250.5 35.9 1246.6C41.4 1243.0 47.5 1244.5 52.5 1248.2C61.8 1255.1 70.9 1262.4 79.9 1269.8C82.4 1271.8 85.5 1272.5 88.3 1273.9C95.0 1276.9 101.8 1277.0 108.5 1273.9C111.9 1271.8 115.2 1269.8 118.5 1267.8Z']
+  ];
+
+  function hexAHsl(hex) {
+    const r = parseInt(hex.slice(1, 3), 16) / 255,
+          g = parseInt(hex.slice(3, 5), 16) / 255,
+          b = parseInt(hex.slice(5, 7), 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    let h = 0, sat = 0;
+    if (max !== min) {
+      const d = max - min;
+      sat = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      if (max === r)      h = (g - b) / d + (g < b ? 6 : 0);
+      else if (max === g) h = (b - r) / d + 2;
+      else                h = (r - g) / d + 4;
+      h *= 60;
+    }
+    return [h, sat * 100, l * 100];
+  }
+
+  function hslAHex(h, s, l) {
+    h = ((h % 360) + 360) % 360;
+    s = Math.max(0, Math.min(100, s)) / 100;
+    l = Math.max(0, Math.min(100, l)) / 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r, g, b;
+    if (h < 60)       { r = c; g = x; b = 0; }
+    else if (h < 120) { r = x; g = c; b = 0; }
+    else if (h < 180) { r = 0; g = c; b = x; }
+    else if (h < 240) { r = 0; g = x; b = c; }
+    else if (h < 300) { r = x; g = 0; b = c; }
+    else              { r = c; g = 0; b = x; }
+    return '#' + [r, g, b].map(v =>
+      ('0' + Math.round((v + m) * 255).toString(16)).slice(-2)).join('').toUpperCase();
+  }
+
+  function lapizTonos(hex) {
+    const [h, s, l] = hexAHsl(hex);
+    return {
+      cuerpo: hex.toUpperCase(),
+      // Pasado 85 de luminosidad no queda margen para aclarar: ahí el
+      // reflejo se invierte y pasa a ser una sombra suave, si no un
+      // lápiz blanco queda plano y no se le lee la forma.
+      brillo: l <= 85 ? hslAHex(h, s, l + (100 - l) * 0.28) : hslAHex(h, s, l - 7),
+      punta:  hslAHex(h, Math.max(0, s - 16), Math.min(l * 0.906, l - 4)),
+      madera:  '#FCD6B5',
+      madera2: '#C88B74'
+    };
+  }
+
+  // Acostado: rotar 90° manda la punta (que en el archivo está abajo)
+  // hacia la izquierda, o sea hacia el dibujo.
+  function lapizSVG(hex) {
+    const c = lapizTonos(hex);
+    return `<svg viewBox="0 0 ${LAPIZ_H} ${LAPIZ_W}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
+      + `<g transform="translate(${LAPIZ_H},0) rotate(90)">`
+      + LAPIZ_FIGURAS.map(f => `<path fill="${c[f[0]]}" d="${f[1]}"/>`).join('')
+      + '</g></svg>';
+  }
+
   function buildDOM(cfg) {
     document.title = cfg.pageTitle || ('Colorea con TukuToon — ' + (cfg.title || ''));
     document.body.innerHTML = `
       <img class="bg-photo" src="${cfg.bgSrc || 'fondo-dibujo.png'}" alt="" aria-hidden="true">
+      <img class="bg-deco" src="${cfg.decoSrc || DECO_SRC}" alt="" aria-hidden="true">
 
       <div class="floaty" style="top:10%;left:5%;"><svg width="36" height="36" viewBox="0 0 36 36"><polygon points="18,2 34,32 2,32" fill="#FFC94A"/></svg></div>
       <div class="floaty" style="top:65%;left:3%;"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#2EC4B6"/></svg></div>
       <div class="floaty" style="top:18%;right:5%;"><svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#FF6F59"/></svg></div>
 
-      <header>
-        ${cfg.showBackButton === false ? '' : `<a class="back-btn" href="${cfg.menuHref || 'menu.html'}" title="Volver al menú" aria-label="Volver al menú">${ICON.back}</a>`}
-        <div class="pill">
-          <span class="pill-badge" aria-hidden="true">${cfg.badgeEmoji || '🖌️'}</span>
-          <h1>${cfg.titleHtml || 'Colorea con <span>TukuToon</span>'}</h1>
-          <p>${cfg.subtitle || 'Toca para rellenar con el balde, o dibuja libre con el pincel'}</p>
-        </div>
-        ${cfg.showBackButton === false ? '' : '<span class="back-btn-spacer" aria-hidden="true"></span>'}
-      </header>
-
       <div class="app">
         <div class="rail rail-left">
+          ${cfg.showBackButton === false ? '' : `<a class="salir-btn" href="${cfg.menuHref || 'menu.html'}" title="Volver al menú" aria-label="Volver al menú"><img src="${cfg.iconsBase || ICONS_BASE}salir.png" alt="" draggable="false"></a>`}
           <div class="tools" id="tools"></div>
           <div class="brush-size" id="brush-size-wrap" style="display:none;">
             <span>Grosor</span>
@@ -141,7 +225,6 @@
     const stageWrapEl = document.querySelector('.stage-wrap');
     const paperEl = document.querySelector('.paper');
     const appEl = document.querySelector('.app');
-    const headerEl = document.querySelector('header');
 
     function hexToRgb(hex) {
       const v = parseInt(hex.slice(1), 16);
@@ -211,6 +294,7 @@
     // (encabezado + barras + dibujo) entre en pantalla sin scroll,
     // respetando la proporción real del dibujo (o 3:2 antes de cargar).
     let ratioW = 3, ratioH = 2;
+    const HOJA_RATIO = 880 / 982;   // proporción real de hoja-dibujo.png
     function fitStage() {
       // Fijamos la altura de .app "a mano" en vez de confiar en que
       // flex:1 reparta bien el alto en algunos navegadores/entornos —
@@ -221,30 +305,39 @@
       // algunos navegadores no se resuelve como uno esperaría. En vez
       // de eso, usamos window.innerWidth como alto disponible cuando
       // esa rotación está activa: es un valor físico del viewport,
-      // siempre confiable. headerEl.offsetHeight (no
-      // getBoundingClientRect) porque offsetHeight no se ve afectado
-      // por el transform de un ancestro, mientras que
-      // getBoundingClientRect() sí da valores ya rotados/cruzados.
+      // siempre confiable. (Antes acá se descontaba el alto del
+      // encabezado; el diseño no lleva encabezado, así que .app ocupa
+      // toda la pantalla.)
       const vh = isRotatedForLandscape()
         ? window.innerWidth
         : (window.innerHeight || document.documentElement.clientHeight);
-      const headerH = headerEl.offsetHeight;
       const appStyle = getComputedStyle(appEl);
       const appMarginY = parseFloat(appStyle.marginTop) + parseFloat(appStyle.marginBottom);
-      const availAppH = Math.max(vh - headerH - appMarginY, 160);
+      const availAppH = Math.max(vh - appMarginY, 160);
       appEl.style.height = availAppH + 'px';
 
       const availW = stageWrapEl.clientWidth;
       const availH = stageWrapEl.clientHeight;
       if (availW <= 0 || availH <= 0) return;
-      const paperStyle = getComputedStyle(paperEl);
-      const extraX = parseFloat(paperStyle.paddingLeft) + parseFloat(paperStyle.paddingRight) + parseFloat(paperStyle.borderLeftWidth) + parseFloat(paperStyle.borderRightWidth);
-      const extraY = parseFloat(paperStyle.paddingTop) + parseFloat(paperStyle.paddingBottom) + parseFloat(paperStyle.borderTopWidth) + parseFloat(paperStyle.borderBottomWidth);
-      const innerW = Math.max(availW - extraX, 60);
-      const innerH = Math.max(availH - extraY, 60);
+
+      // La hoja es un asset con forma propia — borde irregular y sombra
+      // dibujados — así que NO se puede estirar a cualquier proporción:
+      // conserva siempre la del archivo (hoja-dibujo.png, 880x982). Por
+      // eso primero se calcula cuánto puede medir la hoja para entrar en
+      // el escenario, y recién después el lienzo se acomoda ADENTRO.
+      const hojaW = Math.floor(Math.min(availW, availH * HOJA_RATIO));
+      const hojaH = Math.floor(hojaW / HOJA_RATIO);
+      paperEl.style.width = hojaW + 'px';
+      paperEl.style.height = hojaH + 'px';
+
+      // Márgenes del dibujo dentro de la hoja. El área crema del asset
+      // ocupa el 89,8% del ancho (medido sobre el PNG); dejando el
+      // dibujo en el 80% queda un aire parejo adentro del crema.
+      const innerW = Math.max(hojaW * 0.80, 40);
+      const innerH = Math.max(hojaH * 0.88, 40);
       const scale = Math.min(innerW / ratioW, innerH / ratioH);
-      const dispW = Math.max(Math.floor(ratioW * scale), 60);
-      const dispH = Math.max(Math.floor(ratioH * scale), 40);
+      const dispW = Math.max(Math.floor(ratioW * scale), 40);
+      const dispH = Math.max(Math.floor(ratioH * scale), 30);
       wrap.style.width = dispW + 'px';
       wrap.style.height = dispH + 'px';
     }
@@ -566,8 +659,10 @@
     PALETTE.forEach((c, i) => {
       const b = document.createElement('button');
       b.className = 'swatch' + (i === 0 ? ' selected' : '');
-      b.style.background = c;
-      if (c === '#FFFFFF') b.style.border = '2px solid #ddd';
+      b.title = c;
+      // El color lo muestra el lápiz, no un fondo: ya no hace falta el
+      // borde gris que antes hacía visible el blanco contra la píldora.
+      b.innerHTML = lapizSVG(c) + `<span class="sr-only">${c}</span>`;
       b.addEventListener('click', () => {
         state.color = c;
         document.querySelectorAll('.swatch').forEach(s => s.classList.remove('selected'));
