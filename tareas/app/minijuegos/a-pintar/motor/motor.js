@@ -164,10 +164,11 @@
     };
   }
 
-  // Las tres figuras que forman la silueta del lápiz: la punta, el
-  // cuerpo y el cono de madera. Las otras seis son sombras y brillos
-  // internos, que no tienen que llevar contorno.
-  const LAPIZ_SILUETA = [0, 3, 8];
+  // Qué lleva contorno: SOLO el cuerpo y la punta. El cono de madera NO
+  // — en el prototipo tampoco lo tiene, y ponérselo era lo que producía
+  // el contorno doble: el cono y el cuerpo se superponen, así que donde
+  // se juntan quedaban las dos líneas oscuras pegadas una a la otra.
+  const LAPIZ_SILUETA = [3, 0];
   // 40 unidades: la mitad queda afuera, o sea 20 sobre un lápiz de 191
   // de grosor = 10,5% por lado, que es lo que se mide en el prototipo.
   const LAPIZ_BORDE = 40;
@@ -485,11 +486,12 @@
 
       // --- reiniciar: en el prototipo va al COSTADO de los lápices, no
       // debajo ---
-      const rIco = Math.max(Math.round(FONDO.reiniciar.lado * esc), 28);
-      reiniciarEl.style.width = rIco + 'px';
-      reiniciarEl.style.height = rIco + 'px';
-      reiniciarEl.style.left = Math.round(desdeDer(FONDO.reiniciar.cx) - rIco / 2) + 'px';
-      reiniciarEl.style.top = Math.round(Y(FONDO.reiniciar.cy) - rIco / 2) + 'px';
+      // Mismo tamaño que el resto de los iconos: en el prototipo reiniciar
+      // mide 46x47 contra los 48 de la columna, o sea lo mismo.
+      reiniciarEl.style.width = ico + 'px';
+      reiniciarEl.style.height = ico + 'px';
+      reiniciarEl.style.left = Math.round(desdeDer(FONDO.reiniciar.cx) - ico / 2) + 'px';
+      reiniciarEl.style.top = Math.round(Y(FONDO.reiniciar.cy) - ico / 2) + 'px';
 
       // --- la hoja ---
       const hojaX = X(FONDO.hoja.x);

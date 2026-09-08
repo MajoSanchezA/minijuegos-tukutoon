@@ -441,6 +441,10 @@ canvas{
   width:var(--ico);height:var(--ico);
   border-radius:50%;
   border:none;
+  /* padding:0 es imprescindible: un <button> trae 1px 6px por defecto y,
+     con box-sizing:border-box, esos 12px de los lados le comían el ancho
+     al icono — el de reiniciar salía achatado dentro de su caja. */
+  padding:0;
   cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   color:#fff;
