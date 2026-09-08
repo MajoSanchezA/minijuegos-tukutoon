@@ -319,13 +319,14 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     `.ai`, pero en el prototipo los de la paleta llevan borde. `lapizTonos` lo deriva del propio
     color (luminancia × 0,62, como los lápices decorativos del arte; por debajo de 20 aclara en
     vez de oscurecer, si no un lápiz casi negro se quedaría sin contorno). Se dibuja como una
-    **capa de abajo**: las figuras de la silueta engordadas con un `stroke`, y encima los
-    rellenos normales. Ponerle `stroke` a cada figura en cambio dibujaría también el contorno
-    de los brillos internos.
-  - **`LAPIZ_SILUETA` lleva solo el cuerpo y la punta — el cono de madera NO.** En el prototipo
-    el cono tampoco tiene contorno, y ponérselo era lo que producía un **contorno doble**: el
-    cono y el cuerpo se superponen, así que donde se juntan quedaban las dos líneas oscuras
-    pegadas una a la otra.
+    **capa de abajo**, y sale de la **UNIÓN** de las tres figuras de la silueta
+    (`LAPIZ_SILUETA` = cuerpo, cono y punta): un `feMorphology` engorda el alfa del grupo
+    entero y eso se rellena con el color del borde.
+  - **Tiene que ser la unión, no un `stroke` por figura.** Con un stroke en cada una se dibujan
+    también los bordes INTERNOS: el cuerpo y el cono se superponen, así que en la junta quedan
+    dos líneas oscuras y el cono se ve encerrado entre ellas. Eso es el **contorno doble**.
+    Engordando la unión, los límites internos no existen y queda una sola línea por afuera,
+    como en el prototipo.
   - `.nav-arrow` necesita `padding:0` explícito: un `<button>` trae `1px 6px` por defecto y,
     con `box-sizing:border-box`, esos 12px de los lados le comen el ancho al icono — el de
     reiniciar salía achatado.

@@ -164,11 +164,10 @@
     };
   }
 
-  // Qué lleva contorno: SOLO el cuerpo y la punta. El cono de madera NO
-  // — en el prototipo tampoco lo tiene, y ponérselo era lo que producía
-  // el contorno doble: el cono y el cuerpo se superponen, así que donde
-  // se juntan quedaban las dos líneas oscuras pegadas una a la otra.
-  const LAPIZ_SILUETA = [3, 0];
+  // Las tres figuras que forman la silueta: cuerpo, cono de madera y
+  // punta. El contorno sale de la UNIÓN de las tres, no de cada una por
+  // separado — ver lapizSVG.
+  const LAPIZ_SILUETA = [3, 8, 0];
   // 40 unidades: la mitad queda afuera, o sea 20 sobre un lápiz de 191
   // de grosor = 10,5% por lado, que es lo que se mide en el prototipo.
   const LAPIZ_BORDE = 40;
@@ -187,8 +186,26 @@
     // por afuera y los límites internos quedan limpios. Pintar el
     // stroke sobre cada figura, en cambio, dibujaría también los
     // contornos de los brillos.
-    const contorno = LAPIZ_SILUETA.map(i =>
-      `<path fill="${c.borde}" stroke="${c.borde}" stroke-width="${LAPIZ_BORDE}" stroke-linejoin="round" d="${LAPIZ_FIGURAS[i][1]}"/>`).join('');
+    // El contorno sale de la UNIÓN de las figuras de la silueta: un
+    // feMorphology engorda el alfa del grupo entero y eso se rellena con
+    // el color del borde, detrás de todo.
+    //
+    // Antes le ponía un stroke a cada figura por separado, y eso
+    // dibujaba también los bordes INTERNOS: el cuerpo y el cono se
+    // superponen, así que en la junta quedaban dos líneas oscuras y el
+    // cono se veía encerrado entre ellas — el "contorno doble".
+    // Engordando la unión, los límites internos no existen y queda una
+    // sola línea por afuera, como en el prototipo.
+    const idFiltro = 'lb' + hex.replace('#', '');
+    const contorno =
+      `<defs><filter id="${idFiltro}" x="-16%" y="-5%" width="132%" height="110%" color-interpolation-filters="sRGB">`
+      + `<feMorphology in="SourceAlpha" operator="dilate" radius="${LAPIZ_BORDE / 2}" result="d"/>`
+      + `<feFlood flood-color="${c.borde}" result="f"/>`
+      + `<feComposite in="f" in2="d" operator="in"/>`
+      + '</filter></defs>'
+      + `<g filter="url(#${idFiltro})">`
+      + LAPIZ_SILUETA.map(i => `<path d="${LAPIZ_FIGURAS[i][1]}"/>`).join('')
+      + '</g>';
     const vb = [-LAPIZ_AIRE, -LAPIZ_AIRE,
                 LAPIZ_H + LAPIZ_AIRE * 2, LAPIZ_W + LAPIZ_AIRE * 2].join(' ');
     return `<svg viewBox="${vb}" preserveAspectRatio="xMinYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
