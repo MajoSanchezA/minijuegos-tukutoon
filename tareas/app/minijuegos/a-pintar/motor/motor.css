@@ -136,8 +136,8 @@ body{
    ellos. margin-bottom:auto lo pega arriba y empuja al de reiniciar
    abajo, que ya usa margin-top:auto. */
 .salir-btn{
-  --salir-ico:40px;
-  width:50px; height:50px;
+  --salir-ico:44px;
+  width:48px; height:48px;
   flex:none;
   display:flex;
   align-items:center;
@@ -153,7 +153,7 @@ body{
   -webkit-user-drag:none;
   transition:width .14s ease, height .14s ease;
 }
-.salir-btn:hover img{--salir-ico:44px;}
+.salir-btn:hover img{--salir-ico:48px;}
 
 /* El dibujo va HORIZONTAL: el escenario es más ancho que alto, y las
    barras de pinceles/colores quedan a los costados para no robarle
@@ -182,6 +182,12 @@ body{
   flex:none;
   overflow-y:auto;
 }
+/* Ancho fijo, para que el icono de la herramienta elegida pueda crecer
+   sin pasarse del ancho del rail. Si se pasara, el rail (que tiene
+   overflow-y:auto, y por eso calcula overflow-x como auto) dispararía
+   una barra de scroll horizontal. El rail derecho no lleva ancho fijo
+   acá porque se lo da .swatches, que es más ancho. */
+.rail-left{width:60px;}
 .rail .nav-arrow{margin-top:auto; flex:none;}
 
 /* Ya no hay un layout especial "celular en vertical" apilado: el body
@@ -339,9 +345,20 @@ canvas{
    eso el botón en sí es transparente y solo sirve como área de toque
    (los 50px se mantienen aunque el dibujo mida menos: un dedo chico
    necesita el área grande). */
+/* Los tres tamaños del icono viven en variables para que los bloques
+   @media del final solo tengan que cambiar números, sin repetir las
+   reglas de :hover y .active. Las proporciones salen de medir el
+   sistema de diseño: la grilla de iconos tiene tres tamaños — 120, 80 y
+   48px — y el prototipo del juego usa el chico. Nuestra pantalla real
+   en celular horizontal (844x390) mide casi lo mismo que el frame del
+   prototipo (874x402), así que los 48px van 1:1, sin recalcular nada.
+   El PNG trae el dibujo al 83% de su caja, así que a 48px de caja el
+   dibujo mide unos 40px — que es lo que se midió en el prototipo. */
 .tool-btn{
-  --tool-ico:34px;
-  width:50px;height:50px;
+  --tool-ico:44px;
+  --tool-ico-hover:46px;
+  --tool-ico-sel:48px;
+  width:48px;height:48px;
   border-radius:50%;
   display:flex;
   align-items:center;
@@ -368,8 +385,8 @@ canvas{
   -webkit-user-drag:none;
   transition:width .14s ease, height .14s ease;
 }
-.tool-btn:hover{--tool-ico:38px;}
-.tool-btn.active{--tool-ico:44px;}
+.tool-btn:hover{--tool-ico:var(--tool-ico-hover);}
+.tool-btn.active{--tool-ico:var(--tool-ico-sel);}
 
 .brush-size{
   display:flex; flex-direction:column; align-items:center; gap:6px;
@@ -381,7 +398,7 @@ canvas{
 .brush-size span{font-size:10px; font-weight:700; color:var(--plum-soft);}
 
 .nav-arrow{
-  width:52px;height:52px;
+  width:48px;height:48px;
   border-radius:50%;
   border:none;
   cursor:pointer;
@@ -391,7 +408,17 @@ canvas{
 }
 .nav-arrow:active{transform:translateY(2px);}
 .nav-arrow svg{width:24px;height:24px;}
-.nav-arrow.restart{background:linear-gradient(180deg,#3DD4C4,var(--teal)); box-shadow:0 4px 0 #219488;}
+/* El de reiniciar ya no necesita el círculo turquesa de CSS: el icono
+   del arte trae su propio círculo, su sombra y su color. El de "Listo"
+   sí lo conserva, porque sigue siendo un SVG blanco. */
+.nav-arrow.restart{background:none; box-shadow:none;}
+.nav-arrow.restart img{
+  width:48px; height:48px;
+  object-fit:contain;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-drag:none;
+}
 .nav-arrow.done{background:linear-gradient(180deg,#FF8266,var(--coral)); box-shadow:0 4px 0 #C94A38;}
 
 .modal-overlay{
@@ -467,11 +494,15 @@ canvas{
    entre sin scroll. */
 @media (orientation:landscape) and (max-height:500px), (orientation:portrait) and (max-width:500px){
   .app{margin:var(--sp-8) auto; gap:var(--sp-16);}
-  .salir-btn{width:42px; height:42px; --salir-ico:32px;}
-  .tool-btn{width:42px; height:42px; --tool-ico:28px;}
-  .tool-btn:hover{--tool-ico:31px;}
-  .tool-btn.active{--tool-ico:36px;}
-  .nav-arrow{width:40px;height:40px;}
+  /* Los iconos NO se achican acá: 48px es el tamaño del sistema de
+     diseño y la pantalla del prototipo es justamente esta. Lo que se
+     comprime es el aire entre ellos, para que los siete del rail
+     izquierdo entren sin barra de scroll. */
+  /* .tools es un flex propio, con su gap aparte del rail: si no se
+     aprieta también, los cinco botones suman 40px de huecos y el rail
+     desborda. */
+  .rail{gap:3px; padding:0;}
+  .tools{gap:3px;}
   .swatches{--lapiz:110px; --lapiz-sel:136px;}
   .brush-size{padding:6px 10px;}
 }
@@ -485,5 +516,4 @@ canvas{
    bloque de arriba y el rail de herramientas volvía a desbordar con
    barra de scroll. */
 @media (max-width:420px){
-  .salir-btn{width:44px; height:44px; --salir-ico:34px;}
 }

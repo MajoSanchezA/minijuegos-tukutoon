@@ -31,14 +31,11 @@
 
   const DEFAULT_PALETTE = ['#FF6F59','#FFC94A','#2EC4B6','#5AA9E6','#B388EB','#FFB4C6','#8BC34A','#E8735A','#2B2140','#FFFFFF'];
 
-  // Íconos de los botones redondos de acción. Son SVG con
-  // stroke="currentColor" porque van sobre círculos de color y
-  // tienen que dibujarse en blanco. Los de las herramientas NO están
-  // acá: son PNG ilustrados a color, en iconos/ (ver TOOLS).
+  // Único ícono que sigue siendo SVG: el tilde de "Listo", que va en
+  // blanco sobre el círculo coral. Los demás (salir, reiniciar y las
+  // herramientas) son PNG ilustrados del arte, en iconos/.
   const ICON = {
-    restart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>',
-    done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
-    back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>'
+    done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
   };
 
   // Herramientas de trazo libre (todas menos balde/borrador comparten
@@ -164,7 +161,7 @@
             <span>Grosor</span>
             <input type="range" id="brush-size" min="4" max="30" value="14">
           </div>
-          <button class="nav-arrow restart" id="clear-btn" title="Empezar de nuevo" aria-label="Empezar de nuevo">${ICON.restart}</button>
+          <button class="nav-arrow restart" id="clear-btn" title="Empezar de nuevo" aria-label="Empezar de nuevo"><img src="${cfg.iconsBase || ICONS_BASE}reiniciar.png" alt="" draggable="false"></button>
         </div>
 
         <div class="stage-wrap">

@@ -53,8 +53,10 @@ a-pintar/
 │   ├── pincel.png           # acuarela
 │   ├── especial.png         # brillantina
 │   ├── borrador.png         # borrador
-│   └── salir.png            # la X de volver al menú (no es herramienta, pero
-│                            # comparte el estilo suelto y el mismo tamaño)
+│   ├── salir.png            # la X de volver al menú
+│   ├── reiniciar.png        # la flecha circular de empezar de nuevo
+│   └── descargar.png        # el botón naranja de descarga (TODAVÍA NO SE USA:
+│                            # falta decidir la funcionalidad, ver Pendientes)
 │
 ├── plantillas/
 │   └── plantilla-horizontal.html   # molde para crear una página de colorear nueva
@@ -129,8 +131,20 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   devolverlos alcanza con conseguirles un icono y sumarles su línea a `TOOLS`.
 - **Los iconos de las herramientas son PNG ilustrados a color** (`iconos/`), no SVG. En
   `TOOLS`, `icon` es el nombre del archivo, no marcado. Consecuencias:
+  - **Van a 48px, el tamaño chico de la grilla de iconos del sistema de diseño** (los tres
+    tamaños son 120, 80 y 48). El prototipo del juego usa ese, y nuestra pantalla en celular
+    horizontal (844x390) mide casi lo mismo que el frame del prototipo (874x402), así que van
+    1:1 sin recalcular. Los PNG traen el dibujo al 83% de su caja, así que a 48px de caja el
+    dibujo mide unos 40px — lo mismo que se mide en el prototipo. **No se achican en el
+    `@media` de pantallas bajas**: lo que se comprime ahí es el aire entre ellos.
+  - El icono de la herramienta elegida llega a 48px pero **no lo pasa**. Si se saliera de su
+    botón, el rail contaría ese desborde en su área de scroll y aparecerían las dos barras.
+    Por eso los no elegidos van a 44 y el elegido a 48, en vez de agrandar el elegido más allá
+    de su caja.
+  - `.tools` es un flex propio, con su `gap` aparte del `gap` del rail. Si se aprieta uno hay
+    que apretar el otro: con cinco botones, 10px de hueco son 40px que hacen desbordar el rail.
   - No se les puede cambiar el color por CSS. Por eso la herramienta elegida se marca
-    **agrandando el icono** (`--tool-ico`, de 34px a 44px) y no invirtiendo su color ni
+    **agrandando el icono** y no invirtiendo su color ni
     pintándole un fondo coral encima. El botón en sí es transparente — los iconos van
     sueltos, sin la pastilla crema que sí llevan los botones redondos de acción (volver,
     reiniciar, listo, que siguen siendo SVG en `ICON`).
@@ -291,7 +305,12 @@ sigue ahí con el formato de referencia y los pasos explicados en sus comentario
 - Sello de textura/patrón como herramienta extra (rayas, puntos, estrellas…).
 - Solo hay tres dibujos cargados (Aida, Ana, Tuku) — falta sumar más personajes siguiendo
   el flujo de arriba.
-- Los dibujos actuales no llegan a la proporción del diseño. El Figma
+- **Los dibujos son los `*_sktch.png` del arte, cuadrados y con fondo transparente.** Se
+  aplanan sobre blanco al incrustarlos porque el motor lee el transparente como pared; ese
+  blanco no se ve nunca, porque el motor solo dibuja los píxeles de línea y el resto de las
+  capas queda transparente, así que se ve la hoja de atrás. Los que había antes traían un fondo
+  crema opaco metido en el propio PNG.
+- (Histórico) Los dibujos anteriores no llegaban a la proporción del diseño. El Figma
   (`TUKUTOON APP UI STYLE GUIDELINE`, nodo `ZONA DE DIBUJO`) pide el dibujo **cuadrado**: los
   cuatro personajes están en marcos de 285×285 y `ana_sktch` exportado da 1100×1100. En el repo
   hay Aida 720×755 (0,95), Ana 1904×2082 (0,91) y Tuku 2200×1674 (1,31) — las dos primeras
