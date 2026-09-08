@@ -261,6 +261,19 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   plano.
   - En el archivo el lápiz está parado (191x1418); en la barra va **acostado con la punta hacia
     el dibujo**, así que `lapizSVG` lo rota 90°.
+  - **El contorno lo agrega el motor, no el archivo.** El lápiz del selector viene plano en el
+    `.ai`, pero en el prototipo los de la paleta llevan borde. `lapizTonos` lo deriva del propio
+    color (luminancia × 0,62, como los lápices decorativos del arte; por debajo de 20 aclara en
+    vez de oscurecer, si no un lápiz casi negro se quedaría sin contorno). Se dibuja como una
+    **capa de abajo**: las tres figuras de la silueta (`LAPIZ_SILUETA` = punta, cuerpo y cono)
+    engordadas con un `stroke`, y encima los rellenos normales. Ponerle `stroke` a cada figura
+    en cambio dibujaría también el contorno de los brillos internos.
+  - **Dónde va cada rail** (medido sobre el frame del prototipo, 874x402): los siete iconos de
+    la izquierda van repartidos parejo, del 10,2% al 98,8% del alto — siete cajas del 11,9% más
+    seis huecos del 2,5% ya suman el 98,3%, así que alcanza con el `gap` y NO hay que empujar
+    el último con `margin-top:auto`. Los lápices, en cambio, van **abajo**: en el prototipo el
+    primero cae al 28,5% y el último al 88,2%, justo arriba de reiniciar, y eso lo consigue el
+    `margin-top:auto` de `.swatches`.
   - **Se cortan contra el borde de la pantalla**, como en el prototipo: `.rail-right` cancela
     el padding lateral del `.app` con un margen negativo. El corte lo hace el propio SVG, con
     `preserveAspectRatio="xMinYMid slice"` — el dibujo se escala para CUBRIR la caja y lo que
@@ -273,6 +286,11 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     10 colores (Aida) el margen es de 5px. Si alguna paleta pasa de 10, hay que bajarlo: si
     aparece la barra, además de que un nene de 3 años no la va a usar, se come 15px de ancho y
     los lápices dejan de llegar al borde de la pantalla.
+- **El control de grosor (`.brush-size`) cuelga del `.app`, no del rail**, aunque
+  visualmente esté al lado de la columna de iconos. Metido en el rail rompía dos veces: como
+  elemento en el flujo era un octavo ítem en una columna calculada para siete, y flotado con
+  `position:absolute` sobresalía del ancho del rail, le disparaba una barra de scroll
+  horizontal, y esa barra le comía 15px de alto — con lo que la columna volvía a desbordar.
 - **Los dos botones de acción están cruzados respecto de lo que uno esperaría, y es a
   propósito**: en el prototipo el naranja de **guardar** va abajo del rail IZQUIERDO y el
   turquesa de **reiniciar** abajo del DERECHO. El id `done-btn` quedó con su nombre viejo, de
