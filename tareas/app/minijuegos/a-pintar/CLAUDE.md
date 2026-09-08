@@ -189,6 +189,13 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   medir el PNG: el área crema ocupa el 89,8% del ancho, así que el dibujo queda con aire parejo
   adentro del crema. `.paper` ya no lleva `border-radius` ni `box-shadow` — se los sumaría a los
   que la imagen ya trae.
+- **El afuera del dibujo no se pinta.** Antes era una región más, así que un chico que tocaba
+  fuera del personaje se teñía la hoja entera de un color — y encima es la región más grande,
+  la más fácil de tocar sin querer. `buildRegions()` la marca como pared, con lo que la ignoran
+  tanto el balde (`labels < 0`) como los pinceles (`wallMask`). Se recorre **todo el borde** de
+  la imagen, no solo las esquinas: si el personaje llega cerca de un lado —los brazos de Tuku,
+  por ejemplo— parte el afuera en varias regiones sueltas, y mirando solo las esquinas quedaban
+  pintables las de los costados.
 - Capas: canvas de pintura debajo (`#paint-canvas`) + canvas de tinta (líneas) encima
   (`#ink-canvas`). Los trazos nunca pisan las líneas (se respeta `wallMask`).
 - Herramientas (`TOOLS` en motor.js): la barra muestra **cinco** — balde, lápiz (fino,
@@ -320,8 +327,10 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     color (luminancia × 0,62, como los lápices decorativos del arte; por debajo de 20 aclara en
     vez de oscurecer, si no un lápiz casi negro se quedaría sin contorno). Se dibuja como una
     **capa de abajo**, y sale de la **UNIÓN** de las tres figuras de la silueta
-    (`LAPIZ_SILUETA` = cuerpo, cono y punta): un `feMorphology` engorda el alfa del grupo
-    entero y eso se rellena con el color del borde.
+    (`LAPIZ_SILUETA` = cuerpo, cono y punta): se **desenfoca** el alfa del grupo entero y se
+    lo vuelve a endurecer con un `feComponentTransfer`, y eso se rellena con el color del
+    borde. **No usar `feMorphology`**: engorda con un núcleo rectangular, así que cuadra las
+    esquinas y el contorno sale blocado, sobre todo en la punta.
   - **Tiene que ser la unión, no un `stroke` por figura.** Con un stroke en cada una se dibujan
     también los bordes INTERNOS: el cuerpo y el cono se superponen, así que en la junta quedan
     dos líneas oscuras y el cono se ve encerrado entre ellas. Eso es el **contorno doble**.

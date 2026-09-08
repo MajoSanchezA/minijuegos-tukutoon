@@ -168,9 +168,9 @@
   // punta. El contorno sale de la UNIÓN de las tres, no de cada una por
   // separado — ver lapizSVG.
   const LAPIZ_SILUETA = [3, 8, 0];
-  // 40 unidades: la mitad queda afuera, o sea 20 sobre un lápiz de 191
-  // de grosor = 10,5% por lado, que es lo que se mide en el prototipo.
-  const LAPIZ_BORDE = 40;
+  // Cuánto asoma el contorno por afuera, en unidades del viewBox. Sobre
+  // un lápiz de 191 de grosor, 14 es un 7,3% por lado.
+  const LAPIZ_BORDE = 14;
   // El contorno sobresale media pluma del dibujo, así que el viewBox
   // tiene que arrancar antes del 0 y terminar después del alto: si no,
   // el borde de la PUNTA queda cortado justo en el lado que más se ve.
@@ -199,7 +199,16 @@
     const idFiltro = 'lb' + hex.replace('#', '');
     const contorno =
       `<defs><filter id="${idFiltro}" x="-16%" y="-5%" width="132%" height="110%" color-interpolation-filters="sRGB">`
-      + `<feMorphology in="SourceAlpha" operator="dilate" radius="${LAPIZ_BORDE / 2}" result="d"/>`
+      // Desenfoque + umbral, NO feMorphology: feMorphology engorda con un
+      // núcleo rectangular, así que cuadra las esquinas y el contorno
+      // salía blocado, sobre todo en la punta. El desenfoque reparte el
+      // alfa de forma pareja y el umbral lo vuelve a endurecer, con lo
+      // que el borde sigue la forma y las esquinas quedan redondeadas,
+      // que es como está dibujado el arte.
+      + `<feGaussianBlur in="SourceAlpha" stdDeviation="${LAPIZ_BORDE / 2}" result="b"/>`
+      + '<feComponentTransfer in="b" result="d">'
+      + '<feFuncA type="linear" slope="26" intercept="-5"/>'
+      + '</feComponentTransfer>'
       + `<feFlood flood-color="${c.borde}" result="f"/>`
       + `<feComposite in="f" in2="d" operator="in"/>`
       + '</filter></defs>'
@@ -628,6 +637,30 @@
         regionPixels.push(Uint32Array.from(pixels));
         regionBounds.push([minX, minY, maxX - minX + 1, maxY - minY + 1]);
         regionId++;
+      }
+
+      // El AFUERA del dibujo no se pinta. Antes era una región más, así
+      // que un chico que tocaba fuera del personaje se teñía la hoja
+      // entera de un color — y encima es la región más grande, la más
+      // fácil de tocar sin querer. Se marca como pared, con lo que la
+      // ignoran tanto el balde (labels < 0) como los pinceles (wallMask).
+      //
+      // Se recorre TODO el borde, no solo las esquinas: si el personaje
+      // llega cerca de un lado —los brazos de Tuku, por ejemplo— parte
+      // el afuera en varias regiones sueltas, y mirando solo las cuatro
+      // esquinas quedaban pintables las de los costados.
+      const fuera = [];
+      const marcarBorde = (i) => {
+        if (labels[i] >= 0 && fuera.indexOf(labels[i]) < 0) fuera.push(labels[i]);
+      };
+      for (let x = 0; x < W; x++) { marcarBorde(x); marcarBorde((H - 1) * W + x); }
+      for (let y = 0; y < H; y++) { marcarBorde(y * W); marcarBorde(y * W + W - 1); }
+      for (const id of fuera) {
+        const pix = regionPixels[id];
+        for (let k = 0; k < pix.length; k++) {
+          labels[pix[k]] = -2;
+          wallMask[pix[k]] = 1;
+        }
       }
     }
 
