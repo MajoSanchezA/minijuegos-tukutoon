@@ -319,9 +319,16 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     `.ai`, pero en el prototipo los de la paleta llevan borde. `lapizTonos` lo deriva del propio
     color (luminancia × 0,62, como los lápices decorativos del arte; por debajo de 20 aclara en
     vez de oscurecer, si no un lápiz casi negro se quedaría sin contorno). Se dibuja como una
-    **capa de abajo**: las tres figuras de la silueta (`LAPIZ_SILUETA` = punta, cuerpo y cono)
-    engordadas con un `stroke`, y encima los rellenos normales. Ponerle `stroke` a cada figura
-    en cambio dibujaría también el contorno de los brillos internos.
+    **capa de abajo**: las figuras de la silueta engordadas con un `stroke`, y encima los
+    rellenos normales. Ponerle `stroke` a cada figura en cambio dibujaría también el contorno
+    de los brillos internos.
+  - **`LAPIZ_SILUETA` lleva solo el cuerpo y la punta — el cono de madera NO.** En el prototipo
+    el cono tampoco tiene contorno, y ponérselo era lo que producía un **contorno doble**: el
+    cono y el cuerpo se superponen, así que donde se juntan quedaban las dos líneas oscuras
+    pegadas una a la otra.
+  - `.nav-arrow` necesita `padding:0` explícito: un `<button>` trae `1px 6px` por defecto y,
+    con `box-sizing:border-box`, esos 12px de los lados le comen el ancho al icono — el de
+    reiniciar salía achatado.
   - **Dónde va cada rail** (medido sobre el frame del prototipo, 874x402): los siete iconos de
     la izquierda van repartidos parejo, del 10,2% al 98,8% del alto — siete cajas del 11,9% más
     seis huecos del 2,5% ya suman el 98,3%, así que alcanza con el `gap` y NO hay que empujar
