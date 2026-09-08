@@ -135,17 +135,41 @@
       // lápiz blanco queda plano y no se le lee la forma.
       brillo: l <= 85 ? hslAHex(h, s, l + (100 - l) * 0.28) : hslAHex(h, s, l - 7),
       punta:  hslAHex(h, Math.max(0, s - 16), Math.min(l * 0.906, l - 4)),
+      // Contorno: el lápiz del selector viene plano en el archivo de
+      // diseño, pero en el prototipo los de la paleta llevan borde. Se
+      // deriva del propio color, como en los lápices decorativos del
+      // arte, donde el borde baja la luminosidad a entre 0.65 y 0.91.
+      // Debajo de 20 se aclara en vez de oscurecer: un lápiz casi negro
+      // no tiene margen para abajo y se quedaría sin contorno.
+      borde: l > 20
+        ? hslAHex(h, Math.min(100, s * 1.05), Math.max(0, Math.min(l * 0.62, l - 10)))
+        : hslAHex(h, Math.min(100, s * 1.05), l + 12),
       madera:  '#FCD6B5',
       madera2: '#C88B74'
     };
   }
 
+  // Las tres figuras que forman la silueta del lápiz: la punta, el
+  // cuerpo y el cono de madera. Las otras seis son sombras y brillos
+  // internos, que no tienen que llevar contorno.
+  const LAPIZ_SILUETA = [0, 3, 8];
+  const LAPIZ_BORDE = 30;   // unidades del viewBox; la mitad queda afuera
+
   // Acostado: rotar 90° manda la punta (que en el archivo está abajo)
   // hacia la izquierda, o sea hacia el dibujo.
   function lapizSVG(hex) {
     const c = lapizTonos(hex);
+    // El contorno se dibuja como una capa de abajo: las mismas tres
+    // figuras de la silueta, engordadas con un stroke del color del
+    // borde. Encima van los rellenos normales, así el borde solo asoma
+    // por afuera y los límites internos quedan limpios. Pintar el
+    // stroke sobre cada figura, en cambio, dibujaría también los
+    // contornos de los brillos.
+    const contorno = LAPIZ_SILUETA.map(i =>
+      `<path fill="${c.borde}" stroke="${c.borde}" stroke-width="${LAPIZ_BORDE}" stroke-linejoin="round" d="${LAPIZ_FIGURAS[i][1]}"/>`).join('');
     return `<svg viewBox="0 0 ${LAPIZ_H} ${LAPIZ_W}" preserveAspectRatio="xMinYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
       + `<g transform="translate(${LAPIZ_H},0) rotate(90)">`
+      + contorno
       + LAPIZ_FIGURAS.map(f => `<path fill="${c[f[0]]}" d="${f[1]}"/>`).join('')
       + '</g></svg>';
   }
@@ -164,10 +188,6 @@
         <div class="rail rail-left">
           ${cfg.showBackButton === false ? '' : `<a class="salir-btn" href="${cfg.menuHref || 'menu.html'}" title="Volver al menú" aria-label="Volver al menú"><img src="${cfg.iconsBase || ICONS_BASE}salir.png" alt="" draggable="false"></a>`}
           <div class="tools" id="tools"></div>
-          <div class="brush-size" id="brush-size-wrap" style="display:none;">
-            <span>Grosor</span>
-            <input type="range" id="brush-size" min="4" max="30" value="14">
-          </div>
           <button class="nav-arrow descargar" id="done-btn" title="Guardar el dibujo" aria-label="Guardar el dibujo"><img src="${cfg.iconsBase || ICONS_BASE}descargar.png" alt="" draggable="false"></button>
         </div>
 
@@ -184,6 +204,16 @@
               <div class="loading" id="loading" style="display:none;">Preparando el dibujo…</div>
             </div>
           </div>
+        </div>
+
+        <!-- El control de grosor NO va adentro del rail: el rail tiene
+             overflow-y:auto, y algo que sobresalga de su ancho le dispara
+             una barra de scroll horizontal que le come 15px de alto y le
+             hace desbordar la columna de iconos. Colgado del .app, que no
+             recorta, flota al costado sin afectar a nadie. -->
+        <div class="brush-size" id="brush-size-wrap" style="display:none;">
+          <span>Grosor</span>
+          <input type="range" id="brush-size" min="4" max="30" value="14">
         </div>
 
         <div class="rail rail-right">

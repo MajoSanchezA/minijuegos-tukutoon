@@ -214,7 +214,19 @@ body{
    (ver LAPIZ_VISIBLE en motor.js): el rail no puede dejar que se
    desborden porque su overflow-y:auto fuerza overflow-x a auto. */
 .rail-right{margin-right:calc(var(--sp-24) * -1);}
-.rail .nav-arrow{margin-top:auto; flex:none;}
+.rail .nav-arrow{flex:none;}
+/* Dónde va cada cosa, medido sobre el frame del prototipo (874x402):
+   - Izquierda: los 7 iconos van repartidos parejo, del 10,2% al 98,8%
+     del alto. Como 7 cajas del 11,9% más 6 huecos del 2,5% suman el
+     98,3%, alcanza con el gap del rail: no hace falta empujar el último
+     con margin-top:auto, que era lo que dejaba un hueco grande antes
+     de "guardar" y apretaba los otros seis.
+   - Derecha: los lápices NO van pegados arriba (así estaban, y se veían
+     muy altos). En el prototipo el primero cae al 28,5% del alto y el
+     último al 88,2%: van abajo, justo arriba de reiniciar. El
+     margin-top:auto de .swatches empuja el grupo entero contra el
+     borde de abajo. */
+.rail-right .swatches{margin-top:auto;}
 
 /* Ya no hay un layout especial "celular en vertical" apilado: el body
    se rotea 90° por CSS más arriba, así que el juego SIEMPRE se arma
@@ -420,7 +432,16 @@ canvas{
 .tool-btn:hover{--tool-ico:var(--tool-ico-hover);}
 .tool-btn.active{--tool-ico:var(--tool-ico-sel);}
 
+/* El control de grosor no va en la columna de iconos: el prototipo
+   tiene ahí exactamente siete, que llenan el alto justo. Flota al
+   costado, colgado del .app (ver el comentario en buildDOM sobre por
+   qué no puede colgar del rail). */
 .brush-size{
+  position:absolute;
+  left:calc(var(--ico) + 42px);
+  top:50%;
+  transform:translateY(-50%);
+  z-index:4;
   display:flex; flex-direction:column; align-items:center; gap:6px;
   background:var(--cream); border-radius:16px; padding:10px 12px;
   box-shadow:0 3px 0 rgba(61,44,78,.1);
