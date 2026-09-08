@@ -151,6 +151,10 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     reiniciar del otro lado. Puesto al costado, la columna entra con la separación del diseño
     (123) sin que nada se pise; puesto debajo no entraba.
   - **Reiniciar va al COSTADO de los lápices, no debajo** (x 82,7% / y 87,1%).
+  - El `top` de guardar y de reiniciar NO se calcula desde `FONDO` sino **con la misma cuenta
+    que usa el rail para su último icono**. Calculado aparte quedaban 2px más arriba que la
+    estrella: el rail acumula el redondeo del gap seis veces y el resultado no coincide al
+    píxel.
   - **Lo que va pegado a un borde se mide DESDE ese borde** (`desdeIzq` / `desdeDer`), no con
     `X()`. Si la pantalla es más angosta que el diseño, el fondo se recorta a lo ancho, y con
     `X()` la interfaz se iba recortada junto con él: a 663x456 la columna quedaba en x −66 y
@@ -319,9 +323,14 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   plano.
   - En el archivo el lápiz está parado (191x1418); en la barra va **acostado con la punta hacia
     el dibujo**, así que `lapizSVG` lo rota 90°.
-  - La **punta va del mismo color que el contorno**. Cuando tenía un tono propio —apenas más
-    claro que el borde— se leía como un **contorno doble**: el trazo del borde, después la
-    punta en otro oscuro, y recién ahí el cuerpo.
+  - La **punta va del color del CUERPO**, apenas más oscura — NO del color del contorno. En el
+    prototipo se lee leyendo una fila del lápiz rojo: borde, 13px de ROJO (la punta), borde,
+    11px de madera, borde, y recién ahí el cuerpo. La relación sale del archivo de diseño
+    (cuerpo `#C94BFE` → punta `#B63DED`).
+  - Además del contorno de la unión, las tres figuras de la silueta llevan un **trazo fino**
+    (`LAPIZ_LINEA`): por afuera se funde con el contorno, y por adentro deja las líneas que
+    separan punta, madera y cuerpo. El prototipo las tiene, y el contorno por unión solo las
+    borraba todas — sin ellas el lápiz queda blando.
   - **El contorno lo agrega el motor, no el archivo.** El lápiz del selector viene plano en el
     `.ai`, pero en el prototipo los de la paleta llevan borde. `lapizTonos` lo deriva del propio
     color (luminancia × 0,62, como los lápices decorativos del arte; por debajo de 20 aclara en

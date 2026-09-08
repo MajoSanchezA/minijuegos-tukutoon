@@ -142,14 +142,12 @@
       // lo que faltaba para blanco, y con colores pastel eso son 5
       // puntos: el lápiz quedaba plano, sin volumen.
       brillo: l <= 85 ? hslAHex(h, s, Math.min(97, l + 10)) : hslAHex(h, s, l - 8),
-      // La punta va del MISMO color que el contorno. Cuando tenía un tono
-      // propio —apenas más claro que el borde— se leía como un contorno
-      // doble: el trazo del borde, después la punta en otro oscuro, y
-      // recién ahí el cuerpo. Del mismo color queda una sola forma
-      // oscura, con el brillito interno encima, como en el diseño.
-      punta:  l > 20
-        ? hslAHex(h, Math.min(100, s * 1.05), Math.max(0, Math.min(l * 0.62, l - 10)))
-        : hslAHex(h, Math.min(100, s * 1.05), l + 12),
+      // La punta es del color del CUERPO, apenas más oscura — no del
+      // color del contorno. En el prototipo se lee clarísimo: leyendo una
+      // fila del lápiz rojo aparece borde, 13px de ROJO (la punta), borde,
+      // 11px de madera, borde, y recién ahí el cuerpo. La relación sale
+      // del archivo de diseño: cuerpo #C94BFE -> punta #B63DED.
+      punta:  hslAHex(h, Math.max(0, s - 16), Math.min(l * 0.906, l - 4)),
       // Contorno: el lápiz del selector viene plano en el archivo de
       // diseño, pero en el prototipo los de la paleta llevan borde. Se
       // deriva del propio color, como en los lápices decorativos del
@@ -168,9 +166,15 @@
   // punta. El contorno sale de la UNIÓN de las tres, no de cada una por
   // separado — ver lapizSVG.
   const LAPIZ_SILUETA = [3, 8, 0];
-  // Cuánto asoma el contorno por afuera, en unidades del viewBox. Sobre
-  // un lápiz de 191 de grosor, 14 es un 7,3% por lado.
-  const LAPIZ_BORDE = 14;
+  // Cuánto asoma el contorno por afuera. Con desenfoque + umbral, lo que
+  // se expande es aproximadamente 0,8 veces la desviación, así que 48 da
+  // unas 19 unidades: un 10% del grosor por lado, que es lo que se mide
+  // en el prototipo.
+  const LAPIZ_BORDE = 48;
+  // Las líneas finas que separan punta / madera / cuerpo. En el prototipo
+  // están (1px sobre un lápiz de 89 de largo visible); el contorno por
+  // unión las borraba todas y el lápiz quedaba blando.
+  const LAPIZ_LINEA = 7;
   // El contorno sobresale media pluma del dibujo, así que el viewBox
   // tiene que arrancar antes del 0 y terminar después del alto: si no,
   // el borde de la PUNTA queda cortado justo en el lado que más se ve.
@@ -220,7 +224,14 @@
     return `<svg viewBox="${vb}" preserveAspectRatio="xMinYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
       + `<g transform="translate(${LAPIZ_H},0) rotate(90)">`
       + contorno
-      + LAPIZ_FIGURAS.map(f => `<path fill="${c[f[0]]}" d="${f[1]}"/>`).join('')
+      + LAPIZ_FIGURAS.map((f, i) => {
+          // Las tres figuras de la silueta llevan además un trazo fino:
+          // por afuera se funde con el contorno, y por adentro deja las
+          // líneas que separan punta, madera y cuerpo.
+          const linea = LAPIZ_SILUETA.indexOf(i) >= 0
+            ? ` stroke="${c.borde}" stroke-width="${LAPIZ_LINEA}" stroke-linejoin="round"` : '';
+          return `<path fill="${c[f[0]]}"${linea} d="${f[1]}"/>`;
+        }).join('')
       + '</g></svg>';
   }
 
@@ -487,6 +498,7 @@
       raiz.style.setProperty('--ico', ico + 'px');
       raiz.style.setProperty('--rail-gap',
         Math.max(Math.round((FONDO.iconos.paso - FONDO.iconos.lado) * esc), 2) + 'px');
+      // reiniciar se alinea con la estrella y con guardar, misma cuenta
       railIzqEl.style.left = Math.round(desdeIzq(FONDO.iconos.cx) - ico / 2) + 'px';
       railIzqEl.style.top = Math.round(Y(FONDO.iconos.cy0) - ico / 2) + 'px';
       railIzqEl.style.width = ico + 'px';
@@ -504,11 +516,17 @@
       coloresEl.style.top = Math.round(Y(FONDO.lapices.cy0) - grosor / 2) + 'px';
       coloresEl.style.left = Math.round(desdeDer(FONDO.lapices.der)) + 'px';
 
-      // --- guardar: suelto, abajo a la izquierda ---
+      // --- guardar: suelto, al lado de la estrella ---
+      // El top NO se calcula desde FONDO sino con la misma cuenta que usa
+      // el rail para su último icono. Calculándolo aparte quedaba 2px más
+      // arriba que la estrella: el rail acumula el redondeo del gap seis
+      // veces y el resultado no coincide al píxel.
+      const gapPx = Math.max(Math.round((FONDO.iconos.paso - FONDO.iconos.lado) * esc), 2);
+      const topRail = Math.round(Y(FONDO.iconos.cy0) - ico / 2);
       descargarEl.style.width = ico + 'px';
       descargarEl.style.height = ico + 'px';
       descargarEl.style.left = Math.round(desdeIzq(FONDO.descargar.cx) - ico / 2) + 'px';
-      descargarEl.style.top = Math.round(Y(FONDO.descargar.cy) - ico / 2) + 'px';
+      descargarEl.style.top = (topRail + 5 * (ico + gapPx)) + 'px';
 
       // --- reiniciar: en el prototipo va al COSTADO de los lápices, no
       // debajo ---
@@ -517,7 +535,7 @@
       reiniciarEl.style.width = ico + 'px';
       reiniciarEl.style.height = ico + 'px';
       reiniciarEl.style.left = Math.round(desdeDer(FONDO.reiniciar.cx) - ico / 2) + 'px';
-      reiniciarEl.style.top = Math.round(Y(FONDO.reiniciar.cy) - ico / 2) + 'px';
+      reiniciarEl.style.top = (topRail + 5 * (ico + gapPx)) + 'px';
 
       // --- la hoja ---
       const hojaX = X(FONDO.hoja.x);
