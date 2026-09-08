@@ -27,7 +27,6 @@
   // no hay que pasarles una ruta por página como sí pasa con bgSrc.
   const RAIZ = SCRIPT_SRC ? SCRIPT_SRC.replace(/\/[^/]*$/, '/../') : '';
   const ICONS_BASE = RAIZ + 'iconos/';
-  const DECO_SRC = RAIZ + 'decoracion-dibujo.png';
 
   const DEFAULT_PALETTE = ['#FF6F59','#FFC94A','#2EC4B6','#5AA9E6','#B388EB','#FFB4C6','#8BC34A','#E8735A','#2B2140','#FFFFFF'];
 
@@ -178,7 +177,6 @@
     document.title = cfg.pageTitle || ('Colorea con TukuToon — ' + (cfg.title || ''));
     document.body.innerHTML = `
       <img class="bg-photo" src="${cfg.bgSrc || 'fondo-dibujo.png'}" alt="" aria-hidden="true">
-      <img class="bg-deco" src="${cfg.decoSrc || DECO_SRC}" alt="" aria-hidden="true">
 
       <div class="floaty" style="top:10%;left:5%;"><svg width="36" height="36" viewBox="0 0 36 36"><polygon points="18,2 34,32 2,32" fill="#FFC94A"/></svg></div>
       <div class="floaty" style="top:65%;left:3%;"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#2EC4B6"/></svg></div>
@@ -328,7 +326,11 @@
     // (encabezado + barras + dibujo) entre en pantalla sin scroll,
     // respetando la proporción real del dibujo (o 3:2 antes de cargar).
     let ratioW = 3, ratioH = 2;
-    const HOJA_RATIO = 880 / 982;   // proporción real de hoja-dibujo.png
+    // El fondo trae la hoja dibujada adentro. Estos son sus números,
+    // medidos sobre el archivo compuesto (1748x804, el doble del frame
+    // del prototipo): dónde cae la hoja y cuánto mide. Si se recompone
+    // el fondo, hay que actualizarlos.
+    const FONDO = { w: 1748, h: 804, hoja: { x: 516, y: 92, w: 806, h: 899 } };
 
     // Proporciones medidas sobre el frame del prototipo (874x402). Van
     // como fracción del alto del juego y NO como px fijos: con px fijos
@@ -390,23 +392,30 @@
       raiz.style.setProperty('--lapiz', Math.round(grosor * P.largoLapiz) + 'px');
       raiz.style.setProperty('--lapiz-sel', Math.round(grosor * P.largoSel) + 'px');
 
-      // La hoja: en el prototipo es MÁS ALTA que la pantalla, apoya
-      // cerca del borde de arriba y se corta contra el de abajo (la
-      // recorta el overflow:hidden de .stage-wrap). Conserva siempre la
-      // proporción del archivo: es un asset con borde irregular y sombra
-      // propios, estirarlo lo deforma.
-      const hojaH = Math.round(availAppH * P.hojaAlto);
-      const hojaW = Math.round(hojaH * HOJA_RATIO);
-      const hojaTop = Math.round(availAppH * P.hojaTop);
-      paperEl.style.width = Math.min(hojaW, Math.floor(availW)) + 'px';
-      paperEl.style.height = hojaH + 'px';
-      paperEl.style.marginTop = hojaTop + 'px';
+      // Dónde cayó la hoja. Como está dibujada dentro del fondo, y el
+      // fondo va con object-fit:cover, hay que replicar a mano esa
+      // transformación: se escala para CUBRIR la pantalla y lo que
+      // sobra se recorta por partes iguales de los dos lados.
+      const vw = isRotatedForLandscape()
+        ? window.innerHeight
+        : (window.innerWidth || document.documentElement.clientWidth);
+      const esc = Math.max(vw / FONDO.w, vh / FONDO.h);
+      const sobraX = (FONDO.w * esc - vw) / 2;
+      const sobraY = (FONDO.h * esc - vh) / 2;
+      const hojaX = FONDO.hoja.x * esc - sobraX;
+      const hojaTop = FONDO.hoja.y * esc - sobraY;
+      const anchoReal = FONDO.hoja.w * esc;
+      const hojaH = FONDO.hoja.h * esc;
+      paperEl.style.left = Math.round(hojaX) + 'px';
+      paperEl.style.top = Math.round(hojaTop) + 'px';
+      paperEl.style.width = Math.round(anchoReal) + 'px';
+      paperEl.style.height = Math.round(hojaH) + 'px';
 
       // El dibujo se centra en la parte VISIBLE de la hoja, no en la
-      // hoja entera: si se centrara en la hoja entera quedaría medio
-      // tapado por el borde de abajo de la pantalla.
-      const anchoReal = Math.min(hojaW, Math.floor(availW));
-      const visible = Math.max(availAppH - hojaTop, 60);
+      // hoja entera: la hoja es más alta que la pantalla y se corta
+      // abajo, así que centrarlo en la hoja entera lo dejaría medio
+      // tapado por el borde.
+      const visible = Math.max(Math.min(hojaTop + hojaH, vh) - hojaTop, 60);
       const innerW = Math.max(anchoReal * 0.80, 40);
       const innerH = Math.max(visible * 0.86, 40);
       const scale = Math.min(innerW / ratioW, innerH / ratioH);

@@ -94,7 +94,7 @@ body{
    combinación en algunos navegadores. Un <img> normal, al ser
    contenido (no "pintura de fondo"), sí hereda la rotación del
    ancestro de forma confiable en todos los navegadores. */
-.bg-photo, .bg-deco{
+.bg-photo{
   position:absolute;
   inset:0;
   width:100%;
@@ -103,11 +103,6 @@ body{
   pointer-events:none;
 }
 .bg-photo{z-index:0;}
-/* Los útiles y stickers sueltos van en una capa aparte, con alfa, encima
-   de la mesa. Las dos imágenes son 16:9 y usan el mismo object-fit:cover,
-   así que recortan igual y la decoración nunca se despega de la mesa. El
-   centro de esta capa está vacío a propósito: ahí va la hoja. */
-.bg-deco{z-index:1;}
 
 /* Fuerza horizontal en celular: si el teléfono está parado (vertical),
    rotamos <html> 90° por CSS en vez de usar la API nativa de
@@ -248,15 +243,15 @@ body{
 /* El tamaño real de .paper lo calcula JS (fitStage, en motor.js) para
    que el dibujo entero — con sus barras — quepa en la pantalla sin
    recortarse. max-width/max-height son solo un techo de seguridad. */
-/* La hoja ya no es un rectángulo al que le ponemos borde y sombra por
-   CSS: es un asset con su propio borde irregular y su propia sombra
-   dibujada. Por eso acá no van border-radius ni box-shadow — se los
-   sumaría a los que la imagen ya trae. El tamaño lo fija fitStage
-   (motor.js) respetando la proporción del archivo, así que el
-   background-size:100% 100% no la deforma nunca. */
+/* La hoja ya no se dibuja acá: viene dentro de fondo-dibujo.png, para
+   que la decoración pueda pasarle por encima como en el diseño (mirá el
+   lápiz oscuro de abajo a la izquierda). Este elemento quedó solo como
+   la caja que ubica al lienzo sobre esa hoja: fitStage (motor.js)
+   calcula dónde cayó, replicando la transformación de object-fit:cover
+   del fondo, y le pone left/top/width/height. */
 .paper{
-  position:relative;
-  background:url('../hoja-dibujo.png') center / 100% 100% no-repeat;
+  position:absolute;
+  background:none;
   display:flex;
   align-items:flex-start;   /* el lienzo lo ubica fitStage con margin-top */
   justify-content:center;

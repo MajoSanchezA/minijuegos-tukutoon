@@ -25,12 +25,14 @@ a-pintar/
 ├── menu.html               # molde vacío del grid de miniaturas (sin contenido de dibujos)
 ├── paginas.js              # fuente de verdad del menú: const PAGINAS = [...]
 ├── fondo-menu.png          # imagen de fondo (playa) usada SOLO en el menú
-├── fondo-dibujo.png        # la mesa vista desde arriba (03_CENITAL_MESA del arte),
-│                             # opaca, 1920x1080. Capa de más abajo
-├── decoracion-dibujo.png    # útiles y stickers sueltos, con alfa, 1920x1080. Va
-│                             # encima de la mesa; el centro está vacío a propósito
+├── fondo-dibujo.png        # EL fondo del juego: mesa + hoja + decoración ya
+│                             # compuestos en una sola imagen, 1748x804. Es lo único
+│                             # que carga el motor (ver por qué más abajo)
+├── fondo-mesa.png           # la mesa sola (03_CENITAL_MESA del arte). FUENTE, no se
+│                             # usa en el juego
+├── decoracion-dibujo.png    # útiles y stickers, con alfa. FUENTE
 ├── hoja-dibujo.png          # la hoja crema, 880x982, con su borde irregular y su
-│                             # sombra ya dibujados. Fondo de `.paper`
+│                             # sombra. FUENTE
 ├── CLAUDE.md                # este archivo
 ├── GUIA-DISENADORES.md      # spec de entrega de los PNG de linea, para mandarle
 │                             # al equipo de diseno (formato, tamano, errores que rompen
@@ -99,16 +101,23 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   normal, no un canvas, así que ahí sí es seguro usar el archivo externo). Si `init()` ve
   algo raro al procesar la imagen, ahora lo muestra en el marcador de posición en vez de
   fallar en silencio (`try/catch` en `motor.js`).
-- **El fondo son tres capas separadas**, como venía armado el arte:
-  1. `fondo-dibujo.png` — la mesa, opaca. `<img class="bg-photo">`, z-index 0.
-  2. `decoracion-dibujo.png` — los útiles y stickers, con alfa. `<img class="bg-deco">`,
-     z-index 1. El centro de esta capa está vacío a propósito: ahí va la hoja.
-  3. `hoja-dibujo.png` — fondo CSS de `.paper`, que se posiciona por separado.
+- **El fondo es UNA sola imagen con la hoja ya dibujada adentro** (`fondo-dibujo.png`,
+  1748x804 = el doble del frame del prototipo). Es un **`<img class="bg-photo">`** real con
+  `object-fit:cover`, no un `background-image` de CSS — ver más abajo, en "Horizontal forzado
+  en celular", por qué.
 
-  Las dos primeras son **`<img>` reales**, no `background-image` de CSS — ver más abajo, en
-  "Horizontal forzado en celular", por qué. Las dos miden 1920x1080 y usan el mismo
-  `object-fit:cover`, así que recortan igual y **la decoración nunca se despega de la mesa**.
-  Si alguna vez se cambia una, la otra tiene que mantener la misma proporción.
+  **Por qué compuesta y no en capas:** en el diseño la decoración va ENCIMA de la hoja — mirá
+  el lápiz oscuro de abajo a la izquierda, que le pasa por arriba. Con la hoja como elemento
+  aparte eso es imposible: o la hoja queda arriba de la decoración (mal), o la decoración
+  queda arriba de todo y tapa los rails. Además así la hoja cae exactamente donde la puso
+  diseño, sin que la ubique el layout.
+
+  **Cómo se recompone** (con las tres fuentes que quedaron en la carpeta): lienzo de 1748x804,
+  `fondo-mesa.png` y `decoracion-dibujo.png` escaladas con `cover` centrado, y
+  `hoja-dibujo.png` en **x=516, y=92, 806x899** — medido sobre el frame del prototipo, donde
+  la hoja va de x 258 a 661 y su borde de arriba cae en y=46 (por 2, porque componemos al
+  doble). Orden: mesa, hoja, decoración. Si se recompone, hay que actualizar la constante
+  `FONDO` en `motor.js`.
 - **Los tamaños de la interfaz son proporcionales al alto del juego, no px fijos.**
   `fitStage()` los recalcula en cada resize y los publica como variables CSS en `<html>`
   (`--ico`, `--rail-gap`, `--grosor`, `--lapiz`, `--lapiz-sel`); `motor.css` solo las consume,
@@ -126,11 +135,14 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   **La barra de scroll va oculta a propósito** (`scrollbar-width:none` + `::-webkit-scrollbar`):
   si se viera, se comería 15px de ancho y los lápices dejarían de llegar al borde de la
   pantalla, que es justo donde tienen que cortarse. Se desliza con el dedo igual.
-- **La hoja es la que manda la geometría del escenario, y por eso `fitStage()` calcula al
-  revés que antes.** En el prototipo la hoja es **más alta que la pantalla**: apoya al 11,4%
-  del alto y se corta contra el borde de abajo (la recorta el `overflow:hidden` de
-  `.stage-wrap`). Por eso el dibujo se centra en la parte **visible** de la hoja y no en la
-  hoja entera — si se centrara en la hoja entera quedaría medio tapado. Ya no es un rectángulo al que le poníamos borde y sombra por CSS (eso se
+- **Como la hoja viene dentro del fondo, `fitStage()` tiene que deducir dónde cayó**: replica
+  a mano la transformación de `object-fit:cover` (escala para cubrir, y el sobrante se recorta
+  por partes iguales de los dos lados) y con eso le da `left/top/width/height` a `.paper`, que
+  ya no dibuja nada y quedó solo como la caja que ubica al lienzo. Los números de la hoja
+  dentro del fondo están en la constante `FONDO` de `motor.js`.
+  La hoja es **más alta que la pantalla** y se corta contra el borde de abajo, así que el
+  dibujo se centra en la parte **visible** de la hoja y no en la hoja entera — si se centrara
+  en la hoja entera quedaría medio tapado. Ya no es un rectángulo al que le poníamos borde y sombra por CSS (eso se
   podía estirar a la proporción que pidiera cada dibujo): ahora es un asset con su propio borde
   irregular y su propia sombra dibujada, así que estirarla la deforma. `fitStage()` primero
   calcula cuánto puede medir la hoja respetando `HOJA_RATIO` (880/982, la proporción real del
