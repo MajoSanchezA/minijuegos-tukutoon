@@ -55,8 +55,7 @@ a-pintar/
 │   ├── borrador.png         # borrador
 │   ├── salir.png            # la X de volver al menú
 │   ├── reiniciar.png        # la flecha circular de empezar de nuevo
-│   └── descargar.png        # el botón naranja de descarga (TODAVÍA NO SE USA:
-│                            # falta decidir la funcionalidad, ver Pendientes)
+│   └── descargar.png        # el botón naranja de guardar el dibujo
 │
 ├── plantillas/
 │   └── plantilla-horizontal.html   # molde para crear una página de colorear nueva
@@ -121,9 +120,12 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   alta, porque el `@media` de pantallas bajas dejaba de aplicar justo cuando había más lugar.
   Por eso `.app` tampoco lleva `margin` vertical ni `max-width`: en el diseño la columna de
   iconos llena el alto entero y los rails tocan los bordes.
-- El grosor del lápiz usa el 9,5% del diseño **salvo que la paleta no entre**: ahí se achica lo
-  necesario. Nunca tiene que aparecer la barra de scroll — un chico de 3 años no la va a usar,
-  y además se come 15px de ancho y los lápices dejan de llegar al borde de la pantalla.
+- El grosor del lápiz es **siempre** el 9,5% del diseño, aunque la paleta no entre entera: se
+  ven **seis** (`P.lapicesVisibles`) y el resto se desliza, como en el prototipo. Antes se
+  achicaban para que entraran todos y quedaban finitos.
+  **La barra de scroll va oculta a propósito** (`scrollbar-width:none` + `::-webkit-scrollbar`):
+  si se viera, se comería 15px de ancho y los lápices dejarían de llegar al borde de la
+  pantalla, que es justo donde tienen que cortarse. Se desliza con el dedo igual.
 - **La hoja es la que manda la geometría del escenario, y por eso `fitStage()` calcula al
   revés que antes.** En el prototipo la hoja es **más alta que la pantalla**: apoya al 11,4%
   del alto y se corta contra el borde de abajo (la recorta el `overflow:hidden` de
@@ -164,7 +166,7 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     **agrandando el icono** y no invirtiendo su color ni
     pintándole un fondo coral encima. El botón en sí es transparente — los iconos van
     sueltos, sin la pastilla crema que sí llevan los botones redondos de acción (volver,
-    reiniciar, listo, que siguen siendo SVG en `ICON`).
+    reiniciar, guardar, que también son PNG del arte — ya no queda ningún ícono SVG).
   - Es a propósito que el estado activo NO use `transform:scale()`: el rail tiene
     `overflow-y:auto`, y eso obliga al navegador a calcular `overflow-x` como `auto`
     también, así que cualquier escalado del botón se pasa del ancho del rail y dispara una
@@ -271,7 +273,16 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     10 colores (Aida) el margen es de 5px. Si alguna paleta pasa de 10, hay que bajarlo: si
     aparece la barra, además de que un nene de 3 años no la va a usar, se come 15px de ancho y
     los lápices dejan de llegar al borde de la pantalla.
-- Al tocar "Listo" (`done-btn`), además del confeti, `motor.js` guarda una foto del
+- **Los dos botones de acción están cruzados respecto de lo que uno esperaría, y es a
+  propósito**: en el prototipo el naranja de **guardar** va abajo del rail IZQUIERDO y el
+  turquesa de **reiniciar** abajo del DERECHO. El id `done-btn` quedó con su nombre viejo, de
+  cuando era el botón "Listo".
+- Al tocar guardar (`done-btn`), `motor.js` hace tres cosas: **baja el dibujo como PNG**
+  (`descargarDibujo()`), guarda la miniatura para el menú y muestra el confeti. El PNG se arma
+  aparte sobre fondo blanco, porque los dos lienzos del juego son transparentes — se ve la hoja
+  de atrás — y un PNG transparente se vería raro al abrirlo o imprimirlo. Si el navegador
+  bloquea la descarga, el resto sigue funcionando igual.
+- Al tocar guardar, además del confeti, `motor.js` guarda una foto del
   dibujo ya pintado (fondo blanco + color + líneas, achicada a 480px) en `localStorage`, con
   clave `tukutoon:progreso:<carpeta>` (la carpeta se deduce sola de la URL, ej. `.../paginas/
   ana/...` → `tukutoon:progreso:ana`). `js/script.js` la busca por `d.id` al armar el menú y,
