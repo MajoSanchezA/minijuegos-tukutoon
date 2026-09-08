@@ -135,6 +135,27 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   **La barra de scroll va oculta a propósito** (`scrollbar-width:none` + `::-webkit-scrollbar`):
   si se viera, se comería 15px de ancho y los lápices dejarían de llegar al borde de la
   pantalla, que es justo donde tienen que cortarse. Se desliza con el dedo igual.
+- **TODO se ubica desde las coordenadas del fondo, no desde el layout.** Antes los rails eran
+  flex y repartían el espacio disponible; el diseño, en cambio, pone cada cosa en un lugar fijo
+  respecto del arte. Por eso nada coincidía y cada arreglo puntual corría otra cosa. Ahora los
+  cinco grupos —columna de iconos, hoja, lápices, guardar y reiniciar— se posicionan en
+  absoluto: `fitStage()` mapea coordenadas del fondo a pantalla con las funciones `X()` e
+  `Y()`, que replican la transformación de `object-fit:cover`. **Todas las posiciones viven en
+  la constante `FONDO`** de motor.js, medidas sobre el frame del prototipo (874x402) y llevadas
+  al doble. Si cambia el prototipo o se recompone el fondo, se toca ahí y nada más.
+- Dos cosas que hay que entender de esa distribución, porque no son evidentes:
+  - **Guardar NO pertenece a la columna de la izquierda.** En el prototipo cae en x 15,5%
+    mientras los otros seis están en 12,6%: es un botón suelto, igual que reiniciar del otro
+    lado. Verlo así fue lo que hizo cerrar la cuenta — con siete iconos en la columna la
+    separación del diseño no entra, y por eso en el mockup el último aparece cortado.
+  - **Reiniciar va al COSTADO de los lápices, no debajo** (x 82,7% / y 87,1%).
+  - Aun con guardar aparte, seis iconos más guardar a la separación del prototipo (123
+    unidades) suman el 105% del alto y se pisan. Se usa 115, a costa de que del tercero para
+    abajo la columna quede hasta un 5% más arriba que el diseño.
+- **El orden de las herramientas es el del prototipo** (pincel, borrador, lápiz, balde,
+  estrella) y NO el que uno pondría: el balde va cuarto aunque sea el que más se usa. Por eso
+  la que arranca elegida se define aparte, en `TOOL_INICIAL`, en vez de ser la primera de la
+  lista.
 - **Como la hoja viene dentro del fondo, `fitStage()` tiene que deducir dónde cayó**: replica
   a mano la transformación de `object-fit:cover` (escala para cubrir, y el sobrante se recorta
   por partes iguales de los dos lados) y con eso le da `left/top/width/height` a `.paper`, que

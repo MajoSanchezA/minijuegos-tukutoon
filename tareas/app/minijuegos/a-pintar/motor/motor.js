@@ -41,13 +41,18 @@
   // (aerosol) siguen implementados más abajo (stampMarker / stampSpray) y
   // listos para volver: alcanza con sumarles un icono y su línea acá.
   // 'icon' es el nombre del archivo dentro de iconos/, no un SVG.
+  // El orden es el del prototipo, de arriba hacia abajo. NO es el orden
+  // en que uno las pondría: el balde va cuarto aunque sea la que más se
+  // usa. Por eso la que arranca elegida se define aparte, en lugar de
+  // ser simplemente la primera de la lista.
   const TOOLS = [
-    { id: 'bucket', title: 'Balde', icon: 'balde.png' },
-    { id: 'pencil', title: 'Lápiz', icon: 'lapiz.png' },
     { id: 'brush', title: 'Acuarela', icon: 'pincel.png' },
-    { id: 'glitter', title: 'Brillantina', icon: 'especial.png' },
-    { id: 'eraser', title: 'Borrar', icon: 'borrador.png' }
+    { id: 'eraser', title: 'Borrar', icon: 'borrador.png' },
+    { id: 'pencil', title: 'Lápiz', icon: 'lapiz.png' },
+    { id: 'bucket', title: 'Balde', icon: 'balde.png' },
+    { id: 'glitter', title: 'Brillantina', icon: 'especial.png' }
   ];
+  const TOOL_INICIAL = 'bucket';
 
 
   /* ---------------------------------------------------------------
@@ -186,8 +191,16 @@
         <div class="rail rail-left">
           ${cfg.showBackButton === false ? '' : `<a class="salir-btn" href="${cfg.menuHref || 'menu.html'}" title="Volver al menú" aria-label="Volver al menú"><img src="${cfg.iconsBase || ICONS_BASE}salir.png" alt="" draggable="false"></a>`}
           <div class="tools" id="tools"></div>
-          <button class="nav-arrow descargar" id="done-btn" title="Guardar el dibujo" aria-label="Guardar el dibujo"><img src="${cfg.iconsBase || ICONS_BASE}descargar.png" alt="" draggable="false"></button>
         </div>
+
+        <!-- Guardar NO pertenece a la columna de la izquierda: en el
+             prototipo cae en x 15,5% mientras los otros seis están en
+             12,6%. Es un botón suelto, igual que reiniciar del otro lado.
+             Verlo así fue lo que hizo cerrar la cuenta: con seis iconos
+             en la columna, la separación del diseño (15,3% del alto) sí
+             entra; con siete no, y por eso en el mockup el último queda
+             cortado. -->
+        <button class="nav-arrow descargar" id="done-btn" title="Guardar el dibujo" aria-label="Guardar el dibujo"><img src="${cfg.iconsBase || ICONS_BASE}descargar.png" alt="" draggable="false"></button>
 
         <div class="stage-wrap">
           <div class="paper">
@@ -214,10 +227,13 @@
           <input type="range" id="brush-size" min="4" max="30" value="14">
         </div>
 
-        <div class="rail rail-right">
-          <div class="swatches" id="swatches"></div>
-          <button class="nav-arrow restart" id="clear-btn" title="Empezar de nuevo" aria-label="Empezar de nuevo"><img src="${cfg.iconsBase || ICONS_BASE}reiniciar.png" alt="" draggable="false"></button>
-        </div>
+        <!-- Los lápices y reiniciar NO van envueltos en un rail: cada
+             uno se ubica por su cuenta desde las coordenadas del fondo, y
+             para eso tienen que colgar del .app — si colgaran de un rail
+             que a su vez está posicionado, sus coordenadas se resolverían
+             contra el rail y no contra la pantalla. -->
+        <div class="swatches" id="swatches"></div>
+        <button class="nav-arrow restart" id="clear-btn" title="Empezar de nuevo" aria-label="Empezar de nuevo"><img src="${cfg.iconsBase || ICONS_BASE}reiniciar.png" alt="" draggable="false"></button>
       </div>
 
       <div class="modal-overlay" id="modal-overlay">
@@ -237,7 +253,7 @@
     const ICONS_DIR = cfg.iconsBase || ICONS_BASE;
     buildDOM(cfg);
 
-    const state = { color: PALETTE[0], tool: 'bucket', brushSize: 14 };
+    const state = { color: PALETTE[0], tool: TOOL_INICIAL, brushSize: 14 };
 
     let W = 0, H = 0;
     let wallMask = null;      // Uint8Array: 1 = línea/borde
@@ -256,6 +272,10 @@
     const placeholderEl = document.getElementById('placeholder-msg');
     const stageWrapEl = document.querySelector('.stage-wrap');
     const paperEl = document.querySelector('.paper');
+    const railIzqEl = document.querySelector('.rail-left');
+    const coloresEl = document.querySelector('.swatches');
+    const reiniciarEl = document.getElementById('clear-btn');
+    const descargarEl = document.getElementById('done-btn');
     const appEl = document.querySelector('.app');
 
     function hexToRgb(hex) {
@@ -330,7 +350,32 @@
     // medidos sobre el archivo compuesto (1748x804, el doble del frame
     // del prototipo): dónde cae la hoja y cuánto mide. Si se recompone
     // el fondo, hay que actualizarlos.
-    const FONDO = { w: 1748, h: 804, hoja: { x: 516, y: 92, w: 806, h: 899 } };
+    // Todo medido sobre el frame del prototipo (874x402) y llevado al
+    // doble, que es el tamaño del fondo compuesto. Si se recompone el
+    // fondo o se rehace el prototipo, se actualiza acá y listo: no hay
+    // ninguna otra posición hardcodeada.
+    const FONDO = {
+      w: 1748, h: 804,
+      hoja:      { x: 516, y: 92, w: 806, h: 899 },
+      // Columna de la izquierda: 7 iconos (salir, 5 herramientas,
+      // guardar). En el prototipo el primero cae en y=82 y la
+      // separación entre centros es 123, pero con esa separación el
+      // séptimo se saldría por abajo — en el mockup queda cortado. Acá
+      // se aprieta lo necesario para que entren los siete enteros.
+      // Seis: salir y las cinco herramientas. Guardar va aparte.
+      // El paso del prototipo es 123, pero con eso la estrella termina
+      // justo donde tiene que empezar guardar y los dos se pisan: seis
+      // iconos MÁS guardar, a esa separación, suman el 105% del alto —
+      // por eso en el mockup guardar aparece cortado. Con 115 entran los
+      // siete enteros y sin superponerse, a costa de que del tercero
+      // para abajo la columna quede hasta un 5% más arriba que el
+      // diseño.
+      iconos:    { cx: 220, lado: 96, cy0: 76, paso: 115 },
+      descargar: { cx: 271, cy: 756, lado: 96 },
+      // Lápices: 6, pegados al borde derecho.
+      lapices:   { der: 1748, largo: 178, grosor: 76, cy0: 229, paso: 96 },
+      reiniciar: { cx: 1446, cy: 700, lado: 92 }
+    };
 
     // Proporciones medidas sobre el frame del prototipo (874x402). Van
     // como fracción del alto del juego y NO como px fijos: con px fijos
@@ -372,38 +417,61 @@
       const availH = stageWrapEl.clientHeight;
       if (availW <= 0 || availH <= 0) return;
 
-      // Tamaños de la interfaz, proporcionales al alto del juego.
-      const raiz = document.documentElement;
-      const ico = Math.max(Math.round(availAppH * P.icono), 30);
-      const aire = Math.max(Math.round(availAppH * P.aire), 3);
-      raiz.style.setProperty('--ico', ico + 'px');
-      raiz.style.setProperty('--rail-gap', aire + 'px');
-
-      // Los lápices van SIEMPRE al grosor del diseño, aunque la paleta
-      // no entre entera: se ven seis y el resto se desliza. (Antes se
-      // achicaban para que entraran todos, y quedaban finitos.) La barra
-      // de scroll se oculta por CSS: si se viera, se comería 15px de
-      // ancho y los lápices dejarían de llegar al borde de la pantalla.
-      const grosor = Math.max(Math.round(availAppH * P.grosor), 12);
-      const altoColores = availAppH - ico - aire;
-      const alto = Math.min(P.lapicesVisibles * (grosor + 2) - 2, altoColores);
-      raiz.style.setProperty('--grosor', grosor + 'px');
-      raiz.style.setProperty('--colores-alto', Math.max(alto, grosor) + 'px');
-      raiz.style.setProperty('--lapiz', Math.round(grosor * P.largoLapiz) + 'px');
-      raiz.style.setProperty('--lapiz-sel', Math.round(grosor * P.largoSel) + 'px');
-
-      // Dónde cayó la hoja. Como está dibujada dentro del fondo, y el
-      // fondo va con object-fit:cover, hay que replicar a mano esa
-      // transformación: se escala para CUBRIR la pantalla y lo que
-      // sobra se recorta por partes iguales de los dos lados.
+      // El fondo va con object-fit:cover. Para poner cada cosa donde la
+      // puso diseño hay que replicar esa transformación a mano: se
+      // escala para CUBRIR la pantalla y lo que sobra se recorta por
+      // partes iguales de los dos lados. Con eso, X() e Y() pasan
+      // cualquier coordenada del fondo a coordenada de pantalla.
       const vw = isRotatedForLandscape()
         ? window.innerHeight
         : (window.innerWidth || document.documentElement.clientWidth);
       const esc = Math.max(vw / FONDO.w, vh / FONDO.h);
       const sobraX = (FONDO.w * esc - vw) / 2;
       const sobraY = (FONDO.h * esc - vh) / 2;
-      const hojaX = FONDO.hoja.x * esc - sobraX;
-      const hojaTop = FONDO.hoja.y * esc - sobraY;
+      const X = (v) => v * esc - sobraX;
+      const Y = (v) => v * esc - sobraY;
+
+      const raiz = document.documentElement;
+
+      // --- columna de la izquierda ---
+      const ico = Math.max(Math.round(FONDO.iconos.lado * esc), 30);
+      raiz.style.setProperty('--ico', ico + 'px');
+      raiz.style.setProperty('--rail-gap',
+        Math.max(Math.round((FONDO.iconos.paso - FONDO.iconos.lado) * esc), 2) + 'px');
+      railIzqEl.style.left = Math.round(X(FONDO.iconos.cx) - ico / 2) + 'px';
+      railIzqEl.style.top = Math.round(Y(FONDO.iconos.cy0) - ico / 2) + 'px';
+      railIzqEl.style.width = ico + 'px';
+
+      // --- lápices ---
+      const grosor = Math.max(Math.round(FONDO.lapices.grosor * esc), 12);
+      const pasoLapiz = Math.round(FONDO.lapices.paso * esc);
+      raiz.style.setProperty('--grosor', grosor + 'px');
+      raiz.style.setProperty('--lapiz-gap', Math.max(pasoLapiz - grosor, 0) + 'px');
+      raiz.style.setProperty('--lapiz', Math.round(FONDO.lapices.largo * esc) + 'px');
+      raiz.style.setProperty('--lapiz-sel', Math.round(FONDO.lapices.largo * 1.33 * esc) + 'px');
+      // Alto de seis lápices: los demás se deslizan.
+      raiz.style.setProperty('--colores-alto',
+        (P.lapicesVisibles * grosor + (P.lapicesVisibles - 1) * Math.max(pasoLapiz - grosor, 0)) + 'px');
+      coloresEl.style.top = Math.round(Y(FONDO.lapices.cy0) - grosor / 2) + 'px';
+      coloresEl.style.left = Math.round(X(FONDO.lapices.der)) + 'px';
+
+      // --- guardar: suelto, abajo a la izquierda ---
+      descargarEl.style.width = ico + 'px';
+      descargarEl.style.height = ico + 'px';
+      descargarEl.style.left = Math.round(X(FONDO.descargar.cx) - ico / 2) + 'px';
+      descargarEl.style.top = Math.round(Y(FONDO.descargar.cy) - ico / 2) + 'px';
+
+      // --- reiniciar: en el prototipo va al COSTADO de los lápices, no
+      // debajo ---
+      const rIco = Math.max(Math.round(FONDO.reiniciar.lado * esc), 28);
+      reiniciarEl.style.width = rIco + 'px';
+      reiniciarEl.style.height = rIco + 'px';
+      reiniciarEl.style.left = Math.round(X(FONDO.reiniciar.cx) - rIco / 2) + 'px';
+      reiniciarEl.style.top = Math.round(Y(FONDO.reiniciar.cy) - rIco / 2) + 'px';
+
+      // --- la hoja ---
+      const hojaX = X(FONDO.hoja.x);
+      const hojaTop = Y(FONDO.hoja.y);
       const anchoReal = FONDO.hoja.w * esc;
       const hojaH = FONDO.hoja.h * esc;
       paperEl.style.left = Math.round(hojaX) + 'px';
@@ -760,7 +828,7 @@
     const brushSizeWrap = document.getElementById('brush-size-wrap');
     TOOLS.forEach((t, i) => {
       const btn = document.createElement('button');
-      btn.className = 'tool-btn' + (i === 0 ? ' active' : '');
+      btn.className = 'tool-btn' + (t.id === TOOL_INICIAL ? ' active' : '');
       btn.dataset.tool = t.id;
       btn.title = t.title;
       // t.icon es un archivo de iconos/, no un SVG: va como <img>.

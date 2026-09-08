@@ -25,6 +25,7 @@
   --ico:48px;
   --rail-gap:11px;
   --grosor:38px;
+  --lapiz-gap:10px;
   --lapiz:104px;
   --lapiz-sel:139px;
   --colores-alto:240px;
@@ -188,27 +189,28 @@ body{
   min-height:0;
   overflow:hidden;
 }
+/* Los rails ya no reparten espacio: cada grupo se ubica en absoluto
+   desde las coordenadas del fondo (fitStage, en motor.js). El flex acá
+   solo apila los iconos uno debajo del otro con su separación. */
 .rail{
+  position:absolute;
   display:flex;
   flex-direction:column;
   align-items:center;
   gap:var(--rail-gap);
   padding:0;
   flex:none;
-  overflow-y:auto;
 }
 /* Ancho fijo, para que el icono de la herramienta elegida pueda crecer
    sin pasarse del ancho del rail. Si se pasara, el rail (que tiene
    overflow-y:auto, y por eso calcula overflow-x como auto) dispararía
    una barra de scroll horizontal. El rail derecho no lleva ancho fijo
    acá porque se lo da .swatches, que es más ancho. */
-.rail-left{width:calc(var(--ico) + 12px);}
 /* Los lápices se cortan contra el BORDE de la pantalla, como en el
    prototipo, así que este rail cancela el padding lateral del .app y
    queda pegado al borde. El recorte en sí lo hace el viewBox del SVG
    (ver LAPIZ_VISIBLE en motor.js): el rail no puede dejar que se
    desborden porque su overflow-y:auto fuerza overflow-x a auto. */
-.rail-right{margin-right:calc(var(--sp-24) * -1);}
 .rail .nav-arrow{flex:none;}
 /* Dónde va cada cosa, medido sobre el frame del prototipo (874x402):
    - Izquierda: los 7 iconos van repartidos parejo, del 10,2% al 98,8%
@@ -221,7 +223,6 @@ body{
      último al 88,2%: van abajo, justo arriba de reiniciar. El
      margin-top:auto de .swatches empuja el grupo entero contra el
      borde de abajo. */
-.rail-right .swatches{margin-top:auto;}
 
 /* Ya no hay un layout especial "celular en vertical" apilado: el body
    se rotea 90° por CSS más arriba, así que el juego SIEMPRE se arma
@@ -338,11 +339,15 @@ canvas{
    obliga a calcular overflow-x como auto, así que cualquier cosa que se
    salga del ancho dispara una barra de scroll horizontal. */
 .swatches{
+  position:absolute;
+  /* fitStage le fija el punto del BORDE DERECHO; este translate hace
+     que la columna crezca hacia la izquierda desde ahí. */
+  transform:translateX(-100%);
   width:var(--lapiz-sel);
   display:flex;
   flex-direction:column;
   align-items:flex-end;
-  gap:2px;
+  gap:var(--lapiz-gap);
   /* Alto de seis lápices: los demás se deslizan. La barra de scroll va
      oculta a propósito — si se viera se comería 15px de ancho y los
      lápices dejarían de llegar al borde de la pantalla, que es donde
@@ -459,6 +464,10 @@ canvas{
    ilustrados del arte: traen su propio círculo, su sombra y su color,
    así que el botón no pone ningún fondo de CSS. */
 .nav-arrow{background:none; box-shadow:none;}
+/* Reiniciar va al COSTADO de los lápices, no debajo: en el prototipo
+   cae en x 82,7% / y 87,1%, o sea a la izquierda de la columna. Lo
+   ubica fitStage. */
+.nav-arrow.restart, .nav-arrow.descargar{position:absolute;}
 .nav-arrow img{
   width:var(--ico); height:var(--ico);
   object-fit:contain;
@@ -539,7 +548,10 @@ canvas{
    chico), así que se comprimen los espacios verticales para que todo
    entre sin scroll. */
 @media (orientation:landscape) and (max-height:500px), (orientation:portrait) and (max-width:500px){
-  .app{margin:var(--sp-8) auto; gap:var(--sp-16);}
+  /* Sin margen vertical tampoco acá: los cuatro grupos se ubican desde
+     las coordenadas del fondo, y el .app es su marco de referencia. Con
+     margen, todo bajaba 8px y quedaba un 2% corrido respecto del arte. */
+  .app{margin:0 auto; gap:var(--sp-16);}
   /* Los iconos NO se achican acá: 48px es el tamaño del sistema de
      diseño y la pantalla del prototipo es justamente esta. Lo que se
      comprime es el aire entre ellos, para que los siete del rail
