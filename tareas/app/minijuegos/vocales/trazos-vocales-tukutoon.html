@@ -24,7 +24,13 @@
     vocal: pedida || null,
     menuHref: 'menu.html',
     titulo: 'TukuToon',
-    subtitulo: pedida ? 'LA VOCAL ' + pedida.toUpperCase() : 'TRAZA LAS VOCALES'
+    subtitulo: pedida ? 'LA VOCAL ' + pedida.toUpperCase() : 'TRAZA LAS VOCALES',
+    // el mismo aula del menu: se traza sobre el pizarron del dibujo
+    fondo: 'fondo-menu.png',
+    // Encuadre del lienzo. Las diez letras juntas ocupan x 130-870,
+    // y 78-920 del lienzo de 1000: recortando ese aire, la letra se ve
+    // un 14% mas grande sin tocar el arte ni los ejes de trazado.
+    caja: '60 59 880 880'
     // tolerancia: 150   // subir si cuesta con dedos chicos
   });
 </script>

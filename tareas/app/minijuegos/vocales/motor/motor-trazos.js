@@ -21,6 +21,14 @@
      caso       'mayus' | 'minus' con que arranca   (default 'mayus')
      storeKey   clave de localStorage del progreso  (default abajo)
      tolerancia radio de perdon del trazo, en unidades del viewBox (default 46)
+     fondo      ruta de una ilustracion de fondo. Si viene, el juego se ve a
+                pantalla completa sobre ella y la letra se traza sobre el
+                pizarron que el dibujo trae (medidas en el CSS). Sin esto,
+                queda el degrade con nubes de siempre.
+     caja       encuadre por defecto del lienzo, en unidades del arte
+                (default '0 0 1000 1000'). Recortar el aire que dejan las
+                letras alrededor las hace mas grandes en pantalla. Una forma
+                puede pisarlo con su propio `caja` (ver vocales.js).
      vocal      si viene (ej. 'A'), la pagina muestra SOLO esa vocal y encadena
                 sus dos formas: primero la mayuscula, y al terminarla pasa sola
                 a la minuscula. Es el modo que usa el menu. Sin `vocal`, la
@@ -108,10 +116,31 @@ function buildDOM(cfg){
       '" title="Volver al menu" aria-label="Volver al menu">&#8592;</a>'
     : '';
 
+  var consigna = '<p class="prompt" id="prompt">Seguí el camino con el dedo</p>';
+  var escenario = '<main><svg id="stage" viewBox="0 0 1000 1000" ' +
+                    'preserveAspectRatio="xMidYMid meet"></svg></main>';
+
+  /* Con `fondo`, la consigna y la letra se ubican sobre el pizarron que el
+     dibujo trae (las medidas del rectangulo verde estan en el CSS). La
+     consigna va adentro de la escena, en porcentajes; la letra queda afuera
+     porque ademas tiene que esquivar el selector de abajo, y eso se mide
+     contra la pantalla. Sin `fondo` las dos filas siguen en el flujo. */
+  var aula = cfg.fondo
+    ? '<div class="aula">' +
+        '<img class="relleno" src="' + cfg.fondo + '" alt="" aria-hidden="true">' +
+        '<div class="escena">' +
+          '<img class="foto" src="' + cfg.fondo + '" alt="" aria-hidden="true">' +
+          consigna +
+        '</div>' +
+      '</div>' + escenario
+    : '<div class="sky" aria-hidden="true">' +
+        '<div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>' +
+      '</div>';
+
+  if(cfg.fondo){ document.body.className = 'con-fondo'; }
+
   document.body.innerHTML =
-    '<div class="sky" aria-hidden="true">' +
-      '<div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>' +
-    '</div>' +
+    aula +
 
     '<header>' +
       volver +
@@ -124,10 +153,7 @@ function buildDOM(cfg){
       '<div class="stars" id="stars" aria-label="Letras completadas"></div>' +
     '</header>' +
 
-    '<p class="prompt" id="prompt">Segu\u00ed el camino con el dedo</p>' +
-
-    '<main><svg id="stage" viewBox="0 0 1000 1000" ' +
-      'preserveAspectRatio="xMidYMid meet"></svg></main>' +
+    (cfg.fondo ? '' : consigna + escenario) +
 
     '<footer id="picker"></footer>' +
     '<canvas id="fx"></canvas>' +
@@ -315,8 +341,9 @@ function loadVowel(i){
   svg.innerHTML = '';
   strokeData = [];
 
-  // cada forma se muestra con su propio encuadre (ver `caja` en vocales.js)
-  svg.setAttribute('viewBox', F.caja || '0 0 1000 1000');
+  // cada forma se muestra con su propio encuadre (ver `caja` en vocales.js);
+  // si no trae, el de la pagina, y si no, el lienzo entero del disenador
+  svg.setAttribute('viewBox', F.caja || cfg.caja || '0 0 1000 1000');
 
   var gRoot = document.createElementNS(SVG_NS, 'g');
 

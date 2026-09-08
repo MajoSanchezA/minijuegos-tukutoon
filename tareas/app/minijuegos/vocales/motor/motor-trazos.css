@@ -1,3 +1,34 @@
+/* =====================================================================
+   GRID TUKUTOON — de la guia "TukuToon App UI Style Guideline".
+     Mobile   918x413 : 4 columnas de 200px + medianil 24px = 872px
+     Tablet  1024x768 : 6 columnas de 140px + medianil 24px = 960px
+   Los dos son "tipo Centro": las filas del juego (header, consigna,
+   escenario y selector) se centran dentro de ese ancho y el resto queda
+   como margen a los costados. El breakpoint mira el LADO LARGO de la
+   pantalla, asi que una tablet entra como tablet este parada o acostada.
+
+   Mismo bloque que en a-pintar (menu y motor): los archivos son
+   independientes, no hay un CSS de tokens compartido todavia.
+   ===================================================================== */
+:root{
+  --medianil:24px;
+  --col:200px;
+  --grid-max:872px;                                  /* 4*200 + 3*24 */
+  --card:var(--col);            /* columnas que abarca una tarjeta: 1 */
+
+  /* Escala de spacing de la guia */
+  --sp-8:8px;   --sp-16:16px; --sp-24:24px; --sp-32:32px; --sp-40:40px;
+  --sp-64:64px; --sp-80:80px; --sp-96:96px; --sp-120:120px;
+}
+@media (orientation:landscape) and (min-width:1024px),
+       (orientation:portrait) and (min-height:1024px){
+  :root{
+    --col:140px;
+    --grid-max:960px;                                /* 6*140 + 5*24 */
+    --card:calc(var(--col) * 2 + var(--medianil));   /* 2 columnas = 304px */
+  }
+}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;overscroll-behavior:none}
 body{
@@ -12,7 +43,76 @@ body{
   user-select:none; -webkit-user-select:none;
 }
 
-/* ---------- nubes de fondo ---------- */
+/* ---------- el aula (con la opcion `fondo`) ----------
+   Con `fondo`, el juego pasa a jugarse sobre una ilustracion a pantalla
+   completa y la letra se traza sobre el pizarron que la ilustracion trae
+   dibujado. Sin `fondo` la pagina queda como antes: degrade y nubes. */
+.con-fondo{
+  background:#2E9BB8;                       /* por si la foto tarda en cargar */
+  /* Ancho de la escena 16:9. Sale de aca y no del CSS de .escena porque la
+     letra tambien lo necesita: se ubica sobre el pizarron, que es un
+     porcentaje de esta caja, pero medido contra la pantalla. */
+  --escena:min(max(100vw, calc(100dvh * 16 / 9)), 145vw);
+  --pie:clamp(74px,12vh,104px);             /* lo que se reserva el selector */
+}
+.con-fondo footer{margin-top:auto;height:var(--pie);align-items:center}
+
+.aula{position:fixed;inset:0;z-index:0;overflow:hidden}
+/* Relleno: la misma ilustracion, borrosa y oscurecida. Solo asoma en
+   pantallas mas angostas que la escena (el celular parado), donde un 16:9
+   no llega a cubrir sin comerse el pizarron por los costados. */
+.aula .relleno{
+  position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;
+  filter:blur(26px) brightness(.62) saturate(.9);transform:scale(1.12);
+}
+/* Velo arriba y abajo: el header y el selector caen sobre el dibujo y sin
+   esto el blanco se pierde contra el techo claro del aula. */
+.aula::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(18,26,40,.36) 0%,rgba(18,26,40,0) 17%,
+                             rgba(18,26,40,0) 83%,rgba(18,26,40,.32) 100%);
+}
+.escena{
+  /* 16:9 exacto, la proporcion del PNG: la consigna y la letra se ubican en
+     porcentajes de esta caja, asi que tiene que conservar la forma de la
+     foto. Se agranda hasta tapar la pantalla pero nunca mas de 145vw, que
+     es donde el pizarron se empieza a ir por los costados. */
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  aspect-ratio:16/9;width:var(--escena);
+}
+.escena .foto{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover}
+
+/* El rectangulo verde, medido sobre el PNG: x 18.1%-82.5%, y 24.5%-88.1%.
+   La consigna va escrita arriba de todo, como con tiza. */
+.aula .prompt{
+  position:absolute;left:19%;top:26.5%;width:62%;max-width:none;
+  margin:0;padding:0;z-index:1;
+  font-size:clamp(12px,2.3vw,28px);text-shadow:0 2px 7px rgba(0,0,0,.4);
+}
+/* La letra ocupa el resto del pizarron. Va fija a la pantalla, no a la
+   escena, porque tiene que respetar dos cosas a la vez: el borde de abajo
+   del pizarron (un porcentaje de la escena) y el selector de vocales (que
+   esta pegado al borde de la pantalla). El `max` de abajo se queda con la
+   que quede mas arriba de las dos. */
+.con-fondo main{
+  position:fixed;z-index:1;margin:0;padding:0;max-width:none;
+  left:calc(50vw - var(--escena) * .31);            /* 19% de la escena */
+  width:calc(var(--escena) * .62);                  /* ancho del pizarron */
+  top:calc(50dvh - var(--escena) * .1013);          /* 32% de la escena */
+  bottom:max(var(--pie), calc(50dvh - var(--escena) * .2032));
+}
+
+/* Sobre el verde del pizarron la letra apagada se ve como tiza blanca: el
+   contorno original es ocre y contra el verde no se lee. */
+.con-fondo .arte-contorno{filter:brightness(0) invert(1);opacity:.92}
+.con-fondo .dashes{stroke:rgba(255,255,255,.72)}
+/* la flecha la pinta el JS con un atributo; cualquier regla CSS le gana */
+.con-fondo .arrow{fill:rgba(255,255,255,.8)}
+.con-fondo .punto-halo{stroke:rgba(255,255,255,.85)}
+/* la estrella apagada, contra el techo claro del aula, necesita cuerpo */
+.con-fondo .star path{fill:rgba(20,30,45,.24);stroke:rgba(255,255,255,.85)}
+
+/* ---------- nubes de fondo (sin `fondo`) ---------- */
 .sky{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
 .cloud{position:absolute;background:rgba(255,255,255,.55);border-radius:100px}
 .cloud::before,.cloud::after{content:'';position:absolute;background:inherit;border-radius:100px}
@@ -26,8 +126,10 @@ body{
 /* ---------- header ---------- */
 header{
   position:relative;z-index:2;flex:0 0 auto;
-  display:flex;align-items:center;gap:10px;
-  padding:10px clamp(10px,3vw,22px) 4px;
+  display:flex;align-items:center;gap:var(--sp-8);
+  padding:var(--sp-8) clamp(var(--sp-16),3vw,var(--sp-24)) var(--sp-8);
+  /* las cuatro filas del juego se centran en el ancho de grilla */
+  width:100%;max-width:var(--grid-max);margin:0 auto;
 }
 .brand{
   font-family:'Fredoka',sans-serif;font-weight:600;
@@ -37,7 +139,7 @@ header{
 }
 .brand small{display:block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;
   font-size:.55em;opacity:.82;letter-spacing:.05em}
-.stars{display:flex;gap:4px;margin-left:auto}
+.stars{display:flex;gap:var(--sp-8);margin-left:auto}
 .star{width:clamp(20px,5.2vw,28px);height:clamp(20px,5.2vw,28px);display:block;
   transition:transform .35s cubic-bezier(.2,1.6,.5,1)}
 .star path{fill:rgba(255,255,255,.28);stroke:rgba(255,255,255,.55);stroke-width:6;
@@ -68,15 +170,17 @@ header{
 
 /* ---------- consigna ---------- */
 .prompt{
-  position:relative;z-index:2;flex:0 0 auto;text-align:center;margin:0;
+  position:relative;z-index:2;flex:0 0 auto;text-align:center;
+  width:100%;max-width:var(--grid-max);margin:0 auto;
   font-family:'Fredoka',sans-serif;font-weight:500;color:#fff;
-  font-size:clamp(13px,3.6vw,19px);padding:2px 16px 2px;
+  font-size:clamp(13px,3.6vw,19px);padding:var(--sp-8) var(--sp-16);
   text-shadow:0 2px 0 rgba(0,0,0,.12);
 }
 
 /* ---------- escenario ---------- */
 main{position:relative;z-index:2;flex:1 1 auto;min-height:0;display:flex;
-  align-items:center;justify-content:center;padding:4px 8px}
+  align-items:center;justify-content:center;padding:var(--sp-8);
+  width:100%;max-width:var(--grid-max);margin:0 auto}
 #stage{width:100%;height:100%;display:block;touch-action:none;overflow:visible}
 
 /* El arte del disenador, en dos capas. La de abajo va desaturada: es el
@@ -116,8 +220,10 @@ main{position:relative;z-index:2;flex:1 1 auto;min-height:0;display:flex;
 .hand.hide{opacity:0}
 
 /* ---------- selector de vocales ---------- */
-footer{position:relative;z-index:2;flex:0 0 auto;display:flex;gap:clamp(6px,2.2vw,14px);
-  justify-content:center;padding:6px clamp(8px,3vw,20px) max(10px,env(safe-area-inset-bottom))}
+footer{position:relative;z-index:2;flex:0 0 auto;display:flex;
+  gap:clamp(var(--sp-8),2.2vw,var(--medianil));
+  justify-content:center;width:100%;max-width:var(--grid-max);margin:0 auto;
+  padding:var(--sp-8) clamp(var(--sp-16),3vw,var(--sp-24)) max(var(--sp-8),env(safe-area-inset-bottom))}
 .vbtn{
   width:clamp(46px,13vw,68px);height:clamp(46px,13vw,68px);
   border:none;border-radius:22px;cursor:pointer;touch-action:manipulation;
@@ -140,13 +246,14 @@ footer{position:relative;z-index:2;flex:0 0 auto;display:flex;gap:clamp(6px,2.2v
 #fx{position:fixed;inset:0;pointer-events:none;z-index:5}
 #card{
   position:fixed;inset:0;z-index:6;display:none;
-  align-items:center;justify-content:center;padding:18px;
+  align-items:center;justify-content:center;padding:var(--sp-24);
   background:rgba(43,33,64,.55);
 }
 #card.show{display:flex;animation:fade .28s ease-out}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 .card-box{
-  background:#FFFDF6;border-radius:28px;padding:clamp(16px,4.5vw,28px) clamp(20px,6vw,40px);
+  background:#FFFDF6;border-radius:28px;
+  padding:clamp(var(--sp-16),4.5vw,var(--sp-32)) clamp(var(--sp-24),6vw,var(--sp-40));
   text-align:center;box-shadow:0 14px 0 rgba(0,0,0,.18);max-width:min(92vw,460px);
   animation:pop .42s cubic-bezier(.2,1.5,.45,1);
 }
@@ -155,8 +262,8 @@ footer{position:relative;z-index:2;flex:0 0 auto;display:flex;gap:clamp(6px,2.2v
 .card-word{font-family:'Fredoka',sans-serif;font-weight:700;
   font-size:clamp(26px,8vw,44px);margin:2px 0 4px}
 .card-word b{color:var(--c)}
-.card-hint{font-size:clamp(11px,3.2vw,14px);opacity:.55;margin-bottom:14px}
-.card-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.card-hint{font-size:clamp(11px,3.2vw,14px);opacity:.55;margin-bottom:var(--sp-16)}
+.card-actions{display:flex;gap:var(--sp-8);justify-content:center;flex-wrap:wrap}
 .card-actions button{
   border:none;border-radius:18px;padding:11px 20px;cursor:pointer;touch-action:manipulation;
   font-family:'Fredoka',sans-serif;font-weight:600;font-size:clamp(14px,4vw,18px);color:#fff;

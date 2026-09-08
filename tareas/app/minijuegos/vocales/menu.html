@@ -15,21 +15,12 @@ body{
   height:100vh; height:100dvh;
   font-family:'Comfortaa',system-ui,-apple-system,sans-serif;
   color:#2B2140;
-  background:linear-gradient(180deg,#6E4FD0 0%,#9B7BE8 48%,#CDBBF7 100%);
+  /* el celeste de las paredes del aula, por si la ilustracion tarda en cargar */
+  background:#2E9BB8;
   overflow:hidden;
-  display:flex; flex-direction:column;
+  display:flex; flex-direction:column; justify-content:space-between;
   user-select:none; -webkit-user-select:none;
 }
-
-/* ---------- nubes ---------- */
-.sky{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
-.cloud{position:absolute;background:rgba(255,255,255,.45);border-radius:100px}
-.cloud::before,.cloud::after{content:'';position:absolute;background:inherit;border-radius:100px}
-.cloud::before{width:55%;height:150%;left:12%;top:-70%}
-.cloud::after{width:40%;height:120%;right:14%;top:-50%}
-.c1{width:150px;height:52px;top:8%;left:-30%;animation:drift 54s linear infinite}
-.c2{width:105px;height:38px;top:74%;left:-30%;animation:drift 70s linear infinite 9s;opacity:.7}
-@keyframes drift{from{transform:translateX(0)}to{transform:translateX(170vw)}}
 
 /* ---------- encabezado ---------- */
 header{
@@ -46,31 +37,43 @@ h1 small{
   font-size:.46em;opacity:.85;letter-spacing:.06em;margin-top:2px;
 }
 
+/* ---------- el aula ---------- */
+.aula{position:fixed;inset:0;z-index:0;overflow:hidden}
+/* Relleno: la misma ilustracion, borrosa y a pantalla completa. Solo asoma
+   en pantallas mas angostas que la escena (el celular parado), donde un
+   16:9 no llega a cubrir sin comerse el pizarron por los costados. */
+.aula::before{
+  content:'';position:absolute;inset:0;
+  background:url(fondo-menu.png) center/cover no-repeat;
+  filter:blur(26px) brightness(.62) saturate(.9);transform:scale(1.12);
+}
+/* Velo arriba y abajo: el titulo y el pie caen sobre el dibujo y sin esto
+   el blanco se pierde contra el techo claro del aula. */
+.aula::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(18,26,40,.34) 0%,rgba(18,26,40,0) 17%,
+                             rgba(18,26,40,0) 83%,rgba(18,26,40,.3) 100%);
+}
+.escena{
+  /* Proporcion fija 16:9, la del PNG: las vocales van posicionadas en
+     porcentajes sobre el pizarron que ya trae dibujado la ilustracion, asi
+     que la caja tiene que conservar la forma de la foto o se desalinean.
+     Se agranda hasta tapar la pantalla, pero nunca mas de 145vw: pasado
+     ese punto el pizarron se empieza a ir de la pantalla por los costados. */
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  aspect-ratio:16/9;
+  width:min(max(100vw, calc(100dvh * 16 / 9)), 145vw);
+}
+.escena .foto{
+  position:absolute;inset:0;display:block;
+  width:100%;height:100%;object-fit:cover;
+}
+
 /* ---------- el pizarron ---------- */
-main{
-  position:relative;z-index:2;flex:1 1 auto;min-height:0;
-  display:flex;align-items:center;justify-content:center;
-  padding:0 clamp(8px,2.5vw,26px) clamp(6px,1.6vh,16px);
-}
-.pizarron{
-  /* Proporcion fija: las vocales van posicionadas en porcentajes, asi que el
-     pizarron tiene que conservar su forma o la distribucion se deforma. */
-  position:relative;aspect-ratio:16/10;
-  width:100%;max-width:min(100%, calc((100dvh - 150px) * 1.6));
-  max-height:100%;
-  background:linear-gradient(180deg,#FFFDF7 0%,#F6F1E6 100%);
-  border-radius:clamp(12px,2.2vw,22px);
-  box-shadow:0 clamp(6px,1.4vw,12px) 0 rgba(43,33,64,.28),
-             inset 0 0 0 clamp(4px,1vw,9px) #FFF,
-             inset 0 0 0 clamp(8px,1.8vw,16px) #C9B08A;
-}
-/* la bandeja del pizarron, como la de los marcadores */
-.pizarron::after{
-  content:'';position:absolute;left:6%;right:6%;bottom:clamp(-11px,-2vw,-7px);
-  height:clamp(7px,1.5vw,13px);border-radius:0 0 8px 8px;
-  background:linear-gradient(180deg,#C9B08A,#A98D66);
-  box-shadow:0 3px 0 rgba(43,33,64,.22);
-}
+/* Caja invisible: es el rectangulo verde de la ilustracion, medido sobre el
+   PNG (x 18.1%-82.5%, y 24.5%-88.1%) y metido un pelin hacia adentro para que
+   ninguna vocal se apoye en el marco naranja. */
+.pizarron{position:absolute;left:19%;top:26%;width:62%;height:60%}
 
 /* ---------- cada vocal, suelta sobre el pizarron ---------- */
 .vocal{
@@ -82,23 +85,35 @@ main{
 .vocal:focus-visible{outline:4px solid #FFD84D;outline-offset:6px;border-radius:14px}
 .vocal .par{display:flex;align-items:flex-end;justify-content:center;width:100%}
 .vocal img{display:block;width:50%;height:auto;aspect-ratio:1;object-fit:contain}
+/* Sobre el verde del pizarron el contorno ocre del arte original se pierde:
+   la letra que todavia falta se pinta de blanco, como tiza. La que ya esta
+   hecha va a color, con una sombra que la despega del verde. */
+.vocal img.pendiente{filter:brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.35));opacity:.92}
+.vocal img.hecha{filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
 .vocal .palabra{
-  font-family:'Fredoka',sans-serif;font-weight:600;color:var(--c);
-  font-size:clamp(10px,1.9vw,15px);white-space:nowrap;
-  display:flex;align-items:center;gap:4px;margin-top:-6%;
+  /* pastilla del color de la vocal: contra el verde, el texto suelto a color
+     no se leia (el rojo y el violeta se apagan contra el fondo) */
+  font-family:'Fredoka',sans-serif;font-weight:600;color:#2B2140;
+  font-size:clamp(11px,1.6vw,20px);white-space:nowrap;
+  display:flex;align-items:center;gap:4px;margin-top:-4%;
+  background:var(--c);border-radius:999px;
+  padding:2px clamp(6px,1vw,10px);
+  box-shadow:0 2px 0 rgba(0,0,0,.2);
 }
 .vocal .estrellas{
-  position:absolute;top:-4%;right:2%;font-size:clamp(11px,2vw,17px);
+  position:absolute;top:-4%;right:2%;font-size:clamp(12px,2vw,26px);
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));
 }
 
 /* Distribucion suelta, no en fila. Cada una con su leve inclinacion, como
-   letras magneticas pegadas en el pizarron por una mano de tres anos. */
-.v-A{left:2%;  top:6%;  width:30%; transform:rotate(-3deg)}
-.v-E{left:35%; top:15%; width:29%; transform:rotate(2deg)}
-.v-I{left:70%; top:4%;  width:25%; transform:rotate(-2deg)}
-.v-O{left:9%;  top:52%; width:30%; transform:rotate(3deg)}
-.v-U{left:47%; top:55%; width:29%; transform:rotate(-2deg)}
+   letras magneticas pegadas en el pizarron por una mano de tres anos.
+   La esquina de abajo a la derecha queda libre a proposito: ahi entra el
+   puntero de la maestra de la ilustracion. */
+.v-A{left:0%;  top:2%;  width:31%; transform:rotate(-3deg)}
+.v-E{left:34%; top:7%;  width:30%; transform:rotate(2deg)}
+.v-I{left:70%; top:1%;  width:27%; transform:rotate(-2deg)}
+.v-O{left:10%; top:52%; width:31%; transform:rotate(3deg)}
+.v-U{left:45%; top:55%; width:30%; transform:rotate(-2deg)}
 
 /* ---------- pie ---------- */
 footer{
@@ -113,35 +128,32 @@ footer{
 }
 .reinicio:active{background:rgba(255,255,255,.32)}
 
-/* En vertical (el celular parado) un pizarron apaisado desperdicia media
-   pantalla: se hace mas alto que ancho y las vocales se reparten en zigzag. */
-@media (orientation:portrait){
-  .pizarron{aspect-ratio:5/7;max-width:min(100%, calc((100dvh - 150px) * 0.714))}
-  .v-A{left:1%;  top:3%;  width:50%; transform:rotate(-3deg)}
-  .v-E{left:48%; top:18%; width:48%; transform:rotate(2deg)}
-  .v-I{left:6%;  top:37%; width:40%; transform:rotate(-2deg)}
-  .v-O{left:45%; top:53%; width:50%; transform:rotate(3deg)}
-  .v-U{left:3%;  top:72%; width:48%; transform:rotate(-2deg)}
-  .vocal .palabra{font-size:clamp(11px,3vw,16px)}
+/* Celular acostado: queda poco alto y el titulo y el pie se comen el
+   pizarron. Se achican los dos para que no lo tapen. */
+@media (orientation:landscape) and (max-height:520px){
+  header{padding:5px 12px 2px}
+  h1{font-size:clamp(15px,3.6vh,22px)}
+  footer{padding:5px 12px max(5px,env(safe-area-inset-bottom))}
+  .reinicio{font-size:11px;padding:5px 13px}
 }
 
 @media (prefers-reduced-motion:reduce){
-  .cloud{animation:none !important}
   .vocal{transition:none}
 }
 </style>
 </head>
 <body>
 
-<div class="sky" aria-hidden="true">
-  <div class="cloud c1"></div><div class="cloud c2"></div>
+<div class="aula">
+  <div class="escena">
+    <img class="foto" src="fondo-menu.png" alt="" aria-hidden="true">
+    <div class="pizarron" id="pizarron"></div>
+  </div>
 </div>
 
 <header>
   <h1>Las vocales<small>ELEGÍ UNA PARA TRAZARLA</small></h1>
 </header>
-
-<main><div class="pizarron" id="pizarron"></div></main>
 
 <footer><button class="reinicio" id="reinicio">Empezar de nuevo</button></footer>
 
@@ -183,8 +195,13 @@ function pintar(){
     var par = document.createElement('div');
     par.className = 'par';
     [[v.mayus, nMay, may], [v.minus, nMin, min]].forEach(function(f){
+      // .pendiente pinta la imagen de blanco, como tiza. Solo vale para el
+      // contorno: si una letra no lo tuviera y cayera al arte a color, el
+      // filtro la dejaria como una mancha blanca.
+      var hueca = !f[1] && !!f[0].contorno;
       var img = document.createElement('img');
-      img.src = f[1] ? f[0].arte : (f[0].contorno || f[0].arte);
+      img.src = hueca ? f[0].contorno : f[0].arte;
+      img.className = hueca ? 'pendiente' : 'hecha';
       img.alt = f[2];
       par.appendChild(img);
     });
