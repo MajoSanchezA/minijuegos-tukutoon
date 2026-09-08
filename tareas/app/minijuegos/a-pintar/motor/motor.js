@@ -305,6 +305,21 @@
     // respetando la proporción real del dibujo (o 3:2 antes de cargar).
     let ratioW = 3, ratioH = 2;
     const HOJA_RATIO = 880 / 982;   // proporción real de hoja-dibujo.png
+
+    // Proporciones medidas sobre el frame del prototipo (874x402). Van
+    // como fracción del alto del juego y NO como px fijos: con px fijos
+    // se veían bien en un celular horizontal y demasiado chicos en una
+    // pantalla más alta, porque el @media de pantallas bajas dejaba de
+    // aplicar. Estas se recalculan en cada fitStage().
+    const P = {
+      hojaAlto:  1.12,    // la hoja es MÁS ALTA que la pantalla y se corta abajo
+      hojaTop:   0.114,   // dónde apoya su borde de arriba
+      icono:     0.119,   // caja del icono (48px sobre 402)
+      aire:      0.025,   // separación entre iconos
+      grosor:    0.095,   // grosor del lápiz (38px sobre 402)
+      largoLapiz: 2.74,   // largo visible / grosor
+      largoSel:   3.65    // ídem, para el elegido
+    };
     function fitStage() {
       // Fijamos la altura de .app "a mano" en vez de confiar en que
       // flex:1 reparta bien el alto en algunos navegadores/entornos —
@@ -330,26 +345,52 @@
       const availH = stageWrapEl.clientHeight;
       if (availW <= 0 || availH <= 0) return;
 
-      // La hoja es un asset con forma propia — borde irregular y sombra
-      // dibujados — así que NO se puede estirar a cualquier proporción:
-      // conserva siempre la del archivo (hoja-dibujo.png, 880x982). Por
-      // eso primero se calcula cuánto puede medir la hoja para entrar en
-      // el escenario, y recién después el lienzo se acomoda ADENTRO.
-      const hojaW = Math.floor(Math.min(availW, availH * HOJA_RATIO));
-      const hojaH = Math.floor(hojaW / HOJA_RATIO);
-      paperEl.style.width = hojaW + 'px';
-      paperEl.style.height = hojaH + 'px';
+      // Tamaños de la interfaz, proporcionales al alto del juego.
+      const raiz = document.documentElement;
+      const ico = Math.max(Math.round(availAppH * P.icono), 30);
+      const aire = Math.max(Math.round(availAppH * P.aire), 3);
+      raiz.style.setProperty('--ico', ico + 'px');
+      raiz.style.setProperty('--rail-gap', aire + 'px');
 
-      // Márgenes del dibujo dentro de la hoja. El área crema del asset
-      // ocupa el 89,8% del ancho (medido sobre el PNG); dejando el
-      // dibujo en el 80% queda un aire parejo adentro del crema.
-      const innerW = Math.max(hojaW * 0.80, 40);
-      const innerH = Math.max(hojaH * 0.88, 40);
+      // Los lápices usan el grosor del diseño, salvo que la paleta sea
+      // tan larga que no entre: ahí se achican lo necesario. Es a
+      // propósito que nunca aparezca la barra de scroll — un chico de 3
+      // años no la va a usar, y además se come 15px de ancho y los
+      // lápices dejan de llegar al borde de la pantalla.
+      const n = Math.max(PALETTE.length, 1);
+      const altoColores = availAppH - ico - aire;
+      const grosor = Math.max(Math.min(
+        Math.round(availAppH * P.grosor),
+        Math.floor((altoColores - (n - 1) * 2) / n)), 12);
+      raiz.style.setProperty('--grosor', grosor + 'px');
+      raiz.style.setProperty('--lapiz', Math.round(grosor * P.largoLapiz) + 'px');
+      raiz.style.setProperty('--lapiz-sel', Math.round(grosor * P.largoSel) + 'px');
+
+      // La hoja: en el prototipo es MÁS ALTA que la pantalla, apoya
+      // cerca del borde de arriba y se corta contra el de abajo (la
+      // recorta el overflow:hidden de .stage-wrap). Conserva siempre la
+      // proporción del archivo: es un asset con borde irregular y sombra
+      // propios, estirarlo lo deforma.
+      const hojaH = Math.round(availAppH * P.hojaAlto);
+      const hojaW = Math.round(hojaH * HOJA_RATIO);
+      const hojaTop = Math.round(availAppH * P.hojaTop);
+      paperEl.style.width = Math.min(hojaW, Math.floor(availW)) + 'px';
+      paperEl.style.height = hojaH + 'px';
+      paperEl.style.marginTop = hojaTop + 'px';
+
+      // El dibujo se centra en la parte VISIBLE de la hoja, no en la
+      // hoja entera: si se centrara en la hoja entera quedaría medio
+      // tapado por el borde de abajo de la pantalla.
+      const anchoReal = Math.min(hojaW, Math.floor(availW));
+      const visible = Math.max(availAppH - hojaTop, 60);
+      const innerW = Math.max(anchoReal * 0.80, 40);
+      const innerH = Math.max(visible * 0.86, 40);
       const scale = Math.min(innerW / ratioW, innerH / ratioH);
       const dispW = Math.max(Math.floor(ratioW * scale), 40);
       const dispH = Math.max(Math.floor(ratioH * scale), 30);
       wrap.style.width = dispW + 'px';
       wrap.style.height = dispH + 'px';
+      wrap.style.marginTop = Math.max(Math.round((visible - dispH) / 2), 0) + 'px';
     }
     window.addEventListener('resize', fitStage);
     window.addEventListener('orientationchange', () => setTimeout(fitStage, 60));

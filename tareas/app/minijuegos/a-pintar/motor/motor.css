@@ -17,6 +17,16 @@
   --teal:#2EC4B6;
   --plum:#3D2C4E;
   --plum-soft:#7A6A8A;
+
+  /* Valores de arranque: fitStage() (motor.js) los recalcula en cada
+     resize a partir del alto real del juego, con las proporciones
+     medidas del prototipo. Están acá para que la primera pintada, antes
+     de que corra el JS, no salga rota. */
+  --ico:48px;
+  --rail-gap:11px;
+  --grosor:30px;
+  --lapiz:84px;
+  --lapiz-sel:112px;
 }
 
 /* ============================================================
@@ -136,8 +146,8 @@ body{
    ellos. margin-bottom:auto lo pega arriba y empuja al de reiniciar
    abajo, que ya usa margin-top:auto. */
 .salir-btn{
-  --salir-ico:44px;
-  width:48px; height:48px;
+  --salir-ico:calc(var(--ico) * 0.92);
+  width:var(--ico); height:var(--ico);
   flex:none;
   display:flex;
   align-items:center;
@@ -153,15 +163,24 @@ body{
   -webkit-user-drag:none;
   transition:width .14s ease, height .14s ease;
 }
-.salir-btn:hover img{--salir-ico:48px;}
+.salir-btn:hover img{--salir-ico:var(--ico);}
 
 /* El dibujo va HORIZONTAL: el escenario es más ancho que alto, y las
    barras de pinceles/colores quedan a los costados para no robarle
    ancho al lienzo. */
 .app{
-  max-width:var(--grid-max);
+  /* Sin max-width: los rails tienen que quedar pegados a los bordes de
+     la pantalla — los lápices se cortan contra el borde derecho. Con el
+     ancho tope, en una ventana ancha el .app quedaba centrado y el
+     margen negativo del rail ya no llegaba al borde. El dibujo no se
+     agranda por esto: lo limita el alto, no el ancho. */
+  max-width:none;
   width:100%;
-  margin:var(--sp-16) auto;
+  /* Sin margen vertical: en el prototipo la columna de iconos llena el
+     alto entero de la pantalla, y las proporciones de fitStage() están
+     medidas contra ese alto completo. Con margen, todo salía un 5% más
+     chico que en el diseño. */
+  margin:0 auto;
   padding:0 var(--sp-24);
   display:flex;
   align-items:stretch;
@@ -177,8 +196,8 @@ body{
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:12px;
-  padding:6px 0;
+  gap:var(--rail-gap);
+  padding:0;
   flex:none;
   overflow-y:auto;
 }
@@ -187,7 +206,7 @@ body{
    overflow-y:auto, y por eso calcula overflow-x como auto) dispararía
    una barra de scroll horizontal. El rail derecho no lleva ancho fijo
    acá porque se lo da .swatches, que es más ancho. */
-.rail-left{width:60px;}
+.rail-left{width:calc(var(--ico) + 12px);}
 /* Los lápices se cortan contra el BORDE de la pantalla, como en el
    prototipo, así que este rail cancela el padding lateral del .app y
    queda pegado al borde. El recorte en sí lo hace el viewBox del SVG
@@ -207,7 +226,7 @@ body{
 .stage-wrap{
   display:flex;
   justify-content:center;
-  align-items:center;
+  align-items:flex-start;   /* la hoja apoya arriba y se corta abajo */
   flex:1;
   min-width:0;
   min-height:0;
@@ -226,7 +245,7 @@ body{
   position:relative;
   background:url('../hoja-dibujo.png') center / 100% 100% no-repeat;
   display:flex;
-  align-items:center;
+  align-items:flex-start;   /* el lienzo lo ubica fitStage con margin-top */
   justify-content:center;
   padding:0;
   flex:none;
@@ -311,9 +330,6 @@ canvas{
    obliga a calcular overflow-x como auto, así que cualquier cosa que se
    salga del ancho dispara una barra de scroll horizontal. */
 .swatches{
-  --grosor:38px;
-  --lapiz:104px;
-  --lapiz-sel:138px;
   width:var(--lapiz-sel);
   display:flex;
   flex-direction:column;
@@ -344,7 +360,7 @@ canvas{
 .swatch:hover svg{width:calc(var(--lapiz) + 10px);}
 .swatch.selected svg{width:var(--lapiz-sel);}
 
-.tools{display:flex; flex-direction:column; gap:10px;}
+.tools{display:flex; flex-direction:column; gap:var(--rail-gap);}
 /* Los iconos de herramienta son PNG ilustrados a color (iconos/, ver
    TOOLS en motor.js) y se muestran sueltos, SIN el círculo crema que
    llevan los otros botones redondos: el icono ya tiene su propia forma,
@@ -362,10 +378,10 @@ canvas{
    El PNG trae el dibujo al 83% de su caja, así que a 48px de caja el
    dibujo mide unos 40px — que es lo que se midió en el prototipo. */
 .tool-btn{
-  --tool-ico:44px;
-  --tool-ico-hover:46px;
-  --tool-ico-sel:48px;
-  width:48px;height:48px;
+  --tool-ico:calc(var(--ico) * 0.92);
+  --tool-ico-hover:calc(var(--ico) * 0.96);
+  --tool-ico-sel:var(--ico);
+  width:var(--ico);height:var(--ico);
   border-radius:50%;
   display:flex;
   align-items:center;
@@ -405,7 +421,7 @@ canvas{
 .brush-size span{font-size:10px; font-weight:700; color:var(--plum-soft);}
 
 .nav-arrow{
-  width:48px;height:48px;
+  width:var(--ico);height:var(--ico);
   border-radius:50%;
   border:none;
   cursor:pointer;
@@ -414,13 +430,13 @@ canvas{
   transition:transform .12s ease;
 }
 .nav-arrow:active{transform:translateY(2px);}
-.nav-arrow svg{width:24px;height:24px;}
+.nav-arrow svg{width:calc(var(--ico) * 0.5);height:calc(var(--ico) * 0.5);}
 /* El de reiniciar ya no necesita el círculo turquesa de CSS: el icono
    del arte trae su propio círculo, su sombra y su color. El de "Listo"
    sí lo conserva, porque sigue siendo un SVG blanco. */
 .nav-arrow.restart{background:none; box-shadow:none;}
 .nav-arrow.restart img{
-  width:48px; height:48px;
+  width:var(--ico); height:var(--ico);
   object-fit:contain;
   pointer-events:none;
   user-select:none;
@@ -505,16 +521,6 @@ canvas{
      diseño y la pantalla del prototipo es justamente esta. Lo que se
      comprime es el aire entre ellos, para que los siete del rail
      izquierdo entren sin barra de scroll. */
-  /* .tools es un flex propio, con su gap aparte del rail: si no se
-     aprieta también, los cinco botones suman 40px de huecos y el rail
-     desborda. */
-  .rail{gap:3px; padding:0;}
-  .tools{gap:3px;}
-  /* El grosor se calcula para que la paleta más larga (Aida, 10
-     colores) entre sin barra de scroll: si aparece, además de ser
-     impensable que un nene de 3 años scrollee, la barra se come 15px
-     y los lápices dejan de llegar al borde de la pantalla. */
-  .swatches{--grosor:30px; --lapiz:84px; --lapiz-sel:112px;}
   .brush-size{padding:6px 10px;}
 }
 

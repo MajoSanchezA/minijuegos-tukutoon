@@ -110,8 +110,25 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   "Horizontal forzado en celular", por qué. Las dos miden 1920x1080 y usan el mismo
   `object-fit:cover`, así que recortan igual y **la decoración nunca se despega de la mesa**.
   Si alguna vez se cambia una, la otra tiene que mantener la misma proporción.
+- **Los tamaños de la interfaz son proporcionales al alto del juego, no px fijos.**
+  `fitStage()` los recalcula en cada resize y los publica como variables CSS en `<html>`
+  (`--ico`, `--rail-gap`, `--grosor`, `--lapiz`, `--lapiz-sel`); `motor.css` solo las consume,
+  con valores de arranque en `:root` para la primera pintada. Las proporciones (objeto `P` en
+  motor.js) están medidas sobre el frame del prototipo, 874x402: **icono 11,9% del alto**,
+  aire entre iconos 2,5%, **grosor del lápiz 9,5%**, hoja 112% de alto con el borde de arriba
+  al 11,4%.
+  Con px fijos esto se veía bien en un celular horizontal y demasiado chico en una pantalla más
+  alta, porque el `@media` de pantallas bajas dejaba de aplicar justo cuando había más lugar.
+  Por eso `.app` tampoco lleva `margin` vertical ni `max-width`: en el diseño la columna de
+  iconos llena el alto entero y los rails tocan los bordes.
+- El grosor del lápiz usa el 9,5% del diseño **salvo que la paleta no entre**: ahí se achica lo
+  necesario. Nunca tiene que aparecer la barra de scroll — un chico de 3 años no la va a usar,
+  y además se come 15px de ancho y los lápices dejan de llegar al borde de la pantalla.
 - **La hoja es la que manda la geometría del escenario, y por eso `fitStage()` calcula al
-  revés que antes.** Ya no es un rectángulo al que le poníamos borde y sombra por CSS (eso se
+  revés que antes.** En el prototipo la hoja es **más alta que la pantalla**: apoya al 11,4%
+  del alto y se corta contra el borde de abajo (la recorta el `overflow:hidden` de
+  `.stage-wrap`). Por eso el dibujo se centra en la parte **visible** de la hoja y no en la
+  hoja entera — si se centrara en la hoja entera quedaría medio tapado. Ya no es un rectángulo al que le poníamos borde y sombra por CSS (eso se
   podía estirar a la proporción que pidiera cada dibujo): ahora es un asset con su propio borde
   irregular y su propia sombra dibujada, así que estirarla la deforma. `fitStage()` primero
   calcula cuánto puede medir la hoja respetando `HOJA_RATIO` (880/982, la proporción real del
