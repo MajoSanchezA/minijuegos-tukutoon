@@ -71,6 +71,19 @@
      acostado con la punta hacia el dibujo, así que se rota 90°.
      --------------------------------------------------------------- */
   const LAPIZ_W = 191, LAPIZ_H = 1418;
+  // En el prototipo los lápices se salen por el borde derecho: se ve la
+  // punta y un pedazo del cuerpo, gruesos. El rail no puede dejar que
+  // se desborden de verdad (tiene overflow-y:auto, que fuerza a
+  // overflow-x a auto), así que el recorte lo hace el propio SVG con
+  // preserveAspectRatio="xMinYMid slice": el dibujo se escala para
+  // CUBRIR la caja y lo que sobra se corta del lado derecho, dejando la
+  // punta siempre visible.
+  //
+  // La ventaja de recortar así, y no achicando el viewBox, es que el
+  // grosor y el largo quedan independientes: el CSS fija el alto (que
+  // no cambia nunca) y el ancho (que crece cuando el lápiz está
+  // elegido). Por eso el elegido "sobresale" hacia el dibujo sin
+  // engordar ni correr a los demás de fila.
   const LAPIZ_FIGURAS = [
     ['punta','M96.0 1363.0C90.8 1361.9 85.8 1364.0 80.6 1363.8C77.5 1363.7 77.2 1365.4 78.6 1367.6C83.5 1375.1 88.4 1382.5 93.4 1389.9C94.7 1391.8 96.1 1392.2 97.6 1389.9C102.6 1382.3 107.7 1374.7 112.7 1367.2C114.2 1364.8 113.4 1363.7 110.8 1363.8C105.8 1364.1 101.0 1361.9 96.0 1363.0M141.7 1357.5C132.2 1375.2 122.1 1392.6 109.2 1408.1C100.5 1418.5 91.4 1418.5 82.3 1408.5C72.8 1398.2 65.9 1386.0 58.6 1374.1C55.0 1368.2 51.2 1362.3 48.6 1355.8C49.6 1350.1 52.6 1345.9 58.6 1345.1C60.8 1344.8 62.9 1344.1 65.0 1343.7C76.1 1343.9 87.1 1341.5 98.2 1341.7C107.6 1341.8 116.8 1344.1 126.2 1343.7C127.7 1344.0 129.1 1344.4 130.6 1344.7C139.0 1346.1 141.4 1348.9 141.7 1357.5Z'],
     ['madera2','M141.7 1357.5C141.4 1348.9 139.0 1346.1 130.6 1344.7C129.1 1344.4 127.7 1344.0 126.3 1343.7C126.8 1342.5 127.4 1341.2 128.0 1340.1C140.6 1318.1 153.2 1296.1 165.7 1274.0C167.9 1270.2 171.0 1266.6 170.5 1261.7C171.3 1262.8 172.2 1263.7 172.9 1264.8C178.0 1272.3 183.6 1273.2 190.6 1267.6C190.8 1270.6 189.3 1273.0 188.0 1275.5C176.1 1298.9 162.4 1321.4 149.4 1344.2C146.9 1348.7 144.2 1353.1 141.7 1357.5Z'],
@@ -137,7 +150,7 @@
   // hacia la izquierda, o sea hacia el dibujo.
   function lapizSVG(hex) {
     const c = lapizTonos(hex);
-    return `<svg viewBox="0 0 ${LAPIZ_H} ${LAPIZ_W}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
+    return `<svg viewBox="0 0 ${LAPIZ_H} ${LAPIZ_W}" preserveAspectRatio="xMinYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
       + `<g transform="translate(${LAPIZ_H},0) rotate(90)">`
       + LAPIZ_FIGURAS.map(f => `<path fill="${c[f[0]]}" d="${f[1]}"/>`).join('')
       + '</g></svg>';

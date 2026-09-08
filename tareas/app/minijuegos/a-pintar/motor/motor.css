@@ -188,6 +188,12 @@ body{
    una barra de scroll horizontal. El rail derecho no lleva ancho fijo
    acá porque se lo da .swatches, que es más ancho. */
 .rail-left{width:60px;}
+/* Los lápices se cortan contra el BORDE de la pantalla, como en el
+   prototipo, así que este rail cancela el padding lateral del .app y
+   queda pegado al borde. El recorte en sí lo hace el viewBox del SVG
+   (ver LAPIZ_VISIBLE en motor.js): el rail no puede dejar que se
+   desborden porque su overflow-y:auto fuerza overflow-x a auto. */
+.rail-right{margin-right:calc(var(--sp-24) * -1);}
 .rail .nav-arrow{margin-top:auto; flex:none;}
 
 /* Ya no hay un layout especial "celular en vertical" apilado: el body
@@ -305,8 +311,9 @@ canvas{
    obliga a calcular overflow-x como auto, así que cualquier cosa que se
    salga del ancho dispara una barra de scroll horizontal. */
 .swatches{
-  --lapiz:130px;
-  --lapiz-sel:160px;
+  --grosor:38px;
+  --lapiz:104px;
+  --lapiz-sel:138px;
   width:var(--lapiz-sel);
   display:flex;
   flex-direction:column;
@@ -315,7 +322,7 @@ canvas{
   max-height:100%;
   overflow-y:auto;
   overflow-x:hidden;
-  padding:var(--sp-8) 0;
+  padding:0;
 }
 .swatch{
   width:100%;
@@ -324,17 +331,17 @@ canvas{
   align-items:center;
   background:none;
   border:none;
-  padding:4px 0;
+  padding:0;
   cursor:pointer;
 }
 .swatch svg{
   display:block;
   width:var(--lapiz);
-  height:auto;
+  height:var(--grosor);
   filter:drop-shadow(0 2px 3px rgba(61,44,78,.32));
   transition:width .14s ease;
 }
-.swatch:hover svg{width:calc(var(--lapiz) + 8px);}
+.swatch:hover svg{width:calc(var(--lapiz) + 10px);}
 .swatch.selected svg{width:var(--lapiz-sel);}
 
 .tools{display:flex; flex-direction:column; gap:10px;}
@@ -503,7 +510,11 @@ canvas{
      desborda. */
   .rail{gap:3px; padding:0;}
   .tools{gap:3px;}
-  .swatches{--lapiz:110px; --lapiz-sel:136px;}
+  /* El grosor se calcula para que la paleta más larga (Aida, 10
+     colores) entre sin barra de scroll: si aparece, además de ser
+     impensable que un nene de 3 años scrollee, la barra se come 15px
+     y los lápices dejan de llegar al borde de la pantalla. */
+  .swatches{--grosor:30px; --lapiz:84px; --lapiz-sel:112px;}
   .brush-size{padding:6px 10px;}
 }
 

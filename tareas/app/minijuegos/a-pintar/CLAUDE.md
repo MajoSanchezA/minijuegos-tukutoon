@@ -242,13 +242,18 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   plano.
   - En el archivo el lápiz está parado (191x1418); en la barra va **acostado con la punta hacia
     el dibujo**, así que `lapizSVG` lo rota 90°.
-  - El ancho del rail es **fijo** (`--lapiz-sel`) y el lápiz elegido es el que se estira hasta
-    ese ancho, creciendo hacia la izquierda. Así se marca la selección sin mover a los demás ni
-    cambiar el ancho del rail — mismo motivo que en las herramientas: el rail tiene
-    `overflow-y:auto`, y eso obliga a calcular `overflow-x` como `auto`, así que cualquier cosa
-    que se pase del ancho dispara una barra de scroll horizontal.
-  - El grosor del lápiz sale de su largo (proporción 7,42:1 del archivo). Si se lo acorta mucho
-    deja de leerse como lápiz y parece una rayita: 110px de largo es el mínimo razonable.
+  - **Se cortan contra el borde de la pantalla**, como en el prototipo: `.rail-right` cancela
+    el padding lateral del `.app` con un margen negativo. El corte lo hace el propio SVG, con
+    `preserveAspectRatio="xMinYMid slice"` — el dibujo se escala para CUBRIR la caja y lo que
+    sobra se recorta del lado derecho, dejando la punta siempre visible. El rail no puede
+    dejar que se desborden de verdad porque su `overflow-y:auto` fuerza `overflow-x` a `auto`.
+  - Recortar así (y no achicando el `viewBox`) deja **el grosor y el largo independientes**:
+    `--grosor` fija el alto, que no cambia nunca, y `--lapiz` / `--lapiz-sel` el ancho. Por eso
+    el elegido sobresale hacia el dibujo sin engordar ni correr a los demás de fila.
+  - **`--grosor` está calculado para que la paleta más larga entre sin barra de scroll.** Con
+    10 colores (Aida) el margen es de 5px. Si alguna paleta pasa de 10, hay que bajarlo: si
+    aparece la barra, además de que un nene de 3 años no la va a usar, se come 15px de ancho y
+    los lápices dejan de llegar al borde de la pantalla.
 - Al tocar "Listo" (`done-btn`), además del confeti, `motor.js` guarda una foto del
   dibujo ya pintado (fondo blanco + color + líneas, achicada a 480px) en `localStorage`, con
   clave `tukutoon:progreso:<carpeta>` (la carpeta se deduce sola de la URL, ej. `.../paginas/
