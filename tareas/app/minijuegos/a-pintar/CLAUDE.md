@@ -48,8 +48,10 @@ a-pintar/
 │   └── motor.css            # estilos visuales del juego de colorear
 │
 ├── iconos/                  # iconos ilustrados de las herramientas (PNG con transparencia,
-│   │                        # 144x144, recortados al contenido y centrados para que todos
-│   │                        # se vean del mismo tamaño en la barra)
+│   │                        # 144x144, recortados al dibujo y escalados para que LLENEN el
+│   │                        # lienzo: en el prototipo ocupan el 100% de su caja de 48. Si se
+│   │                        # les deja margen adentro se ven chicos Y más separados, porque
+│   │                        # ese aire se suma al hueco entre iconos)
 │   ├── balde.png            # balde
 │   ├── lapiz.png            # lápiz
 │   ├── pincel.png           # acuarela
@@ -310,6 +312,9 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   plano.
   - En el archivo el lápiz está parado (191x1418); en la barra va **acostado con la punta hacia
     el dibujo**, así que `lapizSVG` lo rota 90°.
+  - La **punta va del mismo color que el contorno**. Cuando tenía un tono propio —apenas más
+    claro que el borde— se leía como un **contorno doble**: el trazo del borde, después la
+    punta en otro oscuro, y recién ahí el cuerpo.
   - **El contorno lo agrega el motor, no el archivo.** El lápiz del selector viene plano en el
     `.ai`, pero en el prototipo los de la paleta llevan borde. `lapizTonos` lo deriva del propio
     color (luminancia × 0,62, como los lápices decorativos del arte; por debajo de 20 aclara en
