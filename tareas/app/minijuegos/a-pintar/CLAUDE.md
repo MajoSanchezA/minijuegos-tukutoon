@@ -44,6 +44,15 @@ a-pintar/
 │   ├── motor.js             # TukuToonColorPage({...}): paleta, pinceles, balde, fit a pantalla
 │   └── motor.css            # estilos visuales del juego de colorear
 │
+├── iconos/                  # iconos ilustrados de las herramientas (PNG con transparencia,
+│   │                        # 144x144, recortados al contenido y centrados para que todos
+│   │                        # se vean del mismo tamaño en la barra)
+│   ├── balde.png            # balde
+│   ├── lapiz.png            # lápiz
+│   ├── pincel.png           # acuarela
+│   ├── especial.png         # brillantina
+│   └── borrador.png         # borrador
+│
 ├── plantillas/
 │   └── plantilla-horizontal.html   # molde para crear una página de colorear nueva
 │                                   # (queda como referencia del formato; el flujo
@@ -99,10 +108,39 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   textura se leen como una sola hoja.
 - Capas: canvas de pintura debajo (`#paint-canvas`) + canvas de tinta (líneas) encima
   (`#ink-canvas`). Los trazos nunca pisan las líneas (se respeta `wallMask`).
-- Herramientas (`TOOLS` en motor.js): balde, marcador (trazo duro y opaco), lápiz (fino,
+- Herramientas (`TOOLS` en motor.js): la barra muestra **cinco** — balde, lápiz (fino,
   semitransparente, granulado), acuarela (muy translúcida, se acumula al repasar el mismo
-  lugar), aerosol (puntitos dispersos), brillantina (color sólido + destellos casi blancos
-  al azar) y borrador (limpia la región completa).
+  lugar), brillantina (color sólido + destellos casi blancos al azar) y borrador (limpia la
+  región completa). Son cinco porque es el set de iconos que hizo diseño y porque con chicos
+  de 2 a 5 años cinco botones grandes se aciertan mejor que siete chicos. **Marcador** (trazo
+  duro y opaco) y **aerosol** (puntitos dispersos) siguen implementados (`stampMarker` /
+  `stampSpray`, y sus ids siguen en `STROKE_TOOLS`) pero no están en la barra: para
+  devolverlos alcanza con conseguirles un icono y sumarles su línea a `TOOLS`.
+- **Los iconos de las herramientas son PNG ilustrados a color** (`iconos/`), no SVG. En
+  `TOOLS`, `icon` es el nombre del archivo, no marcado. Consecuencias:
+  - No se les puede cambiar el color por CSS. Por eso la herramienta elegida se marca
+    **agrandando el icono** (`--tool-ico`, de 34px a 44px) y no invirtiendo su color ni
+    pintándole un fondo coral encima. El botón en sí es transparente — los iconos van
+    sueltos, sin la pastilla crema que sí llevan los botones redondos de acción (volver,
+    reiniciar, listo, que siguen siendo SVG en `ICON`).
+  - Es a propósito que el estado activo NO use `transform:scale()`: el rail tiene
+    `overflow-y:auto`, y eso obliga al navegador a calcular `overflow-x` como `auto`
+    también, así que cualquier escalado del botón se pasa del ancho del rail y dispara una
+    barra de scroll horizontal. Creciendo el icono dentro de un botón de tamaño fijo eso no
+    puede pasar.
+  - La ruta de `iconos/` se deduce sola del `src` del propio `<script>` de motor.js
+    (`ICONS_BASE`), así que —a diferencia de `bgSrc` y `menuHref`— **las páginas no tienen
+    que pasar ninguna ruta**. `cfg.iconsBase` la puede pisar si alguna vez hace falta.
+- **En `motor.css`, los dos bloques `@media` de tamaño de pantalla van AL FINAL del archivo, a
+  propósito.** Pisan a `.tool-btn`, `.swatch`, `.nav-arrow` y `.brush-size` con la misma
+  especificidad (una clase), así que lo único que los hace ganar es estar después. Estuvieron
+  arriba mucho tiempo y esas reglas no hacían nada: en celular los botones seguían midiendo el
+  tamaño de escritorio y el rail de herramientas desbordaba con barra de scroll. Si agregás una
+  regla nueva a un componente, va ANTES de ese bloque. En el mismo bloque, ojo con
+  `@media (max-width:420px)`: ahí NO se agrandan `.tool-btn` ni `.swatch` aunque parezca que un
+  celular chico los pide más grandes — con la rotación forzada el juego siempre se ve apaisado,
+  así que en un celular vertical el ANCHO de pantalla es el alto disponible del juego, y menos
+  ancho significa menos lugar para los rails, no más.
 - `fitStage()` recalcula el tamaño del lienzo para que TODO el juego (header + barras + dibujo)
   entre en una sola pantalla sin scroll, respetando la proporción real de la imagen.
 - **Horizontal forzado en celular**: en `motor.css` (y en `css/style.css` para el menú),
@@ -215,10 +253,14 @@ sigue ahí con el formato de referencia y los pasos explicados en sus comentario
 - Sello de textura/patrón como herramienta extra (rayas, puntos, estrellas…).
 - Solo hay tres dibujos cargados (Aida, Ana, Tuku) — falta sumar más personajes siguiendo
   el flujo de arriba.
-- Los tres dibujos actuales no cumplen la spec de `GUIA-DISENADORES.md`: Aida (720×755) y Ana
-  (1904×2082) son **verticales**, y el layout es horizontal — quedan chicos y centrados con
-  huecos grandes a los lados. Además Ana (4,0 MP) y Tuku (3,7 MP) son ~7× más pesados que Aida
-  (0,5 MP) para `buildRegions()`, que recorre píxel por píxel al abrir. Conviene volver a
-  pedirlos horizontales a 1500×1000, o al menos pasarlos por `herramientas/preparar-dibujo.html`
-  con el reescalado activado.
+- Los dibujos actuales no llegan a la proporción del diseño. El Figma
+  (`TUKUTOON APP UI STYLE GUIDELINE`, nodo `ZONA DE DIBUJO`) pide el dibujo **cuadrado**: los
+  cuatro personajes están en marcos de 285×285 y `ana_sktch` exportado da 1100×1100. En el repo
+  hay Aida 720×755 (0,95), Ana 1904×2082 (0,91) y Tuku 2200×1674 (1,31) — las dos primeras
+  andan cerca, Tuku no. Además Ana (4,0 MP) y Tuku (3,7 MP) son ~7× más pesados que Aida
+  (0,5 MP) para `buildRegions()`, que recorre píxel por píxel al abrir: conviene pasarlos por
+  `herramientas/preparar-dibujo.html` con el reescalado activado.
+  (Una versión anterior de este archivo decía que había que pedirlos **horizontales a
+  1500×1000**. Era un error: se dedujo del layout viejo, sin el diseño a la vista. Van
+  cuadrados.)
 - Juego de trazos (tracing): sin empezar, pendiente de las plantillas de trayectorias.

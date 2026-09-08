@@ -8,7 +8,7 @@ años: el nene toca una zona y se rellena de color (balde), o pinta libre con di
 ## Resumen en 30 segundos
 
 - **Dibujar en vector** (Illustrator o Figma).
-- **Entregar un PNG** de línea: **1500 × 1000 px, horizontal, fondo blanco opaco, líneas
+- **Entregar un PNG** de línea: **1100 × 1100 px, cuadrado, fondo blanco opaco, líneas
   negras cerradas de 6–10 px.**
 - Entregar también el **archivo fuente** y una **paleta de 8–10 colores** en hexadecimal.
 
@@ -35,22 +35,23 @@ Pero el dibujo tiene que **nacer en vector**, porque:
 | | |
 |---|---|
 | **Formato** | PNG |
-| **Tamaño** | **1500 × 1000 px** (proporción 3:2) |
-| **Orientación** | **Horizontal**, siempre |
+| **Tamaño** | **1100 × 1100 px** (o más, siempre cuadrado) |
+| **Orientación** | **Cuadrada (1:1)**, siempre |
 | **Fondo** | **Blanco opaco `#FFFFFF`** — NO transparente |
 | **Líneas** | Negro `#000000` o casi negro |
 | **Grosor de línea** | **6 a 10 px** medidos en el tamaño final de export |
 | **Relleno de las zonas** | Blanco. El dibujo va **sin colorear** |
 | **Nombre del archivo** | minúsculas, sin acentos ni espacios: `dinosaurio.png` |
 
-**Sobre la orientación:** el juego se ve siempre apaisado (en el celular se rota solo), y las
-barras de pinceles y colores van a los costados. Un dibujo vertical se ve chiquito en el
-medio con huecos grandes a los lados. Horizontal, siempre.
+**Sobre la orientación:** el dibujo se apoya sobre una hoja apenas más alta que ancha, y las
+barras de herramientas y colores van a los costados. La zona de dibujo del diseño es
+cuadrada: si el dibujo viene muy apaisado queda chico con huecos a los lados, y si viene muy
+vertical se sale de la hoja. **Cuadrado, siempre.**
 
-**Sobre el tamaño:** 1500 × 1000 no es capricho. Más grande no se ve mejor (la pantalla no da
-para más) y sí se nota al abrir: el motor recorre el dibujo píxel por píxel para calcular las
-zonas, así que el doble de tamaño es el cuádruple de trabajo. En una tablet económica se
-siente.
+**Sobre el tamaño:** 1100 × 1100 es lo que mide el arte en el archivo de diseño. Más grande no
+se ve mejor (la pantalla no da para más) y sí se nota al abrir: el motor recorre el dibujo
+píxel por píxel para calcular las zonas, así que el doble de lado es el cuádruple de trabajo.
+En una tablet económica se siente.
 
 **Sobre el grosor:** si el trazo es muy fino, al exportar queda suavizado (gris claro en los
 bordes) y el motor no lo reconoce como pared → el color se escapa a la zona de al lado.
@@ -63,9 +64,14 @@ bordes) y el motor no lo reconoce como pared → el color se escapa a la zona de
 Estos no son detalles estéticos: hacen que el juego no funcione.
 
 ### 1. Fondo transparente
-**El peor de todos.** El motor interpreta el transparente como negro, así que toma TODO el
-fondo como si fuera línea. Resultado: el dibujo aparece como un rectángulo negro y no se
-puede pintar nada. El fondo tiene que ser **blanco opaco**.
+**El peor de todos, y el más fácil de cometer.** El motor interpreta el transparente como
+negro, así que toma TODO el fondo como si fuera línea. Resultado: el dibujo aparece como un
+rectángulo negro y no se puede pintar nada.
+
+Ojo con esto en particular: **exportar un PNG desde Figma da fondo transparente por
+defecto.** Los dibujos que ya están en el archivo de arte salen así (medimos uno: 91% de los
+píxeles transparentes). Hay que exportar con un fondo blanco opaco atrás, o marcarlo al
+entregar para que lo aplanemos de este lado.
 
 ### 2. Contornos abiertos
 Cualquier hueco, por chico que sea, conecta dos zonas. El nene toca el sombrero y se le pinta
@@ -83,14 +89,14 @@ blanco.** Nada de volumen, texturas ni tramas.
 
 ### 5. Zonas demasiado chicas
 Un dedo de 3 años no acierta un detalle de 20 px. **Ninguna zona para pintar más chica que
-~60 × 60 px** (medido a 1500 px de ancho). Si un detalle es más chico que eso, mejor
+~45 × 45 px** (medido a 1100 px de lado). Si un detalle es más chico que eso, mejor
 simplificarlo o unirlo a la zona vecina.
 
 ---
 
 ## 4. Checklist antes de entregar
 
-- [ ] Es horizontal y mide 1500 × 1000 px
+- [ ] Es cuadrado y mide 1100 × 1100 px o más
 - [ ] El fondo es blanco opaco (abrilo sobre una capa de color fuerte: no se tiene que ver a través)
 - [ ] Las líneas son negras y parejas, entre 6 y 10 px
 - [ ] Todas las zonas están cerradas — sin huecos
@@ -125,9 +131,10 @@ después.
 
 ## 6. Cómo se ve después en el juego
 
-El dibujo se apoya sobre una hoja, sobre una mesa. Las barras de herramientas y colores van a
-los costados. Todo entra en una sola pantalla, sin scroll, y en el celular se rota solo para
-verse apaisado aunque el nene tenga el teléfono parado.
+El dibujo se apoya cuadrado sobre una hoja crema, y la hoja sobre una mesa vista desde arriba
+con útiles alrededor. Las barras de herramientas y de lápices de colores van a los costados.
+Todo entra en una sola pantalla, sin scroll, y en el celular se rota solo para verse apaisado
+aunque el nene tenga el teléfono parado.
 
 Herramientas disponibles para pintar: balde (rellena la zona entera), marcador, lápiz,
 acuarela, aerosol, brillantina y borrador.

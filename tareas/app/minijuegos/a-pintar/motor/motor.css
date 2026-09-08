@@ -18,6 +18,42 @@
   --plum:#3D2C4E;
   --plum-soft:#7A6A8A;
 }
+
+/* ============================================================
+   GRID TUKUTOON — de la guía "TukuToon App UI Style Guideline".
+     Mobile   918x413 : 4 columnas de 200px + medianil 24px = 872px
+     Tablet  1024x768 : 6 columnas de 140px + medianil 24px = 960px
+   Los dos son "tipo Centro": el bloque de grilla va centrado y el resto
+   del ancho queda repartido como margen a los costados.
+
+   El breakpoint mira el LADO LARGO de la pantalla, no el ancho: con el
+   truco de horizontal forzado (más abajo) el teléfono en vertical se
+   renderiza como 100vh de ancho, pero las media queries siguen viendo el
+   viewport real — por eso "tablet" se detecta como landscape+min-width o
+   portrait+min-height.
+
+   Mismo bloque que en css/style.css (el menú): los dos archivos son
+   independientes, no hay un CSS de tokens compartido todavía.
+   ============================================================ */
+:root{
+  --medianil:24px;
+  --col:200px;
+  --grid-max:872px;                                  /* 4*200 + 3*24 */
+  --card:var(--col);            /* columnas que abarca una tarjeta: 1 */
+
+  /* Escala de spacing de la guía */
+  --sp-8:8px;   --sp-16:16px; --sp-24:24px; --sp-32:32px; --sp-40:40px;
+  --sp-64:64px; --sp-80:80px; --sp-96:96px; --sp-120:120px;
+}
+@media (orientation:landscape) and (min-width:1024px),
+       (orientation:portrait) and (min-height:1024px){
+  :root{
+    --col:140px;
+    --grid-max:960px;                                /* 6*140 + 5*24 */
+    --card:calc(var(--col) * 2 + var(--medianil));   /* 2 columnas = 304px */
+  }
+}
+
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html{-webkit-text-size-adjust:100%; height:100%;}
 
@@ -93,8 +129,8 @@ header{
   display:grid;
   grid-template-columns:auto 1fr auto;
   align-items:center;
-  gap:8px;
-  padding:26px 16px 4px;
+  gap:var(--sp-8);
+  padding:var(--sp-24) var(--sp-24) var(--sp-8);
   position:relative;
   z-index:3;
   flex:none;
@@ -152,7 +188,7 @@ header{
 }
 .pill h1 span{color:var(--coral);}
 .pill p{
-  margin:4px 0 0;
+  margin:var(--sp-8) 0 0;
   color:var(--plum-soft);
   font-weight:600;
   font-size:12.5px;
@@ -162,14 +198,14 @@ header{
    barras de pinceles/colores quedan a los costados para no robarle
    ancho al lienzo. */
 .app{
-  max-width:1180px;
+  max-width:var(--grid-max);
   width:100%;
-  margin:14px auto;
-  padding:0 16px;
+  margin:var(--sp-16) auto;
+  padding:0 var(--sp-24);
   display:flex;
   align-items:stretch;
   justify-content:center;
-  gap:18px;
+  gap:var(--medianil);
   position:relative;
   z-index:2;
   flex:none;
@@ -192,33 +228,6 @@ header{
    como horizontal (rail-lienzo-rail), esté el teléfono parado o
    acostado. */
 
-/* Pantalla con poca altura visual (celular horizontal real, o celular
-   vertical ya rotado por CSS — en ambos casos el alto disponible es
-   chico), así que se comprimen los espacios verticales para que todo
-   entre sin scroll. */
-@media (orientation:landscape) and (max-height:500px), (orientation:portrait) and (max-width:500px){
-  header{padding:8px 16px 2px;}
-  .back-btn, .back-btn-spacer{width:36px; height:36px;}
-  .back-btn svg{width:16px;height:16px;}
-  .pill{padding:8px 22px 8px 54px;}
-  .pill p{display:none;}
-  .app{margin:8px auto; gap:12px;}
-  .tool-btn{width:42px; height:42px;}
-  .tool-btn svg{width:17px;height:17px;}
-  .nav-arrow{width:40px;height:40px;}
-  .swatch{width:26px;height:26px;}
-  .brush-size{padding:6px 10px;}
-}
-
-/* Pantallas muy angostas (celulares chicos en vertical). */
-@media (max-width:420px){
-  .tool-btn{width:44px; height:44px;}
-  .swatch{width:30px;height:30px;}
-  .back-btn, .back-btn-spacer{width:38px; height:38px;}
-  .back-btn svg{width:17px;height:17px;}
-  .pill{padding:12px 18px 12px 52px;}
-  .pill-badge{width:44px;height:44px;font-size:18px;}
-}
 
 .tool-btn, .swatch, .nav-arrow{touch-action:manipulation; user-select:none;}
 
@@ -238,7 +247,7 @@ header{
   position:relative;
   background:url('../hoja-dibujo.png') center / 100% 100% no-repeat, var(--cream);
   border-radius:20px;
-  padding:22px;
+  padding:var(--sp-24);
   max-width:100%;
   max-height:100%;
   box-shadow:
@@ -338,27 +347,44 @@ canvas{
 .swatch.selected{border-color:var(--plum); transform:scale(1.12);}
 
 .tools{display:flex; flex-direction:column; gap:10px;}
+/* Los iconos de herramienta son PNG ilustrados a color (iconos/, ver
+   TOOLS en motor.js) y se muestran sueltos, SIN el círculo crema que
+   llevan los otros botones redondos: el icono ya tiene su propia forma,
+   color y sombra, y encerrarlo en una pastilla blanca lo apagaba. Por
+   eso el botón en sí es transparente y solo sirve como área de toque
+   (los 50px se mantienen aunque el dibujo mida menos: un dedo chico
+   necesita el área grande). */
 .tool-btn{
+  --tool-ico:34px;
   width:50px;height:50px;
   border-radius:50%;
   display:flex;
   align-items:center;
   justify-content:center;
-  background:var(--cream);
+  background:none;
   border:none;
+  padding:0;
   cursor:pointer;
-  color:var(--plum-soft);
-  box-shadow:0 3px 0 rgba(61,44,78,.12), 0 8px 14px -8px rgba(61,44,78,.35);
-  transition:background .15s ease, color .15s ease, transform .12s ease;
   flex:none;
 }
-.tool-btn:hover{transform:translateY(-2px);}
-.tool-btn.active{
-  background:linear-gradient(180deg,#FF8266,var(--coral));
-  color:#fff;
-  box-shadow:0 3px 0 #C94A38, 0 8px 14px -8px rgba(201,74,56,.5);
+/* La herramienta elegida se marca agrandando SOLO el icono, no el botón.
+   Es a propósito que acá no haya ningún transform: el rail tiene
+   overflow-y:auto (y eso obliga a overflow-x a calcularse como auto),
+   así que cualquier scale() sobre el botón se sale del ancho del rail y
+   dispara una barra de scroll horizontal. Creciendo el icono por dentro
+   de un botón de tamaño fijo eso no puede pasar — 44px entran holgados
+   en los 50px del botón, y 36 en los 42 de la versión compacta. */
+.tool-btn img{
+  width:var(--tool-ico);
+  height:var(--tool-ico);
+  object-fit:contain;   /* no son todos cuadrados: que no se deformen */
+  pointer-events:none;  /* el toque siempre lo recibe el botón */
+  user-select:none;
+  -webkit-user-drag:none;
+  transition:width .14s ease, height .14s ease;
 }
-.tool-btn svg{width:20px;height:20px;}
+.tool-btn:hover{--tool-ico:38px;}
+.tool-btn.active{--tool-ico:44px;}
 
 .brush-size{
   display:flex; flex-direction:column; align-items:center; gap:6px;
@@ -389,13 +415,13 @@ canvas{
   display:none;
   align-items:center; justify-content:center;
   z-index:50;
-  padding:20px;
+  padding:var(--sp-24);
 }
 .modal-overlay.show{display:flex;}
 .modal{
   background:var(--cream);
   border-radius:22px;
-  padding:32px 26px;
+  padding:var(--sp-32) var(--sp-24);
   text-align:center;
   max-width:320px;
   position:relative;
@@ -404,7 +430,7 @@ canvas{
 @keyframes pop{from{transform:scale(.7); opacity:0;} to{transform:scale(1); opacity:1;}}
 .modal .badge{
   width:96px;height:96px;
-  margin:0 auto 14px;
+  margin:0 auto var(--sp-16);
   border-radius:50%;
   background:linear-gradient(180deg,var(--sun),#FFB020);
   display:flex;align-items:center;justify-content:center;
@@ -415,10 +441,10 @@ canvas{
   font-family:'Fredoka',sans-serif;
   font-weight:600;
   font-size:22px;
-  margin:0 0 6px;
+  margin:0 0 var(--sp-8);
   color:var(--plum);
 }
-.modal p{font-family:'Comfortaa',sans-serif; color:var(--plum-soft); font-weight:600; margin:0 0 20px; font-size:14px;}
+.modal p{font-family:'Comfortaa',sans-serif; color:var(--plum-soft); font-weight:600; margin:0 0 var(--sp-24); font-size:14px;}
 .modal button{
   background:var(--teal);
   color:#fff;
@@ -438,3 +464,48 @@ canvas{
   animation:fall linear forwards;
 }
 @keyframes fall{ to{ transform:translateY(420px) rotate(360deg); opacity:0; } }
+
+/* ============================================================
+   AJUSTES POR TAMAÑO DE PANTALLA — VAN AL FINAL A PROPÓSITO
+   No los muevas más arriba. Estas reglas pisan a .tool-btn, .swatch,
+   .nav-arrow y .brush-size con la MISMA especificidad (una clase), así
+   que la única razón por la que ganan es que están después. Antes este
+   bloque estaba arriba, y esas cuatro líneas no hacían nada: en celular
+   los botones seguían midiendo el tamaño de escritorio y el rail de
+   herramientas desbordaba con barra de scroll. Si agregás una regla
+   nueva a un componente, va ANTES de este bloque.
+   ============================================================ */
+
+/* Pantalla con poca altura visual (celular horizontal real, o celular
+   vertical ya rotado por CSS — en ambos casos el alto disponible es
+   chico), así que se comprimen los espacios verticales para que todo
+   entre sin scroll. */
+@media (orientation:landscape) and (max-height:500px), (orientation:portrait) and (max-width:500px){
+  header{padding:var(--sp-8) var(--sp-24) 2px;}
+  .back-btn, .back-btn-spacer{width:36px; height:36px;}
+  .back-btn svg{width:16px;height:16px;}
+  .pill{padding:8px 22px 8px 54px;}
+  .pill p{display:none;}
+  .app{margin:var(--sp-8) auto; gap:var(--sp-16);}
+  .tool-btn{width:42px; height:42px; --tool-ico:28px;}
+  .tool-btn:hover{--tool-ico:31px;}
+  .tool-btn.active{--tool-ico:36px;}
+  .nav-arrow{width:40px;height:40px;}
+  .swatch{width:26px;height:26px;}
+  .brush-size{padding:6px 10px;}
+}
+
+/* Pantallas muy angostas (celulares chicos en vertical).
+   OJO: acá NO se agrandan .tool-btn ni .swatch, aunque parezca que un
+   celular chico los pide más grandes. Con el truco de rotación forzada
+   el juego siempre se ve apaisado, así que en un celular vertical el
+   ANCHO de pantalla es el alto disponible del juego: menos ancho = menos
+   alto para los rails, no más. Agrandarlos acá pisaba los 42px del
+   bloque de arriba y el rail de herramientas volvía a desbordar con
+   barra de scroll. */
+@media (max-width:420px){
+  .back-btn, .back-btn-spacer{width:38px; height:38px;}
+  .back-btn svg{width:17px;height:17px;}
+  .pill{padding:12px 18px 12px 52px;}
+  .pill-badge{width:44px;height:44px;font-size:18px;}
+}

@@ -16,17 +16,21 @@
    Ver plantilla-dibujo.html para el arranque mínimo de una página nueva.
    ============================================================ */
 (function () {
+  // Carpeta iconos/ deducida del <script src> de este mismo archivo. A
+  // diferencia de bgSrc y menuHref (que cada página pasa a mano porque
+  // las de paginas/<nombre>/ están dos niveles más abajo), los iconos
+  // se resuelven solos: así agregar un dibujo nuevo no obliga a pasar
+  // una ruta más. cfg.iconsBase lo puede pisar si alguna vez hace falta.
+  const SCRIPT_SRC = (document.currentScript && document.currentScript.src) || '';
+  const ICONS_BASE = SCRIPT_SRC ? SCRIPT_SRC.replace(/\/[^/]*$/, '/../iconos/') : 'iconos/';
+
   const DEFAULT_PALETTE = ['#FF6F59','#FFC94A','#2EC4B6','#5AA9E6','#B388EB','#FFB4C6','#8BC34A','#E8735A','#2B2140','#FFFFFF'];
 
-  // Íconos de herramienta (line-icons, mismo estilo que el resto del set).
+  // Íconos de los botones redondos de acción. Son SVG con
+  // stroke="currentColor" porque van sobre círculos de color y
+  // tienen que dibujarse en blanco. Los de las herramientas NO están
+  // acá: son PNG ilustrados a color, en iconos/ (ver TOOLS).
   const ICON = {
-    bucket: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l7-7 8 8-7 7z"/><path d="M8 8l8 8"/><circle cx="19" cy="17" r="2"/></svg>',
-    marker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="8" rx="1"/><path d="M9 10l-2 10h10l-2-10"/><path d="M10 20h4"/></svg>',
-    pencil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
-    brush: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 15l6-10 3 3-10 6z"/><path d="M4 20c1-3 3-4 5-4"/></svg>',
-    spray: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="7" width="8" height="13" rx="2"/><path d="M10 7V4a2 2 0 0 1 4 0v3"/><path d="M4 9.5l2 .8M3 13h2.2M4 16.5l2-.8"/></svg>',
-    glitter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/><path d="M19 15l.6 1.7 1.7.6-1.7.6-.6 1.7-.6-1.7-1.7-.6 1.7-.6.6-1.7z"/></svg>',
-    eraser: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="12" width="12" height="7" rx="1"/><path d="M9 12l6-7 5 4-6 7z"/></svg>',
     restart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>',
     done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>'
@@ -36,14 +40,18 @@
   // "aplicar color en un punto"; cada una tiene su propia textura).
   const STROKE_TOOLS = ['marker', 'pencil', 'brush', 'spray', 'glitter'];
 
+  // La barra muestra CINCO herramientas: es el set de iconos ilustrados
+  // que hizo diseño, y con chicos de 2 a 5 años cinco botones grandes se
+  // aciertan mejor que siete chicos. 'marker' (marcador) y 'spray'
+  // (aerosol) siguen implementados más abajo (stampMarker / stampSpray) y
+  // listos para volver: alcanza con sumarles un icono y su línea acá.
+  // 'icon' es el nombre del archivo dentro de iconos/, no un SVG.
   const TOOLS = [
-    { id: 'bucket', title: 'Balde', icon: ICON.bucket },
-    { id: 'marker', title: 'Marcador', icon: ICON.marker },
-    { id: 'pencil', title: 'Lápiz', icon: ICON.pencil },
-    { id: 'brush', title: 'Acuarela', icon: ICON.brush },
-    { id: 'spray', title: 'Aerosol', icon: ICON.spray },
-    { id: 'glitter', title: 'Brillantina', icon: ICON.glitter },
-    { id: 'eraser', title: 'Borrar', icon: ICON.eraser }
+    { id: 'bucket', title: 'Balde', icon: 'balde.png' },
+    { id: 'pencil', title: 'Lápiz', icon: 'lapiz.png' },
+    { id: 'brush', title: 'Acuarela', icon: 'pincel.png' },
+    { id: 'glitter', title: 'Brillantina', icon: 'especial.png' },
+    { id: 'eraser', title: 'Borrar', icon: 'borrador.png' }
   ];
 
   function buildDOM(cfg) {
@@ -110,6 +118,7 @@
   window.TukuToonColorPage = function (config) {
     const cfg = config || {};
     const PALETTE = cfg.palette || DEFAULT_PALETTE;
+    const ICONS_DIR = cfg.iconsBase || ICONS_BASE;
     buildDOM(cfg);
 
     const state = { color: PALETTE[0], tool: 'bucket', brushSize: 14 };
@@ -575,7 +584,11 @@
       btn.className = 'tool-btn' + (i === 0 ? ' active' : '');
       btn.dataset.tool = t.id;
       btn.title = t.title;
-      btn.innerHTML = t.icon + `<span class="sr-only">${t.title}</span>`;
+      // t.icon es un archivo de iconos/, no un SVG: va como <img>.
+      // El nombre visible queda en el .sr-only para los lectores de
+      // pantalla, así que el alt va vacío y no se lee dos veces.
+      btn.innerHTML = `<img src="${ICONS_DIR}${t.icon}" alt="" draggable="false">`
+        + `<span class="sr-only">${t.title}</span>`;
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
