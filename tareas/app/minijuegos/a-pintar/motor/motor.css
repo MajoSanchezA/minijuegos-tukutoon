@@ -432,24 +432,6 @@ canvas{
 .tool-btn:hover{--tool-ico:var(--tool-ico-hover);}
 .tool-btn.active{--tool-ico:var(--tool-ico-sel);}
 
-/* El control de grosor no va en la columna de iconos: el prototipo
-   tiene ahí exactamente siete, que llenan el alto justo. Flota al
-   costado, colgado del .app (ver el comentario en buildDOM sobre por
-   qué no puede colgar del rail). */
-.brush-size{
-  position:absolute;
-  left:calc(var(--ico) + 42px);
-  top:50%;
-  transform:translateY(-50%);
-  z-index:4;
-  display:flex; flex-direction:column; align-items:center; gap:6px;
-  background:var(--cream); border-radius:16px; padding:10px 12px;
-  box-shadow:0 3px 0 rgba(61,44,78,.1);
-  flex:none;
-}
-.brush-size input{width:80px;}
-.brush-size span{font-size:10px; font-weight:700; color:var(--plum-soft);}
-
 .nav-arrow{
   width:var(--ico);height:var(--ico);
   border-radius:50%;
@@ -535,7 +517,7 @@ canvas{
 /* ============================================================
    AJUSTES POR TAMAÑO DE PANTALLA — VAN AL FINAL A PROPÓSITO
    No los muevas más arriba. Estas reglas pisan a .tool-btn, .swatch,
-   .nav-arrow y .brush-size con la MISMA especificidad (una clase), así
+   .nav-arrow con la MISMA especificidad (una clase), así
    que la única razón por la que ganan es que están después. Antes este
    bloque estaba arriba, y esas cuatro líneas no hacían nada: en celular
    los botones seguían midiendo el tamaño de escritorio y el rail de
@@ -556,7 +538,6 @@ canvas{
      diseño y la pantalla del prototipo es justamente esta. Lo que se
      comprime es el aire entre ellos, para que los siete del rail
      izquierdo entren sin barra de scroll. */
-  .brush-size{padding:6px 10px;}
 }
 
 /* Pantallas muy angostas (celulares chicos en vertical).

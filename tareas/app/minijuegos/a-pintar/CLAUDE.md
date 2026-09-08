@@ -143,19 +143,35 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   `Y()`, que replican la transformación de `object-fit:cover`. **Todas las posiciones viven en
   la constante `FONDO`** de motor.js, medidas sobre el frame del prototipo (874x402) y llevadas
   al doble. Si cambia el prototipo o se recompone el fondo, se toca ahí y nada más.
-- Dos cosas que hay que entender de esa distribución, porque no son evidentes:
-  - **Guardar NO pertenece a la columna de la izquierda.** En el prototipo cae en x 15,5%
-    mientras los otros seis están en 12,6%: es un botón suelto, igual que reiniciar del otro
-    lado. Verlo así fue lo que hizo cerrar la cuenta — con siete iconos en la columna la
-    separación del diseño no entra, y por eso en el mockup el último aparece cortado.
+- Tres cosas que hay que entender de esa distribución, porque no son evidentes:
+  - **Guardar NO pertenece a la columna de la izquierda**, y va **AL LADO de la estrella, a la
+    misma altura** — en el prototipo las dos ocupan y 328..369. Es un botón suelto, igual que
+    reiniciar del otro lado. Puesto al costado, la columna entra con la separación del diseño
+    (123) sin que nada se pise; puesto debajo no entraba.
   - **Reiniciar va al COSTADO de los lápices, no debajo** (x 82,7% / y 87,1%).
-  - Aun con guardar aparte, seis iconos más guardar a la separación del prototipo (123
-    unidades) suman el 105% del alto y se pisan. Se usa 115, a costa de que del tercero para
-    abajo la columna quede hasta un 5% más arriba que el diseño.
+  - **Lo que va pegado a un borde se mide DESDE ese borde** (`desdeIzq` / `desdeDer`), no con
+    `X()`. Si la pantalla es más angosta que el diseño, el fondo se recorta a lo ancho, y con
+    `X()` la interfaz se iba recortada junto con él: a 663x456 la columna quedaba en x −66 y
+    los lápices en 827 con la pantalla de 663, o sea las dos afuera. Medido desde el borde, sin
+    recorte da exactamente lo mismo y con recorte se queda donde se ve.
+- **El layout está calibrado para la relación del prototipo, 2,17** (un celular horizontal real
+  da 2,16). En ventanas mucho más angostas —1,45, por ejemplo— la hoja pasa a ocupar el 69% del
+  ancho en vez del 46%, y guardar y reiniciar terminan apoyados sobre ella. Como la hoja está
+  dibujada dentro del fondo no se la puede achicar para hacerles lugar: es el precio de haberla
+  compuesto, y en el dispositivo real no pasa.
 - **El orden de las herramientas es el del prototipo** (pincel, borrador, lápiz, balde,
   estrella) y NO el que uno pondría: el balde va cuarto aunque sea el que más se usa. Por eso
   la que arranca elegida se define aparte, en `TOOL_INICIAL`, en vez de ser la primera de la
   lista.
+- **No hay control de grosor.** El trazo es fijo, una fracción del ancho del dibujo (`TRAZO`),
+  así se siente igual en un dibujo de 1100 px que en uno de 2000. Un chico de 2 a 5 años no va
+  a regular un slider, y el diseño tampoco lo tiene.
+- El **brillo** del lápiz sube 10 puntos de luminosidad, que es exactamente lo que hace el
+  archivo de diseño (cuerpo `#C94BFE` → brillo `#D97EFE`). Antes subía un 28% de lo que faltaba
+  para blanco: con colores pastel eso daba 5 puntos y el lápiz quedaba plano.
+- El **viewBox del lápiz arranca en negativo** (`LAPIZ_AIRE`): el contorno sobresale media
+  pluma del dibujo, y sin ese aire el borde de la PUNTA quedaba cortado justo del lado que más
+  se ve.
 - **Como la hoja viene dentro del fondo, `fitStage()` tiene que deducir dónde cayó**: replica
   a mano la transformación de `object-fit:cover` (escala para cubrir, y el sobrante se recorta
   por partes iguales de los dos lados) y con eso le da `left/top/width/height` a `.paper`, que

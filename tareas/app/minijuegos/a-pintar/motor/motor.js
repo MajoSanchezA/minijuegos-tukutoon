@@ -137,7 +137,11 @@
       // Pasado 85 de luminosidad no queda margen para aclarar: ahí el
       // reflejo se invierte y pasa a ser una sombra suave, si no un
       // lápiz blanco queda plano y no se le lee la forma.
-      brillo: l <= 85 ? hslAHex(h, s, l + (100 - l) * 0.28) : hslAHex(h, s, l - 7),
+      // +10 de luminosidad, que es exactamente lo que hace el archivo de
+      // diseño (cuerpo #C94BFE -> brillo #D97EFE). Antes subía un 28% de
+      // lo que faltaba para blanco, y con colores pastel eso son 5
+      // puntos: el lápiz quedaba plano, sin volumen.
+      brillo: l <= 85 ? hslAHex(h, s, Math.min(97, l + 10)) : hslAHex(h, s, l - 8),
       punta:  hslAHex(h, Math.max(0, s - 16), Math.min(l * 0.906, l - 4)),
       // Contorno: el lápiz del selector viene plano en el archivo de
       // diseño, pero en el prototipo los de la paleta llevan borde. Se
@@ -157,7 +161,13 @@
   // cuerpo y el cono de madera. Las otras seis son sombras y brillos
   // internos, que no tienen que llevar contorno.
   const LAPIZ_SILUETA = [0, 3, 8];
-  const LAPIZ_BORDE = 30;   // unidades del viewBox; la mitad queda afuera
+  // 40 unidades: la mitad queda afuera, o sea 20 sobre un lápiz de 191
+  // de grosor = 10,5% por lado, que es lo que se mide en el prototipo.
+  const LAPIZ_BORDE = 40;
+  // El contorno sobresale media pluma del dibujo, así que el viewBox
+  // tiene que arrancar antes del 0 y terminar después del alto: si no,
+  // el borde de la PUNTA queda cortado justo en el lado que más se ve.
+  const LAPIZ_AIRE = LAPIZ_BORDE / 2 + 2;
 
   // Acostado: rotar 90° manda la punta (que en el archivo está abajo)
   // hacia la izquierda, o sea hacia el dibujo.
@@ -171,7 +181,9 @@
     // contornos de los brillos.
     const contorno = LAPIZ_SILUETA.map(i =>
       `<path fill="${c.borde}" stroke="${c.borde}" stroke-width="${LAPIZ_BORDE}" stroke-linejoin="round" d="${LAPIZ_FIGURAS[i][1]}"/>`).join('');
-    return `<svg viewBox="0 0 ${LAPIZ_H} ${LAPIZ_W}" preserveAspectRatio="xMinYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
+    const vb = [-LAPIZ_AIRE, -LAPIZ_AIRE,
+                LAPIZ_H + LAPIZ_AIRE * 2, LAPIZ_W + LAPIZ_AIRE * 2].join(' ');
+    return `<svg viewBox="${vb}" preserveAspectRatio="xMinYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
       + `<g transform="translate(${LAPIZ_H},0) rotate(90)">`
       + contorno
       + LAPIZ_FIGURAS.map(f => `<path fill="${c[f[0]]}" d="${f[1]}"/>`).join('')
@@ -217,16 +229,6 @@
           </div>
         </div>
 
-        <!-- El control de grosor NO va adentro del rail: el rail tiene
-             overflow-y:auto, y algo que sobresalga de su ancho le dispara
-             una barra de scroll horizontal que le come 15px de alto y le
-             hace desbordar la columna de iconos. Colgado del .app, que no
-             recorta, flota al costado sin afectar a nadie. -->
-        <div class="brush-size" id="brush-size-wrap" style="display:none;">
-          <span>Grosor</span>
-          <input type="range" id="brush-size" min="4" max="30" value="14">
-        </div>
-
         <!-- Los lápices y reiniciar NO van envueltos en un rail: cada
              uno se ubica por su cuenta desde las coordenadas del fondo, y
              para eso tienen que colgar del .app — si colgaran de un rail
@@ -253,7 +255,12 @@
     const ICONS_DIR = cfg.iconsBase || ICONS_BASE;
     buildDOM(cfg);
 
+    // El trazo es fijo: no hay control de grosor. Un chico de 2 a 5 años
+    // no va a regular un slider, y el diseño tampoco lo tiene. Va como
+    // fracción del ancho del dibujo para que se sienta igual en
+    // cualquier dibujo, sea de 1100 o de 2000 px de lado.
     const state = { color: PALETTE[0], tool: TOOL_INICIAL, brushSize: 14 };
+    const TRAZO = 1 / 38;   // del ancho del dibujo
 
     let W = 0, H = 0;
     let wallMask = null;      // Uint8Array: 1 = línea/borde
@@ -362,16 +369,14 @@
       // separación entre centros es 123, pero con esa separación el
       // séptimo se saldría por abajo — en el mockup queda cortado. Acá
       // se aprieta lo necesario para que entren los siete enteros.
-      // Seis: salir y las cinco herramientas. Guardar va aparte.
-      // El paso del prototipo es 123, pero con eso la estrella termina
-      // justo donde tiene que empezar guardar y los dos se pisan: seis
-      // iconos MÁS guardar, a esa separación, suman el 105% del alto —
-      // por eso en el mockup guardar aparece cortado. Con 115 entran los
-      // siete enteros y sin superponerse, a costa de que del tercero
-      // para abajo la columna quede hasta un 5% más arriba que el
-      // diseño.
-      iconos:    { cx: 220, lado: 96, cy0: 76, paso: 115 },
-      descargar: { cx: 271, cy: 756, lado: 96 },
+      // Seis: salir y las cinco herramientas.
+      iconos:    { cx: 220, lado: 96, cy0: 82, paso: 123 },
+      // Guardar va AL LADO de la estrella, a la misma altura, no debajo:
+      // en el prototipo las dos ocupan y 328..369. Al principio las medí
+      // juntas — mi detección de color agarraba las dos como una sola
+      // mancha — y lo puse abajo. Puesto al costado, la columna entra
+      // con la separación del diseño (123) sin que nada se pise.
+      descargar: { cx: 351, cy: 697, lado: 96 },
       // Lápices: 6, pegados al borde derecho.
       lapices:   { der: 1748, largo: 178, grosor: 76, cy0: 229, paso: 96 },
       reiniciar: { cx: 1446, cy: 700, lado: 92 }
@@ -430,6 +435,16 @@
       const sobraY = (FONDO.h * esc - vh) / 2;
       const X = (v) => v * esc - sobraX;
       const Y = (v) => v * esc - sobraY;
+      // Para lo que va PEGADO A UN BORDE hay que medir desde ese borde,
+      // no desde el fondo. Si la pantalla es más angosta que el diseño
+      // (un celular real da 1.45 contra el 2.17 del prototipo), el fondo
+      // se recorta a lo ancho — y con X() la interfaz se iba recortada
+      // junto con él: la columna de iconos quedaba en x -66 y los
+      // lápices en 827 con la pantalla de 663. Medido desde el borde,
+      // cuando no hay recorte da exactamente lo mismo que X(), y cuando
+      // lo hay se queda donde se ve.
+      const desdeIzq = (v) => v * esc;
+      const desdeDer = (v) => vw - (FONDO.w - v) * esc;
 
       const raiz = document.documentElement;
 
@@ -438,7 +453,7 @@
       raiz.style.setProperty('--ico', ico + 'px');
       raiz.style.setProperty('--rail-gap',
         Math.max(Math.round((FONDO.iconos.paso - FONDO.iconos.lado) * esc), 2) + 'px');
-      railIzqEl.style.left = Math.round(X(FONDO.iconos.cx) - ico / 2) + 'px';
+      railIzqEl.style.left = Math.round(desdeIzq(FONDO.iconos.cx) - ico / 2) + 'px';
       railIzqEl.style.top = Math.round(Y(FONDO.iconos.cy0) - ico / 2) + 'px';
       railIzqEl.style.width = ico + 'px';
 
@@ -453,12 +468,12 @@
       raiz.style.setProperty('--colores-alto',
         (P.lapicesVisibles * grosor + (P.lapicesVisibles - 1) * Math.max(pasoLapiz - grosor, 0)) + 'px');
       coloresEl.style.top = Math.round(Y(FONDO.lapices.cy0) - grosor / 2) + 'px';
-      coloresEl.style.left = Math.round(X(FONDO.lapices.der)) + 'px';
+      coloresEl.style.left = Math.round(desdeDer(FONDO.lapices.der)) + 'px';
 
       // --- guardar: suelto, abajo a la izquierda ---
       descargarEl.style.width = ico + 'px';
       descargarEl.style.height = ico + 'px';
-      descargarEl.style.left = Math.round(X(FONDO.descargar.cx) - ico / 2) + 'px';
+      descargarEl.style.left = Math.round(desdeIzq(FONDO.descargar.cx) - ico / 2) + 'px';
       descargarEl.style.top = Math.round(Y(FONDO.descargar.cy) - ico / 2) + 'px';
 
       // --- reiniciar: en el prototipo va al COSTADO de los lápices, no
@@ -466,7 +481,7 @@
       const rIco = Math.max(Math.round(FONDO.reiniciar.lado * esc), 28);
       reiniciarEl.style.width = rIco + 'px';
       reiniciarEl.style.height = rIco + 'px';
-      reiniciarEl.style.left = Math.round(X(FONDO.reiniciar.cx) - rIco / 2) + 'px';
+      reiniciarEl.style.left = Math.round(desdeDer(FONDO.reiniciar.cx) - rIco / 2) + 'px';
       reiniciarEl.style.top = Math.round(Y(FONDO.reiniciar.cy) - rIco / 2) + 'px';
 
       // --- la hoja ---
@@ -538,6 +553,7 @@
           paintData = pctx.createImageData(W, H);
           pctx.putImageData(paintData, 0, 0);
 
+          state.brushSize = Math.max(6, Math.round(W * TRAZO));
           wrap.classList.remove('placeholder');
           loadingEl.style.display = 'none';
         } catch (err) {
@@ -825,7 +841,6 @@
 
     // herramientas
     const toolsWrap = document.getElementById('tools');
-    const brushSizeWrap = document.getElementById('brush-size-wrap');
     TOOLS.forEach((t, i) => {
       const btn = document.createElement('button');
       btn.className = 'tool-btn' + (t.id === TOOL_INICIAL ? ' active' : '');
@@ -840,12 +855,8 @@
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         state.tool = t.id;
-        brushSizeWrap.style.display = STROKE_TOOLS.includes(state.tool) ? 'flex' : 'none';
       });
       toolsWrap.appendChild(btn);
-    });
-    document.getElementById('brush-size').addEventListener('input', (e) => {
-      state.brushSize = parseInt(e.target.value, 10);
     });
 
     // borrar todo
