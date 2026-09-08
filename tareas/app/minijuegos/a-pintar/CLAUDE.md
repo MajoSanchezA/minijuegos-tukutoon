@@ -316,35 +316,48 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   invirtiendo el eje Y. Van **parametrizados por color en vez de un PNG por lápiz**: las paletas
   son propias de cada dibujo (9 o 10 colores por personaje), así que un archivo por color no era
   viable. Las relaciones de tono salen del mismo archivo de diseño: sobre un cuerpo `#C94BFE`,
-  el brillo sube 10 puntos de luminosidad (un 28% de lo que le falta para llegar a blanco) y la
-  punta baja a 0.906 con 16 puntos menos de saturación. La madera es fija (`#FCD6B5` /
+  el brillo sube 10 puntos de luminosidad. La madera es fija (`#FCD6B5` /
   `#C88B74`), es la misma en todos los lápices del arte. Pasado 85 de luminosidad el brillo se
   invierte y pasa a ser sombra: un lápiz casi blanco no tiene margen para aclarar y quedaría
   plano.
   - En el archivo el lápiz está parado (191x1418); en la barra va **acostado con la punta hacia
     el dibujo**, así que `lapizSVG` lo rota 90°.
-  - La **punta va del color del CUERPO**, apenas más oscura — NO del color del contorno. En el
-    prototipo se lee leyendo una fila del lápiz rojo: borde, 13px de ROJO (la punta), borde,
-    11px de madera, borde, y recién ahí el cuerpo. La relación sale del archivo de diseño
-    (cuerpo `#C94BFE` → punta `#B63DED`).
-  - Además del contorno de la unión, las tres figuras de la silueta llevan un **trazo fino**
-    (`LAPIZ_LINEA`): por afuera se funde con el contorno, y por adentro deja las líneas que
-    separan punta, madera y cuerpo. El prototipo las tiene, y el contorno por unión solo las
-    borraba todas — sin ellas el lápiz queda blando.
-  - **El contorno lo agrega el motor, no el archivo.** El lápiz del selector viene plano en el
-    `.ai`, pero en el prototipo los de la paleta llevan borde. `lapizTonos` lo deriva del propio
-    color (luminancia × 0,62, como los lápices decorativos del arte; por debajo de 20 aclara en
-    vez de oscurecer, si no un lápiz casi negro se quedaría sin contorno). Se dibuja como una
-    **capa de abajo**, y sale de la **UNIÓN** de las tres figuras de la silueta
-    (`LAPIZ_SILUETA` = cuerpo, cono y punta): se **desenfoca** el alfa del grupo entero y se
-    lo vuelve a endurecer con un `feComponentTransfer`, y eso se rellena con el color del
-    borde. **No usar `feMorphology`**: engorda con un núcleo rectangular, así que cuadra las
-    esquinas y el contorno sale blocado, sobre todo en la punta.
-  - **Tiene que ser la unión, no un `stroke` por figura.** Con un stroke en cada una se dibujan
-    también los bordes INTERNOS: el cuerpo y el cono se superponen, así que en la junta quedan
-    dos líneas oscuras y el cono se ve encerrado entre ellas. Eso es el **contorno doble**.
-    Engordando la unión, los límites internos no existen y queda una sola línea por afuera,
-    como en el prototipo.
+  - **Cómo se arma el lápiz, medido sobre el prototipo.** El arte del `.ai` viene PLANO, sin
+    contorno; el contorno lo pone el motor. Todo lo de abajo sale de escanear los lápices del
+    prototipo píxel por píxel, que es la única fuente confiable — a ojo me equivoqué tres veces.
+    - **El contorno rodea SOLO el cuerpo** (`LAPIZ_CUERPO`). El cono de madera NO lleva contorno
+      de color: sus bordes son los dos filos marrones que el arte ya trae (`#C88B74`, 18px sobre
+      un cono de 162 en el prototipo), y esos filos se ven contra el fondo, no están tapados.
+      Contornear el cono además deja un escalón feo, porque el cono es más ancho que el cuerpo.
+    - **La punta va del MISMO color que el contorno.** Es una argolla —un triángulo con otro
+      adentro— y el prototipo la pinta del color del borde con el color del cuerpo adentro:
+      leyendo el lápiz verde a lo largo del eje salen 30px de `#01AF01` (el anillo), 18px de
+      `#00C600` (el cuerpo) y 24px de `#00B700`. El anillo que ya trae el arte mide 28 unidades,
+      justo el grosor del contorno, así que la punta no necesita contorno aparte.
+    - **El contorno asoma el 11% del grosor por lado** (24px de borde sobre 216 de lápiz en el
+      prototipo). El cuerpo mide 155 unidades de grosor, así que `LAPIZ_BORDE` = 44 deja 22 por
+      lado.
+    - **El color del borde baja la luminosidad a 0,88** (cuerpo `#00CE00` → borde `#00B500`).
+      Con 0,62, que era lo que había antes, quedaba un borde casi negro y pesadísimo. Por debajo
+      de 22 aclara en vez de oscurecer, si no un lápiz casi negro se queda sin contorno.
+  - **El contorno es geometría, no un filtro.** Se dibuja como una **capa de abajo**: el mismo
+    cuerpo, relleno y engordado con un `stroke` del color del borde. Encima van los rellenos
+    normales, que lo tapan entero, así que del contorno solo queda lo que asoma por afuera.
+    - **No sacarlo con desenfoque + umbral.** Eso no engorda la silueta: la derrite. Con una
+      desviación de 24 sobre un lápiz de 191 de grosor el cuerpo pierde los lados rectos y queda
+      como una salchicha, y las figuras que no entran en la unión —los filos del cono, que son
+      la parte MÁS ANCHA del lápiz— asoman peladas como púas marrones.
+    - **Tampoco `feMorphology`**: engorda con un núcleo rectangular, cuadra las esquinas y el
+      contorno sale blocado, sobre todo en la punta.
+    - Y **no poner el `stroke` en cada figura**: eso dibuja también los bordes INTERNOS, el
+      cuerpo y el cono se superponen y en la junta quedan dos líneas oscuras. Eso es el
+      **contorno doble**. Un solo `stroke`, sobre el cuerpo, en una capa de abajo.
+  - **El cuerpo se estira 20 unidades para llegar al cono** (`LAPIZ_CRECE`). En el archivo de
+    diseño las dos aristas NO se tocan: la del cono corre unas 20 unidades por debajo de la del
+    cuerpo. Sin contorno casi no se nota, pero al ponerle contorno ese hueco se abre y se ve el
+    FONDO entre el cuerpo y la madera. El cuerpo se dibuja con un `stroke` de su propio color, y
+    como el cono va después, el estirón queda tapado en todo lo demás. El trazo del contorno
+    lleva sumado ese estirón, para que lo que asoma siga siendo `LAPIZ_BORDE / 2`.
   - `.nav-arrow` necesita `padding:0` explícito: un `<button>` trae `1px 6px` por defecto y,
     con `box-sizing:border-box`, esos 12px de los lados le comen el ancho al icono — el de
     reiniciar salía achatado.

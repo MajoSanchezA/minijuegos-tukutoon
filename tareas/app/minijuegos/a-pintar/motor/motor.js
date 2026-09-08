@@ -132,7 +132,7 @@
 
   function lapizTonos(hex) {
     const [h, s, l] = hexAHsl(hex);
-    return {
+    const t = {
       cuerpo: hex.toUpperCase(),
       // Pasado 85 de luminosidad no queda margen para aclarar: ahí el
       // reflejo se invierte y pasa a ser una sombra suave, si no un
@@ -142,95 +142,85 @@
       // lo que faltaba para blanco, y con colores pastel eso son 5
       // puntos: el lápiz quedaba plano, sin volumen.
       brillo: l <= 85 ? hslAHex(h, s, Math.min(97, l + 10)) : hslAHex(h, s, l - 8),
-      // La punta es del color del CUERPO, apenas más oscura — no del
-      // color del contorno. En el prototipo se lee clarísimo: leyendo una
-      // fila del lápiz rojo aparece borde, 13px de ROJO (la punta), borde,
-      // 11px de madera, borde, y recién ahí el cuerpo. La relación sale
-      // del archivo de diseño: cuerpo #C94BFE -> punta #B63DED.
-      punta:  hslAHex(h, Math.max(0, s - 16), Math.min(l * 0.906, l - 4)),
-      // Contorno: el lápiz del selector viene plano en el archivo de
-      // diseño, pero en el prototipo los de la paleta llevan borde. Se
-      // deriva del propio color, como en los lápices decorativos del
-      // arte, donde el borde baja la luminosidad a entre 0.65 y 0.91.
-      // Debajo de 20 se aclara en vez de oscurecer: un lápiz casi negro
+      // El contorno se deriva del propio color. Medido sobre el
+      // prototipo: cuerpo #00CE00 -> contorno #00B500, o sea la
+      // luminosidad baja a 0,88. Antes bajaba a 0,62 y los lápices
+      // quedaban con un borde casi negro, pesadísimo.
+      // Debajo de 22 se aclara en vez de oscurecer: un lápiz casi negro
       // no tiene margen para abajo y se quedaría sin contorno.
-      borde: l > 20
-        ? hslAHex(h, Math.min(100, s * 1.05), Math.max(0, Math.min(l * 0.62, l - 10)))
-        : hslAHex(h, Math.min(100, s * 1.05), l + 12),
+      borde: l > 22
+        ? hslAHex(h, Math.min(100, s * 1.05), Math.min(l * 0.88, l - 5))
+        : hslAHex(h, Math.min(100, s * 1.05), l + 14),
+      // La punta va del MISMO color que el contorno. En el arte es una
+      // argolla —un triángulo con otro triángulo adentro— y el prototipo
+      // la pinta del color del borde, con el color del cuerpo adentro:
+      // leyendo el lápiz verde a lo largo del eje salen 30px de #01AF01
+      // (el anillo), 18px de #00C600 (el cuerpo) y 24px de #00B700.
+      // Y el grosor del anillo que ya trae el arte, 28 unidades, es
+      // justo el del contorno: por eso la punta no lleva contorno
+      // aparte, se pinta y ya.
+      punta: null,   // se completa abajo, es el mismo valor que borde
       madera:  '#FCD6B5',
       madera2: '#C88B74'
     };
+    t.punta = t.borde;
+    return t;
   }
 
-  // Las tres figuras que forman la silueta: cuerpo, cono de madera y
-  // punta. El contorno sale de la UNIÓN de las tres, no de cada una por
-  // separado — ver lapizSVG.
-  const LAPIZ_SILUETA = [3, 8, 0];
-  // Cuánto asoma el contorno por afuera. Con desenfoque + umbral, lo que
-  // se expande es aproximadamente 0,8 veces la desviación, así que 48 da
-  // unas 19 unidades: un 10% del grosor por lado, que es lo que se mide
-  // en el prototipo.
-  const LAPIZ_BORDE = 48;
-  // Las líneas finas que separan punta / madera / cuerpo. En el prototipo
-  // están (1px sobre un lápiz de 89 de largo visible); el contorno por
-  // unión las borraba todas y el lápiz quedaba blando.
-  const LAPIZ_LINEA = 7;
+  // El contorno rodea SOLO el cuerpo. Medido en el prototipo: el cono
+  // de madera no lleva contorno de color — sus bordes son los dos filos
+  // marrones que el arte ya trae (#C88B74, 18px sobre un cono de 162) —
+  // y la punta tampoco, porque es una argolla que ya se pinta del color
+  // del borde. Contornear el cono, además, dejaba un escalón feo en el
+  // ensanche, porque el cono es más ancho que el cuerpo.
+  const LAPIZ_CUERPO = 3;
+  // Ancho del trazo; la mitad asoma por afuera del cuerpo. El cuerpo
+  // mide 155 unidades de grosor, así que 44 dejan 22 por lado: el 11%
+  // del grosor total, que es lo que se mide en el prototipo (24px de
+  // contorno sobre 216 de lápiz).
+  const LAPIZ_BORDE = 44;
+  // Cuánto se estira el cuerpo para llegar al cono. En el archivo de
+  // diseño las dos aristas NO se tocan: la del cono corre unas 20
+  // unidades por debajo de la del cuerpo. Sin contorno casi no se nota,
+  // pero al ponerle contorno ese hueco se abre y se ve el fondo entre
+  // el cuerpo y la madera. Estirando el cuerpo 20 unidades se cierra, y
+  // como el cono se dibuja después, el estirón queda tapado en todo lo
+  // demás.
+  const LAPIZ_CRECE = 40;   // trazo; la mitad, 20, es lo que se estira
   // El contorno sobresale media pluma del dibujo, así que el viewBox
   // tiene que arrancar antes del 0 y terminar después del alto: si no,
-  // el borde de la PUNTA queda cortado justo en el lado que más se ve.
-  const LAPIZ_AIRE = LAPIZ_BORDE / 2 + 2;
+  // el borde queda cortado justo en el lado que más se ve.
+  const LAPIZ_AIRE = (LAPIZ_BORDE + LAPIZ_CRECE) / 2 + 2;
 
   // Acostado: rotar 90° manda la punta (que en el archivo está abajo)
   // hacia la izquierda, o sea hacia el dibujo.
   function lapizSVG(hex) {
     const c = lapizTonos(hex);
-    // El contorno se dibuja como una capa de abajo: las mismas tres
-    // figuras de la silueta, engordadas con un stroke del color del
-    // borde. Encima van los rellenos normales, así el borde solo asoma
-    // por afuera y los límites internos quedan limpios. Pintar el
-    // stroke sobre cada figura, en cambio, dibujaría también los
-    // contornos de los brillos.
-    // El contorno sale de la UNIÓN de las figuras de la silueta: un
-    // feMorphology engorda el alfa del grupo entero y eso se rellena con
-    // el color del borde, detrás de todo.
+    // El contorno es una CAPA DE ABAJO: el mismo cuerpo, relleno y
+    // engordado con un trazo del color del borde. Encima van los
+    // rellenos normales, que lo tapan entero, así que del contorno solo
+    // queda lo que asoma por afuera.
     //
-    // Antes le ponía un stroke a cada figura por separado, y eso
-    // dibujaba también los bordes INTERNOS: el cuerpo y el cono se
-    // superponen, así que en la junta quedaban dos líneas oscuras y el
-    // cono se veía encerrado entre ellas — el "contorno doble".
-    // Engordando la unión, los límites internos no existen y queda una
-    // sola línea por afuera, como en el prototipo.
-    const idFiltro = 'lb' + hex.replace('#', '');
-    const contorno =
-      `<defs><filter id="${idFiltro}" x="-16%" y="-5%" width="132%" height="110%" color-interpolation-filters="sRGB">`
-      // Desenfoque + umbral, NO feMorphology: feMorphology engorda con un
-      // núcleo rectangular, así que cuadra las esquinas y el contorno
-      // salía blocado, sobre todo en la punta. El desenfoque reparte el
-      // alfa de forma pareja y el umbral lo vuelve a endurecer, con lo
-      // que el borde sigue la forma y las esquinas quedan redondeadas,
-      // que es como está dibujado el arte.
-      + `<feGaussianBlur in="SourceAlpha" stdDeviation="${LAPIZ_BORDE / 2}" result="b"/>`
-      + '<feComponentTransfer in="b" result="d">'
-      + '<feFuncA type="linear" slope="26" intercept="-5"/>'
-      + '</feComponentTransfer>'
-      + `<feFlood flood-color="${c.borde}" result="f"/>`
-      + `<feComposite in="f" in2="d" operator="in"/>`
-      + '</filter></defs>'
-      + `<g filter="url(#${idFiltro})">`
-      + LAPIZ_SILUETA.map(i => `<path d="${LAPIZ_FIGURAS[i][1]}"/>`).join('')
-      + '</g>';
+    // Es geometría pura, sin filtros. Antes lo sacaba con un
+    // desenfoque + umbral sobre la unión de las figuras y eso no
+    // engordaba la silueta: la derretía. Con una desviación de 24
+    // sobre un lápiz de 191 de grosor, el cuerpo perdía los lados
+    // rectos y quedaba como una salchicha.
+    // El trazo del contorno lleva sumado el estirón del cuerpo, para
+    // que lo que asoma por afuera siga siendo LAPIZ_BORDE / 2.
+    const contorno = `<path fill="${c.borde}" stroke="${c.borde}" `
+      + `stroke-width="${LAPIZ_BORDE + LAPIZ_CRECE}" stroke-linejoin="round" `
+      + `d="${LAPIZ_FIGURAS[LAPIZ_CUERPO][1]}"/>`;
     const vb = [-LAPIZ_AIRE, -LAPIZ_AIRE,
                 LAPIZ_H + LAPIZ_AIRE * 2, LAPIZ_W + LAPIZ_AIRE * 2].join(' ');
     return `<svg viewBox="${vb}" preserveAspectRatio="xMinYMid slice" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">`
       + `<g transform="translate(${LAPIZ_H},0) rotate(90)">`
       + contorno
       + LAPIZ_FIGURAS.map((f, i) => {
-          // Las tres figuras de la silueta llevan además un trazo fino:
-          // por afuera se funde con el contorno, y por adentro deja las
-          // líneas que separan punta, madera y cuerpo.
-          const linea = LAPIZ_SILUETA.indexOf(i) >= 0
-            ? ` stroke="${c.borde}" stroke-width="${LAPIZ_LINEA}" stroke-linejoin="round"` : '';
-          return `<path fill="${c[f[0]]}"${linea} d="${f[1]}"/>`;
+          const crece = i === LAPIZ_CUERPO
+            ? ` stroke="${c.cuerpo}" stroke-width="${LAPIZ_CRECE}" stroke-linejoin="round"`
+            : '';
+          return `<path fill="${c[f[0]]}"${crece} d="${f[1]}"/>`;
         }).join('')
       + '</g></svg>';
   }
