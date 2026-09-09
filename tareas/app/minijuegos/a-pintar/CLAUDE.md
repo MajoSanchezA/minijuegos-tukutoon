@@ -235,10 +235,20 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     **veta**: raya en la dirección en la que va la mano. La veta sale de leer el ruido en
     coordenadas giradas —constante a lo largo del trazo, cambiante a lo ancho—, así que quedan
     rayitas paralelas al movimiento. Por eso `applyStroke` recibe la dirección del trazo.
-  - **Brillantina** (`stampGlitter`): un velo suave del color y, encima, **chispas** sueltas
-    en forma de cruz de 5px (`chispa`), unas casi blancas y otras del color subido de tono.
-    Antes era color sólido con píxeles claros al azar, y eso no se lee como brillo: se lee
-    como ruido. Lo que lo hace leer como destello es la FORMA de cruz.
+  - **Estrella** (`stampGlitter`): **pinta CON ESTRELLAS**. El trazo es un reguero de
+    estrellitas de cinco puntas del color elegido, de tamaños y giros distintos, con alguna más
+    clara y un par de chispitas sueltas alrededor. No lleva ningún velo de color de fondo: si lo
+    llevara volvería a ser un pincel más y las estrellas se perderían adentro. Por lo mismo NO
+    sirve para rellenar una zona de forma pareja — para eso está el balde; esta es la
+    herramienta para decorar.
+    - Las estrellas se plantan **cada tanto de recorrido** (`ultEstX`/`ultEstY`), no una por
+      punto interpolado: una por punto quedarían encimadas y el trazo volvería a ser una franja.
+      Un toque sin arrastrar planta una, porque `pointerDown` reinicia esa posición.
+    - `estrellaPintada` las dibuja **a mano sobre los píxeles**, no con un `path` del contexto
+      2D: el motor trabaja sobre `paintData` y lo empuja con `putImageData`, así que cualquier
+      cosa dibujada con el contexto la borra el siguiente estampado de otra herramienta. El
+      contorno sale de la fórmula polar de la estrella, y comparar esa distancia con la del
+      píxel da además el suavizado del borde, que si no queda en escalera.
   - **Borrador** (`stampEraser`): borra **por trazo**, no la región entera. Antes era un balde
     al revés —un toque y desaparecía todo el color de esa zona— y así no se puede corregir un
     pedacito. Va más gordo que el pincel (radio × 1,5): un borrador de verdad es un ladrillo y

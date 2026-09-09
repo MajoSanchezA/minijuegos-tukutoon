@@ -864,49 +864,85 @@
       }
     }
 
-    // Brillantina: un velo finito del color y, encima, escamas sueltas —
-    // plateadas, doradas y del propio color subido de tono. El color va
-    // MUY liviano a propósito: si pinta fuerte se convierte en otro
-    // marcador y las escamas se pierden adentro.
-    function stampGlitter(px, py, rgba, radius) {
-      const data = paintData.data;
-      const r2 = radius * radius;
-      const x0 = Math.max(0, px - radius - 3), x1 = Math.min(W - 1, px + radius + 3);
-      const y0 = Math.max(0, py - radius - 3), y1 = Math.min(H - 1, py + radius + 3);
-      for (let y = Math.max(0, py - radius); y <= Math.min(H - 1, py + radius); y++) {
-        for (let x = Math.max(0, px - radius); x <= Math.min(W - 1, px + radius); x++) {
-          const dx = x - px, dy = y - py;
-          const d2 = dx * dx + dy * dy;
-          if (d2 > r2) continue;
+    // Una estrella de cinco puntas, rellena y con el borde suavizado.
+    //
+    // Se dibuja a mano sobre los píxeles en vez de usar un `path` del
+    // contexto 2D porque el motor trabaja sobre `paintData` y lo empuja
+    // con putImageData: cualquier cosa dibujada con el contexto la borra
+    // el siguiente estampado de otra herramienta.
+    //
+    // El borde sale de la fórmula polar de la estrella: dentro de cada
+    // sector, el contorno es la recta que va de una punta (radio R) al
+    // valle siguiente (radio interior), y a un ángulo phi esa recta está
+    // a  R·rin·sen(m) / (R·sen(phi) + rin·sen(m − phi)).  Comparando esa
+    // distancia con la del píxel sale, además, el suavizado: en el
+    // último píxel el relleno se va apagando en vez de cortar en
+    // escalera.
+    function estrellaPintada(data, cx, cy, R, giro, r, g, b, alpha) {
+      const rin = R * 0.45;
+      const beta = Math.PI * 2 / 5, mitad = beta / 2, senMitad = Math.sin(mitad);
+      const x0 = Math.max(0, Math.floor(cx - R) - 1), x1 = Math.min(W - 1, Math.ceil(cx + R) + 1);
+      const y0 = Math.max(0, Math.floor(cy - R) - 1), y1 = Math.min(H - 1, Math.ceil(cy + R) + 1);
+      for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+          const dx = x - cx, dy = y - cy;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d > R + 1) continue;
+          let phi = (Math.atan2(dy, dx) - giro) % beta;
+          if (phi < 0) phi += beta;
+          if (phi > mitad) phi = beta - phi;
+          const borde = (R * rin * senMitad) /
+                        (R * Math.sin(phi) + rin * Math.sin(mitad - phi));
+          const cobertura = Math.min(1, borde - d + 0.5);
+          if (cobertura <= 0) continue;
           const idx = y * W + x;
           if (wallMask[idx]) continue;
-          const caida = 1 - Math.sqrt(d2) / radius;
-          // El color va fuerte, como cualquier otra herramienta: la
-          // brillantina no es una herramienta pálida, es una herramienta
-          // CON BRILLOS. Con el velo casi transparente que tenía antes,
-          // el chico elegía un color y le salía otro.
-          compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2], 0.75 + 0.25 * caida);
+          compositeOver(data, idx * 4, r, g, b, alpha * cobertura);
         }
       }
-      // Las escamas SÍ van al azar: tienen que titilar por todos lados
-      // mientras el chico arrastra, no quedarse pegadas a la hoja.
-      const cuantas = 3 + Math.floor(Math.random() * 4);
-      for (let i = 0; i < cuantas; i++) {
+    }
+
+    // Dónde se plantó la última estrella. Las estrellas no se estampan
+    // una por punto interpolado —quedarían encimadas y el trazo volvería
+    // a ser una franja— sino cada tanto de recorrido.
+    let ultEstX = -1e9, ultEstY = -1e9;
+
+    // La herramienta de la estrella PINTA CON ESTRELLAS: el trazo es un
+    // reguero de estrellitas del color elegido, de tamaños y giros
+    // distintos, con alguna más clara y unas chispitas sueltas entre
+    // medio. No lleva ningún velo de color de fondo: si lo llevara,
+    // volvería a ser un pincel más y las estrellas se perderían adentro.
+    function stampGlitter(px, py, rgba, radius) {
+      const data = paintData.data;
+      const paso = radius * 1.05;
+      const sx = px - ultEstX, sy = py - ultEstY;
+      if (sx * sx + sy * sy < paso * paso) return;
+      ultEstX = px; ultEstY = py;
+
+      const R = radius * (0.6 + Math.random() * 0.55);
+      const giro = Math.random() * Math.PI * 2;
+      let r = rgba[0], g = rgba[1], b = rgba[2];
+      if (Math.random() < 0.28) {          // alguna más clara, para que respire
+        r = Math.round(r + (255 - r) * 0.45);
+        g = Math.round(g + (255 - g) * 0.45);
+        b = Math.round(b + (255 - b) * 0.45);
+      }
+      estrellaPintada(data, px, py, R, giro, r, g, b, 1);
+
+      // chispitas alrededor, que es lo que la hace brillar
+      for (let i = 0; i < 2; i++) {
         const ang = Math.random() * Math.PI * 2;
-        const dist = Math.sqrt(Math.random()) * radius;
+        const dist = R * (0.9 + Math.random() * 0.8);
         const cx = Math.round(px + Math.cos(ang) * dist);
         const cy = Math.round(py + Math.sin(ang) * dist);
         if (cx < 0 || cx >= W || cy < 0 || cy >= H) continue;
-        const suerte = Math.random();
-        const grande = Math.random() < 0.4 ? 1 : 0;
-        if (suerte < 0.45)      escama(data, cx, cy, 255, 255, 255, grande);          // plata
-        else if (suerte < 0.7)  escama(data, cx, cy, 255, 240, 170, grande);          // oro
-        else escama(data, cx, cy,                                                      // el color, subido
-          Math.round(rgba[0] + (255 - rgba[0]) * 0.5),
-          Math.round(rgba[1] + (255 - rgba[1]) * 0.5),
-          Math.round(rgba[2] + (255 - rgba[2]) * 0.5), grande);
+        if (Math.random() < 0.5) escama(data, cx, cy, 255, 255, 255, Math.random() < 0.4 ? 1 : 0);
+        else escama(data, cx, cy, 255, 240, 170, Math.random() < 0.4 ? 1 : 0);
       }
-      pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+      const m = Math.ceil(R * 1.8) + 4;
+      const bx = Math.max(0, px - m), by = Math.max(0, py - m);
+      const bw = Math.min(W - 1, px + m) - bx + 1, bh = Math.min(H - 1, py + m) - by + 1;
+      pctx.putImageData(paintData, 0, 0, bx, by, bw, bh);
     }
 
     // Lápiz de color. Tres cosas lo separan de un pincel chico:
@@ -1050,6 +1086,9 @@
         drawing = true;
         lastX = x; lastY = y;
         if (state.tool === 'brush') acuaIniciar();
+        // Que el primer toque plante una estrella aunque el dedo no se
+        // mueva: si no, tocar y soltar no deja nada.
+        if (state.tool === 'glitter') { ultEstX = -1e9; ultEstY = -1e9; }
         applyStroke(state.tool, x, y, hexToRgb(state.color), state.brushSize, 1, 0);
       }
     }
