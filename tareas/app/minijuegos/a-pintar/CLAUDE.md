@@ -193,22 +193,35 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   medir el PNG: el área crema ocupa el 89,8% del ancho, así que el dibujo queda con aire parejo
   adentro del crema. `.paper` ya no lleva `border-radius` ni `box-shadow` — se los sumaría a los
   que la imagen ya trae.
-- **El afuera del dibujo no se pinta.** Antes era una región más, así que un chico que tocaba
-  fuera del personaje se teñía la hoja entera de un color — y encima es la región más grande,
-  la más fácil de tocar sin querer. `buildRegions()` la marca como pared, con lo que la ignoran
-  tanto el balde (`labels < 0`) como los pinceles (`wallMask`). Se recorre **todo el borde** de
-  la imagen, no solo las esquinas: si el personaje llega cerca de un lado —los brazos de Tuku,
-  por ejemplo— parte el afuera en varias regiones sueltas, y mirando solo las esquinas quedaban
-  pintables las de los costados.
+- **El afuera del dibujo se PINTA pero no se RELLENA.** Son dos cosas distintas y al principio
+  las trataba como una sola, bloqueando las dos:
+  - Con el **balde** quedaba el cuadrado. Es la región más grande y la más fácil de tocar sin
+    querer, y como el dibujo es cuadrado el relleno tapaba la hoja entera de un color, con un
+    borde recto que no tiene nada que ver con el personaje. Por eso sigue con `labels = -2`.
+  - Con los **pinceles** no molesta: el chico decora alrededor del personaje y el trazo se
+    corta solo contra el borde del lienzo, que ya está adentro de la hoja. Por eso el afuera
+    **no** se marca en `wallMask`.
+  Se recorre TODO el borde de la imagen para encontrarlo, no solo las esquinas: si el personaje
+  llega cerca de un lado —los brazos de Tuku, por ejemplo— parte el afuera en varias regiones
+  sueltas, y mirando solo las cuatro esquinas quedaban rellenables las de los costados.
 - Capas: canvas de pintura debajo (`#paint-canvas`) + canvas de tinta (líneas) encima
   (`#ink-canvas`). Los trazos nunca pisan las líneas (se respeta `wallMask`).
 - Herramientas (`TOOLS` en motor.js): la barra muestra **cinco**, y cada una tiene que
   SENTIRSE distinta al arrastrar — si todas dejan la misma mancha, sobran cuatro:
   - **Balde**: el único que no es trazo. Rellena la región entera de un toque.
-  - **Acuarela** (`stampBrush`): muy translúcida, se acumula al repasar el mismo lugar. El
-    papel absorbe despareja (ruido estable) y el borde se deshilacha en el último quinto del
-    radio, así que no queda un círculo perfecto.
-  - **Lápiz de color** (`stampPencil`): fino, translúcido y con el grano del papel.
+  - **Acuarela** (`stampBrush`): lo que la hace acuarela y no un aerógrafo es el **borde
+    mojado** — el agua arrastra el pigmento hacia la orilla y al secarse deja ahí una franja
+    más oscura que en el medio. Eso no sale de un estampado suelto, porque el estampado no sabe
+    dónde termina el trazo: el agua se va acumulando en una máscara (`acuaMask`) y el color se
+    recompone mirándola, con una campana centrada donde el agua empieza a escasear. Cada trazo
+    es UNA aguada: se compone sobre una foto de la pintura tomada al apretar (`acuaFondo`), así
+    que repasar quince veces adentro del mismo trazo no lo pone quince veces más oscuro, pero
+    levantar el dedo y volver a pasar SÍ superpone otra aguada. Es como se comporta la de
+    verdad.
+  - **Lápiz de color** (`stampPencil`): fino (30% del trazo base), con el grano del papel y con
+    **veta**: raya en la dirección en la que va la mano. La veta sale de leer el ruido en
+    coordenadas giradas —constante a lo largo del trazo, cambiante a lo ancho—, así que quedan
+    rayitas paralelas al movimiento. Por eso `applyStroke` recibe la dirección del trazo.
   - **Brillantina** (`stampGlitter`): un velo suave del color y, encima, **chispas** sueltas
     en forma de cruz de 5px (`chispa`), unas casi blancas y otras del color subido de tono.
     Antes era color sólido con píxeles claros al azar, y eso no se lee como brillo: se lee
@@ -218,6 +231,14 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     pedacito. Va más gordo que el pincel (radio × 1,5): un borrador de verdad es un ladrillo y
     tiene que perdonar la puntería. Es el único que **no mira `wallMask`**: tiene que limpiar
     todo lo que encuentre. Las líneas del dibujo van en el otro lienzo y no se tocan nunca.
+  - **Cada material tiene su grosor** (`RADIO`), y el paso entre estampados va con el radio DE
+    LA HERRAMIENTA, no con el grosor base: el lápiz es fino y avanzando el paso del pincel
+    quedan huecos entre estampado y estampado — el trazo sale punteado.
+  - **En `ruido(x, y)` los desplazamientos van con `>>>`, no con `>>`.** Con el aritmético el
+    signo se arrastra y el XOR final fuerza el bit más alto a 0 siempre: la función nunca pasa
+    de 0,5 y promedia 0,25 en vez de 0,5. Con eso el lápiz casi no pintaba —apenas el 5% de los
+    píxeles llegaba al umbral de agarre, contra el 65% esperado— y parecía un problema de
+    grosor o de alfa, que no lo era.
   - **El grano tiene que ser ruido ESTABLE, no `Math.random()`** (función `ruido(x, y)`). Con
     `Math.random()` cada pasada cae en píxeles distintos, así que al repasar se rellena todo
     parejo y el grano desaparece: queda un relleno plano y sucio. Con ruido estable las mismas

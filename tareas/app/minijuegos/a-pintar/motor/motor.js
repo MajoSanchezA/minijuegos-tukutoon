@@ -304,6 +304,15 @@
     let regionBounds = [];    // [x,y,w,h] por región, para repintar rápido
     let paintData = null;     // ImageData de la capa de color
     let inkData = null;       // ImageData de las líneas negras (overlay)
+    // La acuarela necesita saber la forma del trazo ENTERO, no solo del
+    // punto que está estampando: el borde mojado —esa orilla más oscura
+    // que deja el agua al secarse— es una propiedad del contorno del
+    // trazo. Por eso va acumulando el agua en una máscara aparte y
+    // recompone el color sobre una foto de cómo estaba la pintura antes
+    // de empezar el trazo.
+    let acuaMask = null;      // Float32Array: cuánta agua dejó ESTE trazo
+    let acuaFondo = null;     // copia de la pintura al empezar el trazo
+    let acuaBox = null;       // qué ensució, para limpiar solo eso
 
     const paintCanvas = document.getElementById('paint-canvas');
     const inkCanvas = document.getElementById('ink-canvas');
@@ -595,6 +604,9 @@
 
           paintData = pctx.createImageData(W, H);
           pctx.putImageData(paintData, 0, 0);
+          acuaMask = new Float32Array(W * H);
+          acuaFondo = new Uint8ClampedArray(paintData.data.length);
+          acuaBox = null;
 
           state.brushSize = Math.max(6, Math.round(W * TRAZO));
           wrap.classList.remove('placeholder');
@@ -647,16 +659,22 @@
         regionId++;
       }
 
-      // El AFUERA del dibujo no se pinta. Antes era una región más, así
-      // que un chico que tocaba fuera del personaje se teñía la hoja
-      // entera de un color — y encima es la región más grande, la más
-      // fácil de tocar sin querer. Se marca como pared, con lo que la
-      // ignoran tanto el balde (labels < 0) como los pinceles (wallMask).
+      // El AFUERA del dibujo se puede PINTAR pero no se puede RELLENAR.
+      // Son dos cosas distintas y antes las trataba como una sola:
+      //   - Con el balde quedaba el cuadrado. Es la región más grande y
+      //     la más fácil de tocar sin querer, y como el dibujo es
+      //     cuadrado el relleno tapaba la hoja entera de un color, con
+      //     un borde recto que no tiene nada que ver con el personaje.
+      //     Por eso sigue con labels = -2: el balde la ignora.
+      //   - Con los pinceles, en cambio, no molesta: el chico decora
+      //     alrededor del personaje y el trazo se corta solo contra el
+      //     borde del lienzo, que ya está adentro de la hoja. Por eso
+      //     NO se marca en wallMask.
       //
       // Se recorre TODO el borde, no solo las esquinas: si el personaje
       // llega cerca de un lado —los brazos de Tuku, por ejemplo— parte
       // el afuera en varias regiones sueltas, y mirando solo las cuatro
-      // esquinas quedaban pintables las de los costados.
+      // esquinas quedaban rellenables las de los costados.
       const fuera = [];
       const marcarBorde = (i) => {
         if (labels[i] >= 0 && fuera.indexOf(labels[i]) < 0) fuera.push(labels[i]);
@@ -665,10 +683,7 @@
       for (let y = 0; y < H; y++) { marcarBorde(y * W); marcarBorde(y * W + W - 1); }
       for (const id of fuera) {
         const pix = regionPixels[id];
-        for (let k = 0; k < pix.length; k++) {
-          labels[pix[k]] = -2;
-          wallMask[pix[k]] = 1;
-        }
+        for (let k = 0; k < pix.length; k++) labels[pix[k]] = -2;
       }
     }
 
@@ -706,10 +721,28 @@
     // repasar se termina rellenando todo parejo; con esto las mismas
     // fibras agarran color siempre y las mismas quedan en blanco, así que
     // repasar OSCURECE pero el grano no desaparece.
+    // OJO con los desplazamientos: tienen que ser `>>>` y no `>>`. Con el
+    // aritmético, el signo se arrastra y el XOR final termina forzando el
+    // bit más alto a 0 SIEMPRE, así que la función nunca pasa de 0,5 y da
+    // 0,25 de promedio en vez de 0,5. Con eso el lápiz casi no pintaba:
+    // apenas el 5% de los píxeles llegaba al umbral de agarre.
     function ruido(x, y) {
-      let n = (x * 374761393 + y * 668265263) | 0;
-      n = Math.imul(n ^ (n >> 13), 1274126177);
-      return ((n ^ (n >> 16)) >>> 0) / 4294967295;
+      let n = (Math.imul(x, 374761393) + Math.imul(y, 668265263)) | 0;
+      n = Math.imul(n ^ (n >>> 13), 1274126177);
+      return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+    }
+
+    // Igual que compositeOver pero tomando como base la foto de antes
+    // del trazo, no lo que hay dibujado ahora. Es lo que permite que la
+    // acuarela se recomponga cuantas veces haga falta sin acumularse.
+    function sobreFondo(data, p, r, g, b, srcA) {
+      const destA = acuaFondo[p + 3] / 255;
+      const outA = srcA + destA * (1 - srcA);
+      if (outA <= 0) { data[p] = 0; data[p + 1] = 0; data[p + 2] = 0; data[p + 3] = 0; return; }
+      data[p] = Math.round((r * srcA + acuaFondo[p] * destA * (1 - srcA)) / outA);
+      data[p + 1] = Math.round((g * srcA + acuaFondo[p + 1] * destA * (1 - srcA)) / outA);
+      data[p + 2] = Math.round((b * srcA + acuaFondo[p + 2] * destA * (1 - srcA)) / outA);
+      data[p + 3] = Math.round(outA * 255);
     }
 
     // Marcador: trazo duro, opaco, de borde firme.
@@ -731,60 +764,103 @@
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
     }
 
-    // Acuarela: muy translúcida, de borde despareja, y se va acumulando a
-    // medida que pasás el pincel varias veces por el mismo lugar, como la
-    // pintura de verdad. Dos cosas la hacen leer como acuarela y no como
-    // un marcador transparente: el papel absorbe DESPAREJO (el ruido
-    // estable moja más unas zonas que otras) y el borde no es un círculo
-    // perfecto, se deshilacha.
+    // Cada trazo de acuarela es UNA aguada: arranca de cero sobre una
+    // foto de cómo estaba la pintura, así que pasar quince veces por el
+    // mismo lugar dentro del mismo trazo no lo pone quince veces más
+    // oscuro. Levantar el dedo y volver a pasar SÍ superpone otra
+    // aguada, que es exactamente como se comporta la acuarela.
+    function acuaIniciar() {
+      if (acuaBox) {
+        for (let y = acuaBox[1]; y <= acuaBox[3]; y++) {
+          acuaMask.fill(0, y * W + acuaBox[0], y * W + acuaBox[2] + 1);
+        }
+      }
+      acuaBox = null;
+      acuaFondo.set(paintData.data);
+    }
+
+    // Acuarela. Lo que la hace acuarela y no un aerógrafo es el BORDE
+    // MOJADO: el agua arrastra el pigmento hacia la orilla y al secarse
+    // deja ahí una franja más oscura que en el medio. Eso no se puede
+    // sacar de un solo estampado —el estampado no sabe dónde termina el
+    // trazo—, así que se acumula el agua en `acuaMask` y el color se
+    // recompone mirando esa máscara: donde hay poca agua (la orilla) el
+    // pigmento se concentra.
     function stampBrush(px, py, rgba, radius) {
       const data = paintData.data;
       const r2 = radius * radius;
-      const x0 = Math.max(0, px - radius), x1 = Math.min(W - 1, px + radius);
-      const y0 = Math.max(0, py - radius), y1 = Math.min(H - 1, py + radius);
-      for (let y = y0; y <= y1; y++) {
-        for (let x = x0; x <= x1; x++) {
+      // 1) mojar
+      const mx0 = Math.max(0, px - radius), mx1 = Math.min(W - 1, px + radius);
+      const my0 = Math.max(0, py - radius), my1 = Math.min(H - 1, py + radius);
+      for (let y = my0; y <= my1; y++) {
+        for (let x = mx0; x <= mx1; x++) {
           const dx = x - px, dy = y - py;
           const d2 = dx * dx + dy * dy;
           if (d2 > r2) continue;
+          const caida = 1 - Math.sqrt(d2) / radius;
           const idx = y * W + x;
-          if (wallMask[idx]) continue;
-          const falloff = 1 - Math.sqrt(d2) / radius;
-          const grano = ruido(x, y);
-          // El último quinto del radio es el borde: ahí el agua llega o
-          // no llega según el papel, y el contorno queda deshilachado.
-          if (falloff < 0.2 && grano > 0.25 + falloff * 3.75) continue;
-          const alpha = (0.045 + 0.09 * falloff) * (0.7 + grano * 0.6);
-          compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2], alpha);
+          // El tope corta el oscurecimiento adentro del mismo trazo.
+          acuaMask[idx] = Math.min(1.2, acuaMask[idx] + caida * caida * 0.6);
         }
+      }
+      // 2) recomponer, con un margen: al alargarse el trazo, la orilla
+      //    de hace un momento pasa a ser el medio y hay que repintarla.
+      const m = Math.ceil(radius * 0.5);
+      const x0 = Math.max(0, mx0 - m), x1 = Math.min(W - 1, mx1 + m);
+      const y0 = Math.max(0, my0 - m), y1 = Math.min(H - 1, my1 + m);
+      for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+          const idx = y * W + x;
+          const agua = acuaMask[idx];
+          if (agua <= 0) continue;
+          if (wallMask[idx]) continue;
+          const mojado = Math.min(1, agua);
+          // Campana centrada donde el agua empieza a escasear: ahí queda
+          // la orilla oscura.
+          const orilla = Math.exp(-Math.pow((mojado - 0.62) / 0.2, 2));
+          const alpha = (0.38 * mojado + 0.26 * orilla) * (0.75 + ruido(x, y) * 0.5);
+          sobreFondo(data, idx * 4, rgba[0], rgba[1], rgba[2], Math.min(0.85, alpha));
+        }
+      }
+      if (!acuaBox) acuaBox = [x0, y0, x1, y1];
+      else {
+        if (x0 < acuaBox[0]) acuaBox[0] = x0;
+        if (y0 < acuaBox[1]) acuaBox[1] = y0;
+        if (x1 > acuaBox[2]) acuaBox[2] = x1;
+        if (y1 > acuaBox[3]) acuaBox[3] = y1;
       }
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
     }
 
-    // Una chispa: cuatro brazos desde un centro, o sea una estrellita de
-    // 5 px. Un píxel suelto más claro no se ve como brillo, se ve como
-    // ruido; lo que lo hace leer como destello es la forma de cruz.
-    function chispa(data, cx, cy, r, g, b, fuerza) {
-      const brazos = [[0, 0, 1], [-1, 0, 0.7], [1, 0, 0.7], [0, -1, 0.7], [0, 1, 0.7],
-                      [-2, 0, 0.35], [2, 0, 0.35], [0, -2, 0.35], [0, 2, 0.35]];
+    // Una escama de brillantina. tam 0 es un puntito —la mayoría de las
+    // escamas de un frasco son eso, motas que devuelven la luz— y tam 1
+    // es un destello en cruz, de los que se ven cuando una escama pega
+    // justo con la luz. Un píxel más claro suelto no se lee como brillo;
+    // lo que lo hace leer así es que haya de los dos.
+    function escama(data, cx, cy, r, g, b, tam) {
+      const brazos = tam === 0
+        ? [[0, 0, 1], [1, 0, 0.45], [0, 1, 0.45]]
+        : [[0, 0, 1], [-1, 0, 0.8], [1, 0, 0.8], [0, -1, 0.8], [0, 1, 0.8],
+           [-2, 0, 0.4], [2, 0, 0.4], [0, -2, 0.4], [0, 2, 0.4],
+           [-3, 0, 0.15], [3, 0, 0.15], [0, -3, 0.15], [0, 3, 0.15]];
       for (const [dx, dy, peso] of brazos) {
         const x = cx + dx, y = cy + dy;
         if (x < 0 || x >= W || y < 0 || y >= H) continue;
         const idx = y * W + x;
         if (wallMask[idx]) continue;
-        compositeOver(data, idx * 4, r, g, b, fuerza * peso);
+        compositeOver(data, idx * 4, r, g, b, peso);
       }
     }
 
-    // Brillantina: un velo suave del color y, encima, chispas sueltas —
-    // unas casi blancas y otras del color subido de tono. No pinta un
-    // bloque sólido: el color queda liviano y lo que se ve son los
-    // destellos, que es lo que hace que el trazo se sienta "especial".
+    // Brillantina: un velo finito del color y, encima, escamas sueltas —
+    // plateadas, doradas y del propio color subido de tono. El color va
+    // MUY liviano a propósito: si pinta fuerte se convierte en otro
+    // marcador y las escamas se pierden adentro.
     function stampGlitter(px, py, rgba, radius) {
       const data = paintData.data;
       const r2 = radius * radius;
-      const x0 = Math.max(0, px - radius - 2), x1 = Math.min(W - 1, px + radius + 2);
-      const y0 = Math.max(0, py - radius - 2), y1 = Math.min(H - 1, py + radius + 2);
+      const x0 = Math.max(0, px - radius - 3), x1 = Math.min(W - 1, px + radius + 3);
+      const y0 = Math.max(0, py - radius - 3), y1 = Math.min(H - 1, py + radius + 3);
       for (let y = Math.max(0, py - radius); y <= Math.min(H - 1, py + radius); y++) {
         for (let x = Math.max(0, px - radius); x <= Math.min(W - 1, px + radius); x++) {
           const dx = x - px, dy = y - py;
@@ -792,42 +868,46 @@
           if (d2 > r2) continue;
           const idx = y * W + x;
           if (wallMask[idx]) continue;
-          const falloff = 1 - Math.sqrt(d2) / radius;
-          compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2], 0.05 + 0.10 * falloff);
+          const caida = 1 - Math.sqrt(d2) / radius;
+          compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2], 0.04 + 0.08 * caida);
         }
       }
-      // Las chispas SÍ son al azar: tienen que titilar por todos lados a
-      // medida que el chico arrastra, no quedarse pegadas al papel.
-      const cuantas = 1 + (Math.random() < 0.5 ? 1 : 0);
+      // Las escamas SÍ van al azar: tienen que titilar por todos lados
+      // mientras el chico arrastra, no quedarse pegadas a la hoja.
+      const cuantas = 2 + Math.floor(Math.random() * 3);
       for (let i = 0; i < cuantas; i++) {
         const ang = Math.random() * Math.PI * 2;
         const dist = Math.sqrt(Math.random()) * radius;
         const cx = Math.round(px + Math.cos(ang) * dist);
         const cy = Math.round(py + Math.sin(ang) * dist);
         if (cx < 0 || cx >= W || cy < 0 || cy >= H) continue;
-        if (Math.random() < 0.55) {
-          chispa(data, cx, cy, 255, 255, 255, 0.85);            // destello blanco
-        } else {
-          chispa(data, cx, cy,                                   // destello del color, subido
-            Math.round(rgba[0] + (255 - rgba[0]) * 0.55),
-            Math.round(rgba[1] + (255 - rgba[1]) * 0.55),
-            Math.round(rgba[2] + (255 - rgba[2]) * 0.55), 0.9);
-        }
+        const suerte = Math.random();
+        const grande = Math.random() < 0.28 ? 1 : 0;
+        if (suerte < 0.45)      escama(data, cx, cy, 255, 255, 255, grande);          // plata
+        else if (suerte < 0.7)  escama(data, cx, cy, 255, 240, 170, grande);          // oro
+        else escama(data, cx, cy,                                                      // el color, subido
+          Math.round(rgba[0] + (255 - rgba[0]) * 0.5),
+          Math.round(rgba[1] + (255 - rgba[1]) * 0.5),
+          Math.round(rgba[2] + (255 - rgba[2]) * 0.5), grande);
       }
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
     }
 
-    // Lápiz de color: fino, translúcido y con el grano del papel. Cada
-    // pasada deposita poco, así que apretando el trazo (pasando varias
-    // veces) el color sube — igual que un lápiz de verdad — pero las
-    // fibras que no agarran quedan siempre en blanco, y por eso nunca
-    // termina siendo un relleno plano.
-    function stampPencil(px, py, rgba, radius) {
+    // Lápiz de color. Tres cosas lo separan de un pincel chico:
+    //   - Es FINO de verdad (30% del trazo base). Un lápiz gordo se
+    //     confunde con el marcador por más grano que tenga.
+    //   - Deja VETA: raya en la dirección en la que va la mano. Se
+    //     consigue leyendo el ruido en coordenadas giradas — constante a
+    //     lo largo del trazo, cambiante a lo ancho—, así que salen
+    //     rayitas paralelas al movimiento, que es como se deposita el
+    //     pigmento cuando uno raya.
+    //   - Nunca tapa del todo: el papel asoma siempre entre las fibras.
+    function stampPencil(px, py, rgba, radius, ux, uy) {
       const data = paintData.data;
-      const r = Math.max(2, Math.round(radius * 0.55));
-      const r2 = r * r;
-      const x0 = Math.max(0, px - r), x1 = Math.min(W - 1, px + r);
-      const y0 = Math.max(0, py - r), y1 = Math.min(H - 1, py + r);
+      const r2 = radius * radius;
+      const x0 = Math.max(0, px - radius), x1 = Math.min(W - 1, px + radius);
+      const y0 = Math.max(0, py - radius), y1 = Math.min(H - 1, py + radius);
+      const dirX = ux || 1, dirY = uy || 0;
       for (let y = y0; y <= y1; y++) {
         for (let x = x0; x <= x1; x++) {
           const dx = x - px, dy = y - py;
@@ -835,11 +915,15 @@
           if (d2 > r2) continue;
           const idx = y * W + x;
           if (wallMask[idx]) continue;
-          const grano = ruido(x, y);
-          if (grano < 0.34) continue;               // fibra que no agarra color
-          const falloff = 1 - Math.sqrt(d2) / r;
+          const u = x * dirX + y * dirY;        // a lo largo del trazo
+          const v = -x * dirY + y * dirX;       // a lo ancho
+          const veta = ruido(Math.floor(u / 10), Math.floor(v));
+          const papel = ruido(x, y);            // el grano fijo de la hoja
+          const agarre = 0.5 * papel + 0.5 * veta;
+          if (agarre < 0.42) continue;          // fibra que no agarra color
+          const caida = 1 - Math.sqrt(d2) / radius;
           compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2],
-                        0.30 * (0.35 + 0.65 * falloff) * (0.5 + grano * 0.5));
+                        0.34 * (0.45 + 0.55 * caida) * agarre);
         }
       }
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
@@ -892,10 +976,17 @@
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
     }
 
-    function applyStroke(tool, x, y, rgba, radius) {
+    // Cada material tiene su grosor. Un lápiz de color y un pincel de
+    // acuarela no pueden dejar la misma huella: si los cinco pintan del
+    // mismo ancho, se sienten iguales por más textura que tengan.
+    const RADIO = { brush: 1.25, pencil: 0.30, glitter: 1.0, eraser: 1.5, marker: 0.9, spray: 1.1 };
+    function radioDe(tool, base) { return Math.max(2, Math.round(base * (RADIO[tool] || 1))); }
+
+    function applyStroke(tool, x, y, rgba, radius, ux, uy) {
+      radius = radioDe(tool, radius);
       if (tool === 'eraser') { stampEraser(x, y, radius); return; }
       if (tool === 'marker') stampMarker(x, y, rgba, radius);
-      else if (tool === 'pencil') stampPencil(x, y, rgba, radius);
+      else if (tool === 'pencil') stampPencil(x, y, rgba, radius, ux, uy);
       else if (tool === 'brush') stampBrush(x, y, rgba, radius);
       else if (tool === 'spray') stampSpray(x, y, rgba, radius);
       else if (tool === 'glitter') stampGlitter(x, y, rgba, radius);
@@ -939,7 +1030,8 @@
       } else {
         drawing = true;
         lastX = x; lastY = y;
-        applyStroke(state.tool, x, y, hexToRgb(state.color), state.brushSize);
+        if (state.tool === 'brush') acuaIniciar();
+        applyStroke(state.tool, x, y, hexToRgb(state.color), state.brushSize, 1, 0);
       }
     }
     // Va de lastX,lastY a x,y estampando puntos intermedios, no solo en
@@ -950,12 +1042,18 @@
     function strokeTo(x, y, rgba, radius) {
       const dx = x - lastX, dy = y - lastY;
       const dist = Math.hypot(dx, dy);
-      const step = Math.max(1, radius * 0.4);
+      // Hacia dónde va la mano. El lápiz lo necesita: la veta del color
+      // se deposita en la dirección en la que uno raya.
+      const ux = dist ? dx / dist : 1, uy = dist ? dy / dist : 0;
+      // El paso va con el radio DE LA HERRAMIENTA, no con el grosor
+      // base: el lápiz es fino y si se avanza el paso del pincel quedan
+      // huecos entre estampado y estampado — el trazo sale punteado.
+      const step = Math.max(1, radioDe(state.tool, radius) * 0.4);
       const steps = Math.max(1, Math.ceil(dist / step));
       for (let i = 1; i <= steps; i++) {
         const px = Math.round(lastX + (dx * i) / steps);
         const py = Math.round(lastY + (dy * i) / steps);
-        applyStroke(state.tool, px, py, rgba, radius);
+        applyStroke(state.tool, px, py, rgba, radius, ux, uy);
       }
       lastX = x; lastY = y;
     }
