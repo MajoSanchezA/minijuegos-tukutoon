@@ -322,6 +322,25 @@
     const loadingEl = document.getElementById('loading');
     const placeholderEl = document.getElementById('placeholder-msg');
     const stageWrapEl = document.querySelector('.stage-wrap');
+    // La silueta de la hoja, sacada del alfa de hoja-dibujo.png y metida
+    // acá adentro a propósito: un PNG suelto NO se puede leer con
+    // getImageData cuando la página se abre con file://, el navegador
+    // marca el lienzo como contaminado. Va chiquita (248x277) porque el
+    // borde se vuelve a endurecer con umbral al estirarla al lienzo.
+    const HOJA_MASCARA = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPgAAAEVAQAAAADlBxVOAAAAyUlEQVR42u3ZsRHDIAwFUImkSBeP4E1CNvNoZBOP4HQucigbiEKnQ+BP+06Avw1nGyYhpUlijYkT6a27S+j5Sfj8JvcbUUY+8EG9JirO42djfcH9g3t58l9fyP/C/rPvf3B4Nz+t/bP+ffgdPJ/DWL849z++c+j57dg/jN56QavG+rnzK+7j3yfP99Hw01jvPH9+HmP/X4WP7Qvy6eeCfFyd2/Vrw/fg17+69r/RS5RW8fxd3XPn9QuHx/XN/fy6qPyJf/6ubiDvP4FmN3zBurUgAAAAAElFTkSuQmCC';
+
+    // Dónde cae el dibujo DENTRO de la hoja. Sale de medir dónde caía
+    // antes, cuando el lienzo era un cuadrado que el layout centraba en
+    // la parte visible de la hoja: el dibujo ocupaba el 76% del ancho y
+    // su centro quedaba al 39,6% del alto. Ahora está fijo respecto de
+    // la hoja en vez de recalcularse con la ventana, porque el lienzo
+    // pasó a ser la hoja entera. La contra es que en pantallas mucho más
+    // anchas que un celular acostado (donde se ve menos hoja) el dibujo
+    // puede quedar rozando el borde de abajo.
+    const DIBUJO_ANCHO = 0.76;   // del ancho de la hoja
+    const DIBUJO_ALTO  = 0.68;   // del alto de la hoja
+    const DIBUJO_CY    = 0.396;  // centro, en fracción del alto de la hoja
+
     const paperEl = document.querySelector('.paper');
     const railIzqEl = document.querySelector('.rail-left');
     const coloresEl = document.querySelector('.swatches');
@@ -546,19 +565,15 @@
       paperEl.style.width = Math.round(anchoReal) + 'px';
       paperEl.style.height = Math.round(hojaH) + 'px';
 
-      // El dibujo se centra en la parte VISIBLE de la hoja, no en la
-      // hoja entera: la hoja es más alta que la pantalla y se corta
-      // abajo, así que centrarlo en la hoja entera lo dejaría medio
-      // tapado por el borde.
-      const visible = Math.max(Math.min(hojaTop + hojaH, vh) - hojaTop, 60);
-      const innerW = Math.max(anchoReal * 0.80, 40);
-      const innerH = Math.max(visible * 0.86, 40);
-      const scale = Math.min(innerW / ratioW, innerH / ratioH);
-      const dispW = Math.max(Math.floor(ratioW * scale), 40);
-      const dispH = Math.max(Math.floor(ratioH * scale), 30);
-      wrap.style.width = dispW + 'px';
-      wrap.style.height = dispH + 'px';
-      wrap.style.marginTop = Math.max(Math.round((visible - dispH) / 2), 0) + 'px';
+      // El lienzo ES la hoja: la tapa entera. Antes era un cuadrado del
+      // 80% del ancho, centrado en la parte visible, y al pintar el
+      // afuera del personaje se llenaba hasta ese límite: quedaba un
+      // MARCO rectangular sobre el papel, más chico que el papel. El
+      // dibujo va adentro del lienzo, en el lugar que le fija el motor
+      // al cargarlo (DIBUJO_ANCHO / DIBUJO_CY).
+      wrap.style.width = Math.round(anchoReal) + 'px';
+      wrap.style.height = Math.round(hojaH) + 'px';
+      wrap.style.marginTop = '0px';
     }
     window.addEventListener('resize', fitStage);
     window.addEventListener('orientationchange', () => setTimeout(fitStage, 60));
@@ -570,11 +585,21 @@
         loadingEl.style.display = 'none';
         return; // se queda en modo "marcador de posición"
       }
+      // Se cargan las dos —el dibujo y la silueta de la hoja— y recién
+      // cuando están las dos se arma todo. Si la máscara fallara, se
+      // sigue sin ella: se pierde el recorte contra el borde del papel,
+      // pero el juego funciona igual.
       const img = new Image();
-      img.onload = () => {
+      const hoja = new Image();
+      let faltan = 2, hojaOk = false;
+      const cuandoEsten = () => { if (--faltan === 0) armar(); };
+      const armar = () => {
         try {
+          // El lienzo ya no es el dibujo: es LA HOJA. El dibujo se pega
+          // adentro. Así, al pintar el afuera del personaje, la pintura
+          // llega hasta el borde del papel y no queda un marco.
           W = img.naturalWidth;
-          H = img.naturalHeight;
+          H = Math.round(W * FONDO.hoja.h / FONDO.hoja.w);
           ratioW = W; ratioH = H;
           fitStage();
           paintCanvas.width = W; paintCanvas.height = H;
@@ -583,8 +608,33 @@
           const off = document.createElement('canvas');
           off.width = W; off.height = H;
           const octx = off.getContext('2d');
-          octx.drawImage(img, 0, 0, W, H);
+          // Blanco primero: el resto de la hoja tiene que ser zona
+          // pintable, y las "paredes" se deducen de la luminancia.
+          octx.fillStyle = '#ffffff';
+          octx.fillRect(0, 0, W, H);
+          const cajaW = W * DIBUJO_ANCHO, cajaH = H * DIBUJO_ALTO;
+          const escD = Math.min(cajaW / img.naturalWidth, cajaH / img.naturalHeight);
+          const dw = Math.round(img.naturalWidth * escD);
+          const dh = Math.round(img.naturalHeight * escD);
+          octx.drawImage(img, Math.round((W - dw) / 2),
+                              Math.round(H * DIBUJO_CY - dh / 2), dw, dh);
           const src = octx.getImageData(0, 0, W, H);
+
+          // La silueta del papel, estirada al lienzo y endurecida con
+          // umbral. Lo de afuera del papel no se pinta ni se rellena.
+          let fueraHoja = null;
+          if (hojaOk) {
+            const hc = document.createElement('canvas');
+            hc.width = W; hc.height = H;
+            const hctx = hc.getContext('2d');
+            hctx.drawImage(hoja, 0, 0, W, H);
+            const hd = hctx.getImageData(0, 0, W, H).data;
+            fueraHoja = new Uint8Array(W * H);
+            for (let i = 0, q = 0; i < hd.length; i += 4, q++) {
+              // La máscara es blanca donde hay papel.
+              if (hd[i] < 128) fueraHoja[q] = 1;
+            }
+          }
 
           wallMask = new Uint8Array(W * H);
           inkData = octx.createImageData(W, H);
@@ -600,7 +650,10 @@
           }
           ictx.putImageData(inkData, 0, 0);
 
-          buildRegions();
+          if (fueraHoja) {
+            for (let q = 0; q < wallMask.length; q++) if (fueraHoja[q]) wallMask[q] = 1;
+          }
+          buildRegions(fueraHoja);
 
           paintData = pctx.createImageData(W, H);
           pctx.putImageData(paintData, 0, 0);
@@ -621,6 +674,10 @@
           loadingEl.style.display = 'none';
         }
       };
+      hoja.onload = () => { hojaOk = true; cuandoEsten(); };
+      hoja.onerror = cuandoEsten;
+      hoja.src = HOJA_MASCARA;
+      img.onload = cuandoEsten;
       img.onerror = () => {
         document.getElementById('placeholder-title').textContent = 'No se encontró el archivo';
         document.getElementById('placeholder-text').innerHTML = `No se pudo cargar la imagen configurada en <code>imgSrc</code>. Verifica el nombre del archivo y que esté en esta misma carpeta.`;
@@ -629,7 +686,7 @@
       img.src = cfg.imgSrc;
     }
 
-    function buildRegions() {
+    function buildRegions(fueraHoja) {
       labels = new Int32Array(W * H).fill(-1);
       for (let i = 0; i < wallMask.length; i++) { if (wallMask[i]) labels[i] = -2; }
       regionPixels = [];
@@ -679,8 +736,24 @@
       const marcarBorde = (i) => {
         if (labels[i] >= 0 && fuera.indexOf(labels[i]) < 0) fuera.push(labels[i]);
       };
-      for (let x = 0; x < W; x++) { marcarBorde(x); marcarBorde((H - 1) * W + x); }
-      for (let y = 0; y < H; y++) { marcarBorde(y * W); marcarBorde(y * W + W - 1); }
+      if (fueraHoja) {
+        // El afuera del personaje ya no toca el borde de la imagen: entre
+        // los dos está el resto de la hoja. Así que se lo busca contra el
+        // borde DEL PAPEL — todo píxel de papel que tenga al lado un
+        // píxel que ya no es papel.
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) {
+            const i = y * W + x;
+            if (fueraHoja[i]) continue;
+            if (x === 0 || y === 0 || x === W - 1 || y === H - 1 ||
+                fueraHoja[i - 1] || fueraHoja[i + 1] ||
+                fueraHoja[i - W] || fueraHoja[i + W]) marcarBorde(i);
+          }
+        }
+      } else {
+        for (let x = 0; x < W; x++) { marcarBorde(x); marcarBorde((H - 1) * W + x); }
+        for (let y = 0; y < H; y++) { marcarBorde(y * W); marcarBorde(y * W + W - 1); }
+      }
       for (const id of fuera) {
         const pix = regionPixels[id];
         for (let k = 0; k < pix.length; k++) labels[pix[k]] = -2;

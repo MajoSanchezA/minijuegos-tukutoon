@@ -193,6 +193,23 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   medir el PNG: el área crema ocupa el 89,8% del ancho, así que el dibujo queda con aire parejo
   adentro del crema. `.paper` ya no lleva `border-radius` ni `box-shadow` — se los sumaría a los
   que la imagen ya trae.
+- **El lienzo ES la hoja, no el dibujo.** El dibujo se pega adentro, en un lugar fijo
+  (`DIBUJO_ANCHO` / `DIBUJO_ALTO` / `DIBUJO_CY`). Antes el lienzo era un cuadrado del 80% del
+  ancho de la hoja, centrado en la parte visible, y al pintar el afuera del personaje la
+  pintura se llenaba hasta ese límite: quedaba un **MARCO** rectangular sobre el papel, más
+  chico que el papel y con las esquinas en ángulo recto. Consecuencias de este cambio:
+  - El alto del lienzo sale de la proporción de `FONDO.hoja`, no de la imagen del dibujo.
+  - La posición del dibujo pasó a ser **fija respecto de la hoja** en vez de recalcularse con
+    la ventana. Las constantes salen de medir dónde caía antes a la proporción de diseño (76%
+    del ancho, centro al 39,6% del alto). En pantallas mucho más anchas que un celular
+    acostado se ve menos hoja y el dibujo puede quedar rozando el borde de abajo.
+  - Lo que se pinta sobre la hoja tapa la decoración que el fondo dibuja ENCIMA del papel (el
+    lápiz oscuro de abajo a la izquierda), porque el lienzo va arriba del fondo.
+- **La silueta del papel va embebida** en `motor.js` como `HOJA_MASCARA` (data URI, 248x277,
+  sacada del alfa de `hoja-dibujo.png`). Tiene que ir embebida y no como archivo suelto: con
+  `file://` el navegador marca el lienzo como contaminado y `getImageData` tira `SecurityError`
+  — el mismo motivo por el que el dibujo va como `data:`. Con ella, ni los pinceles ni el balde
+  pasan del borde del papel. Si no cargara, el juego sigue andando sin el recorte.
 - **El afuera del dibujo se PINTA pero no se RELLENA.** Son dos cosas distintas y al principio
   las trataba como una sola, bloqueando las dos:
   - Con el **balde** quedaba el cuadrado. Es la región más grande y la más fácil de tocar sin
@@ -201,9 +218,11 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   - Con los **pinceles** no molesta: el chico decora alrededor del personaje y el trazo se
     corta solo contra el borde del lienzo, que ya está adentro de la hoja. Por eso el afuera
     **no** se marca en `wallMask`.
-  Se recorre TODO el borde de la imagen para encontrarlo, no solo las esquinas: si el personaje
-  llega cerca de un lado —los brazos de Tuku, por ejemplo— parte el afuera en varias regiones
-  sueltas, y mirando solo las cuatro esquinas quedaban rellenables las de los costados.
+  Para encontrarlo se recorre el borde **DEL PAPEL** —todo píxel de papel que tenga al lado un
+  píxel que ya no es papel— y no el borde de la imagen: desde que el lienzo es la hoja, el
+  afuera del personaje ya no toca el borde de la imagen, entre los dos está el resto de la hoja.
+  Y se recorre entero, no solo las esquinas: si el personaje llega cerca de un lado —los brazos
+  de Tuku, por ejemplo— parte el afuera en varias regiones sueltas.
 - Capas: canvas de pintura debajo (`#paint-canvas`) + canvas de tinta (líneas) encima
   (`#ink-canvas`). Los trazos nunca pisan las líneas (se respeta `wallMask`).
 - Herramientas (`TOOLS` en motor.js): la barra muestra **cinco**, y cada una tiene que
