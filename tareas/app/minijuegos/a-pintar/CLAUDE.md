@@ -202,10 +202,29 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   pintables las de los costados.
 - Capas: canvas de pintura debajo (`#paint-canvas`) + canvas de tinta (líneas) encima
   (`#ink-canvas`). Los trazos nunca pisan las líneas (se respeta `wallMask`).
-- Herramientas (`TOOLS` en motor.js): la barra muestra **cinco** — balde, lápiz (fino,
-  semitransparente, granulado), acuarela (muy translúcida, se acumula al repasar el mismo
-  lugar), brillantina (color sólido + destellos casi blancos al azar) y borrador (limpia la
-  región completa). Son cinco porque es el set de iconos que hizo diseño y porque con chicos
+- Herramientas (`TOOLS` en motor.js): la barra muestra **cinco**, y cada una tiene que
+  SENTIRSE distinta al arrastrar — si todas dejan la misma mancha, sobran cuatro:
+  - **Balde**: el único que no es trazo. Rellena la región entera de un toque.
+  - **Acuarela** (`stampBrush`): muy translúcida, se acumula al repasar el mismo lugar. El
+    papel absorbe despareja (ruido estable) y el borde se deshilacha en el último quinto del
+    radio, así que no queda un círculo perfecto.
+  - **Lápiz de color** (`stampPencil`): fino, translúcido y con el grano del papel.
+  - **Brillantina** (`stampGlitter`): un velo suave del color y, encima, **chispas** sueltas
+    en forma de cruz de 5px (`chispa`), unas casi blancas y otras del color subido de tono.
+    Antes era color sólido con píxeles claros al azar, y eso no se lee como brillo: se lee
+    como ruido. Lo que lo hace leer como destello es la FORMA de cruz.
+  - **Borrador** (`stampEraser`): borra **por trazo**, no la región entera. Antes era un balde
+    al revés —un toque y desaparecía todo el color de esa zona— y así no se puede corregir un
+    pedacito. Va más gordo que el pincel (radio × 1,5): un borrador de verdad es un ladrillo y
+    tiene que perdonar la puntería. Es el único que **no mira `wallMask`**: tiene que limpiar
+    todo lo que encuentre. Las líneas del dibujo van en el otro lienzo y no se tocan nunca.
+  - **El grano tiene que ser ruido ESTABLE, no `Math.random()`** (función `ruido(x, y)`). Con
+    `Math.random()` cada pasada cae en píxeles distintos, así que al repasar se rellena todo
+    parejo y el grano desaparece: queda un relleno plano y sucio. Con ruido estable las mismas
+    fibras agarran color siempre y las mismas quedan en blanco, entonces repasar OSCURECE sin
+    perder la textura. Las chispas de la brillantina son la excepción y SÍ van al azar:
+    tienen que titilar por todos lados mientras el chico arrastra, no quedarse pegadas.
+  Son cinco porque es el set de iconos que hizo diseño y porque con chicos
   de 2 a 5 años cinco botones grandes se aciertan mejor que siete chicos. **Marcador** (trazo
   duro y opaco) y **aerosol** (puntitos dispersos) siguen implementados (`stampMarker` /
   `stampSpray`, y sus ids siguen en `STROKE_TOOLS`) pero no están en la barra: para

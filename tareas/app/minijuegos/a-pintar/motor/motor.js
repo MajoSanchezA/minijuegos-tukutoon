@@ -33,7 +33,7 @@
 
   // Herramientas de trazo libre (todas menos balde/borrador comparten
   // "aplicar color en un punto"; cada una tiene su propia textura).
-  const STROKE_TOOLS = ['marker', 'pencil', 'brush', 'spray', 'glitter'];
+  const STROKE_TOOLS = ['marker', 'pencil', 'brush', 'spray', 'glitter', 'eraser'];
 
   // La barra muestra CINCO herramientas: es el set de iconos ilustrados
   // que hizo diseño, y con chicos de 2 a 5 años cinco botones grandes se
@@ -700,6 +700,18 @@
       data[p + 3] = Math.round(outA * 255);
     }
 
+    // Ruido ESTABLE por píxel: el mismo (x, y) devuelve siempre el mismo
+    // valor. Es lo que separa un grano de papel de un ruido de TV: con
+    // Math.random() cada pasada del lápiz cae en píxeles distintos y al
+    // repasar se termina rellenando todo parejo; con esto las mismas
+    // fibras agarran color siempre y las mismas quedan en blanco, así que
+    // repasar OSCURECE pero el grano no desaparece.
+    function ruido(x, y) {
+      let n = (x * 374761393 + y * 668265263) | 0;
+      n = Math.imul(n ^ (n >> 13), 1274126177);
+      return ((n ^ (n >> 16)) >>> 0) / 4294967295;
+    }
+
     // Marcador: trazo duro, opaco, de borde firme.
     function stampMarker(px, py, rgba, radius) {
       const data = paintData.data;
@@ -719,8 +731,12 @@
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
     }
 
-    // Acuarela: muy translúcida y con borde suave, se va acumulando a medida
-    // que pasás el pincel varias veces por el mismo lugar (como pintura real).
+    // Acuarela: muy translúcida, de borde despareja, y se va acumulando a
+    // medida que pasás el pincel varias veces por el mismo lugar, como la
+    // pintura de verdad. Dos cosas la hacen leer como acuarela y no como
+    // un marcador transparente: el papel absorbe DESPAREJO (el ruido
+    // estable moja más unas zonas que otras) y el borde no es un círculo
+    // perfecto, se deshilacha.
     function stampBrush(px, py, rgba, radius) {
       const data = paintData.data;
       const r2 = radius * radius;
@@ -734,38 +750,78 @@
           const idx = y * W + x;
           if (wallMask[idx]) continue;
           const falloff = 1 - Math.sqrt(d2) / radius;
-          const alpha = 0.045 + 0.09 * falloff; // baja, para que se acumule al repasar
+          const grano = ruido(x, y);
+          // El último quinto del radio es el borde: ahí el agua llega o
+          // no llega según el papel, y el contorno queda deshilachado.
+          if (falloff < 0.2 && grano > 0.25 + falloff * 3.75) continue;
+          const alpha = (0.045 + 0.09 * falloff) * (0.7 + grano * 0.6);
           compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2], alpha);
         }
       }
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
     }
 
-    // Brillantina: color sólido + destellos aleatorios casi blancos.
+    // Una chispa: cuatro brazos desde un centro, o sea una estrellita de
+    // 5 px. Un píxel suelto más claro no se ve como brillo, se ve como
+    // ruido; lo que lo hace leer como destello es la forma de cruz.
+    function chispa(data, cx, cy, r, g, b, fuerza) {
+      const brazos = [[0, 0, 1], [-1, 0, 0.7], [1, 0, 0.7], [0, -1, 0.7], [0, 1, 0.7],
+                      [-2, 0, 0.35], [2, 0, 0.35], [0, -2, 0.35], [0, 2, 0.35]];
+      for (const [dx, dy, peso] of brazos) {
+        const x = cx + dx, y = cy + dy;
+        if (x < 0 || x >= W || y < 0 || y >= H) continue;
+        const idx = y * W + x;
+        if (wallMask[idx]) continue;
+        compositeOver(data, idx * 4, r, g, b, fuerza * peso);
+      }
+    }
+
+    // Brillantina: un velo suave del color y, encima, chispas sueltas —
+    // unas casi blancas y otras del color subido de tono. No pinta un
+    // bloque sólido: el color queda liviano y lo que se ve son los
+    // destellos, que es lo que hace que el trazo se sienta "especial".
     function stampGlitter(px, py, rgba, radius) {
       const data = paintData.data;
       const r2 = radius * radius;
-      const x0 = Math.max(0, px - radius), x1 = Math.min(W - 1, px + radius);
-      const y0 = Math.max(0, py - radius), y1 = Math.min(H - 1, py + radius);
-      for (let y = y0; y <= y1; y++) {
-        for (let x = x0; x <= x1; x++) {
+      const x0 = Math.max(0, px - radius - 2), x1 = Math.min(W - 1, px + radius + 2);
+      const y0 = Math.max(0, py - radius - 2), y1 = Math.min(H - 1, py + radius + 2);
+      for (let y = Math.max(0, py - radius); y <= Math.min(H - 1, py + radius); y++) {
+        for (let x = Math.max(0, px - radius); x <= Math.min(W - 1, px + radius); x++) {
           const dx = x - px, dy = y - py;
-          if (dx * dx + dy * dy > r2) continue;
+          const d2 = dx * dx + dy * dy;
+          if (d2 > r2) continue;
           const idx = y * W + x;
           if (wallMask[idx]) continue;
-          const p = idx * 4;
-          data[p] = rgba[0]; data[p + 1] = rgba[1]; data[p + 2] = rgba[2]; data[p + 3] = 255;
-          if (Math.random() < 0.05) {
-            data[p] = Math.round(rgba[0] + (255 - rgba[0]) * 0.9);
-            data[p + 1] = Math.round(rgba[1] + (255 - rgba[1]) * 0.9);
-            data[p + 2] = Math.round(rgba[2] + (255 - rgba[2]) * 0.9);
-          }
+          const falloff = 1 - Math.sqrt(d2) / radius;
+          compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2], 0.05 + 0.10 * falloff);
+        }
+      }
+      // Las chispas SÍ son al azar: tienen que titilar por todos lados a
+      // medida que el chico arrastra, no quedarse pegadas al papel.
+      const cuantas = 1 + (Math.random() < 0.5 ? 1 : 0);
+      for (let i = 0; i < cuantas; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const dist = Math.sqrt(Math.random()) * radius;
+        const cx = Math.round(px + Math.cos(ang) * dist);
+        const cy = Math.round(py + Math.sin(ang) * dist);
+        if (cx < 0 || cx >= W || cy < 0 || cy >= H) continue;
+        if (Math.random() < 0.55) {
+          chispa(data, cx, cy, 255, 255, 255, 0.85);            // destello blanco
+        } else {
+          chispa(data, cx, cy,                                   // destello del color, subido
+            Math.round(rgba[0] + (255 - rgba[0]) * 0.55),
+            Math.round(rgba[1] + (255 - rgba[1]) * 0.55),
+            Math.round(rgba[2] + (255 - rgba[2]) * 0.55), 0.9);
         }
       }
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
     }
 
-    // Lápiz: trazo fino, semitransparente y granulado.
+    // Lápiz de color: fino, translúcido y con el grano del papel. Cada
+    // pasada deposita poco, así que apretando el trazo (pasando varias
+    // veces) el color sube — igual que un lápiz de verdad — pero las
+    // fibras que no agarran quedan siempre en blanco, y por eso nunca
+    // termina siendo un relleno plano.
     function stampPencil(px, py, rgba, radius) {
       const data = paintData.data;
       const r = Math.max(2, Math.round(radius * 0.55));
@@ -775,11 +831,15 @@
       for (let y = y0; y <= y1; y++) {
         for (let x = x0; x <= x1; x++) {
           const dx = x - px, dy = y - py;
-          if (dx * dx + dy * dy > r2) continue;
-          if (Math.random() < 0.4) continue; // grano
+          const d2 = dx * dx + dy * dy;
+          if (d2 > r2) continue;
           const idx = y * W + x;
           if (wallMask[idx]) continue;
-          compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2], 0.55);
+          const grano = ruido(x, y);
+          if (grano < 0.34) continue;               // fibra que no agarra color
+          const falloff = 1 - Math.sqrt(d2) / r;
+          compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2],
+                        0.30 * (0.35 + 0.65 * falloff) * (0.5 + grano * 0.5));
         }
       }
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
@@ -807,7 +867,33 @@
       pctx.putImageData(paintData, 0, 0, bx, by, bw, bh);
     }
 
+    // Borrador: borra POR TRAZO, no la región entera. Antes era un balde
+    // al revés —un toque y desaparecía todo el color de esa zona—, y así
+    // no se puede corregir un pedacito. Deja el píxel transparente, o sea
+    // se ve la hoja; las líneas del dibujo van en el otro lienzo y no se
+    // tocan nunca. Tampoco mira wallMask: tiene que limpiar todo lo que
+    // encuentre, incluso lo que quedó pegado contra una línea.
+    function stampEraser(px, py, radius) {
+      const data = paintData.data;
+      // Más gordo que el pincel: un borrador de verdad es un ladrillo, y
+      // para un chico de 2 a 5 años tiene que perdonar la puntería.
+      const r = Math.max(4, Math.round(radius * 1.5));
+      const r2 = r * r;
+      const x0 = Math.max(0, px - r), x1 = Math.min(W - 1, px + r);
+      const y0 = Math.max(0, py - r), y1 = Math.min(H - 1, py + r);
+      for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
+          const dx = x - px, dy = y - py;
+          if (dx * dx + dy * dy > r2) continue;
+          const p = (y * W + x) * 4;
+          data[p] = 0; data[p + 1] = 0; data[p + 2] = 0; data[p + 3] = 0;
+        }
+      }
+      pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+    }
+
     function applyStroke(tool, x, y, rgba, radius) {
+      if (tool === 'eraser') { stampEraser(x, y, radius); return; }
       if (tool === 'marker') stampMarker(x, y, rgba, radius);
       else if (tool === 'pencil') stampPencil(x, y, rgba, radius);
       else if (tool === 'brush') stampBrush(x, y, rgba, radius);
@@ -850,8 +936,6 @@
       const [x, y] = getCanvasPixel(evt);
       if (state.tool === 'bucket') {
         fillRegionAt(x, y, [...hexToRgb(state.color), 255]);
-      } else if (state.tool === 'eraser') {
-        fillRegionAt(x, y, [0, 0, 0, 0]);
       } else {
         drawing = true;
         lastX = x; lastY = y;
