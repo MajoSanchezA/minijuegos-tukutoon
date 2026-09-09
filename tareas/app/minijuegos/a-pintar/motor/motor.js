@@ -815,11 +815,23 @@
           if (agua <= 0) continue;
           if (wallMask[idx]) continue;
           const mojado = Math.min(1, agua);
+          // El cuerpo de la pintura tapa: con poca agua ya llega a
+          // opaco. Esto es lo que hace que se vea el color que el chico
+          // eligió y no una versión lavada de ese color — antes el trazo
+          // no pasaba de 0,63 de opacidad y sobre la hoja crema eso
+          // devuelve otro color, más claro y más apagado.
+          // 2,2 y no 1,5: la pintura tapa rápido y el degradé del borde
+          // queda angosto. Con un borde ancho el trazo parece soplado
+          // con aerógrafo en vez de apoyado con un pincel.
+          const cuerpo = Math.min(1, mojado * 2.2);
           // Campana centrada donde el agua empieza a escasear: ahí queda
-          // la orilla oscura.
-          const orilla = Math.exp(-Math.pow((mojado - 0.62) / 0.2, 2));
-          const alpha = (0.38 * mojado + 0.26 * orilla) * (0.75 + ruido(x, y) * 0.5);
-          sobreFondo(data, idx * 4, rgba[0], rgba[1], rgba[2], Math.min(0.85, alpha));
+          // la orilla. Ya no la marca subiendo el alfa —el trazo va casi
+          // opaco— sino OSCURECIENDO el pigmento, que es lo que pasa de
+          // verdad cuando el agua lo arrastra a la orilla y se seca.
+          const orilla = Math.exp(-Math.pow((mojado - 0.55) / 0.22, 2));
+          const k = 1 - 0.2 * orilla;
+          const alpha = cuerpo * (0.93 + ruido(x, y) * 0.07);
+          sobreFondo(data, idx * 4, rgba[0] * k, rgba[1] * k, rgba[2] * k, alpha);
         }
       }
       if (!acuaBox) acuaBox = [x0, y0, x1, y1];
@@ -869,12 +881,16 @@
           const idx = y * W + x;
           if (wallMask[idx]) continue;
           const caida = 1 - Math.sqrt(d2) / radius;
-          compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2], 0.04 + 0.08 * caida);
+          // El color va fuerte, como cualquier otra herramienta: la
+          // brillantina no es una herramienta pálida, es una herramienta
+          // CON BRILLOS. Con el velo casi transparente que tenía antes,
+          // el chico elegía un color y le salía otro.
+          compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2], 0.75 + 0.25 * caida);
         }
       }
       // Las escamas SÍ van al azar: tienen que titilar por todos lados
       // mientras el chico arrastra, no quedarse pegadas a la hoja.
-      const cuantas = 2 + Math.floor(Math.random() * 3);
+      const cuantas = 3 + Math.floor(Math.random() * 4);
       for (let i = 0; i < cuantas; i++) {
         const ang = Math.random() * Math.PI * 2;
         const dist = Math.sqrt(Math.random()) * radius;
@@ -882,7 +898,7 @@
         const cy = Math.round(py + Math.sin(ang) * dist);
         if (cx < 0 || cx >= W || cy < 0 || cy >= H) continue;
         const suerte = Math.random();
-        const grande = Math.random() < 0.28 ? 1 : 0;
+        const grande = Math.random() < 0.4 ? 1 : 0;
         if (suerte < 0.45)      escama(data, cx, cy, 255, 255, 255, grande);          // plata
         else if (suerte < 0.7)  escama(data, cx, cy, 255, 240, 170, grande);          // oro
         else escama(data, cx, cy,                                                      // el color, subido
@@ -920,10 +936,13 @@
           const veta = ruido(Math.floor(u / 10), Math.floor(v));
           const papel = ruido(x, y);            // el grano fijo de la hoja
           const agarre = 0.5 * papel + 0.5 * veta;
-          if (agarre < 0.42) continue;          // fibra que no agarra color
+          if (agarre < 0.30) continue;          // fibra que no agarra color
           const caida = 1 - Math.sqrt(d2) / radius;
+          // La fibra que agarra, agarra FUERTE: el color tiene que ser el
+          // que el chico eligió. Lo que hace de textura es el papel que
+          // queda sin pintar entre fibra y fibra, no un color lavado.
           compositeOver(data, idx * 4, rgba[0], rgba[1], rgba[2],
-                        0.34 * (0.45 + 0.55 * caida) * agarre);
+                        1.0 * (0.5 + 0.5 * caida) * agarre);
         }
       }
       pctx.putImageData(paintData, 0, 0, x0, y0, x1 - x0 + 1, y1 - y0 + 1);

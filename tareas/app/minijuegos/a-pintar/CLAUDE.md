@@ -207,13 +207,26 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
 - Capas: canvas de pintura debajo (`#paint-canvas`) + canvas de tinta (líneas) encima
   (`#ink-canvas`). Los trazos nunca pisan las líneas (se respeta `wallMask`).
 - Herramientas (`TOOLS` en motor.js): la barra muestra **cinco**, y cada una tiene que
-  SENTIRSE distinta al arrastrar — si todas dejan la misma mancha, sobran cuatro:
+  SENTIRSE distinta al arrastrar — si todas dejan la misma mancha, sobran cuatro. Pero hay una
+  regla que va ANTES que el realismo:
+  - **El color que sale tiene que ser el que el chico eligió.** La primera versión de estos
+    materiales era fiel a la física y muy translúcida: la acuarela no pasaba de 0,63 de
+    opacidad y la brillantina pintaba un velo de 0,12. Sobre la hoja crema eso no devuelve un
+    color más claro, devuelve OTRO color — tocás un rosa fuerte y te sale un malva lavado. La
+    textura del material tiene que salir del grano, del borde y de los brillos, nunca de bajarle
+    el color. Medido contra el color de la paleta (distancia RGB sobre 255): acuarela 30,
+    brillantina 56 y lápiz 84 de una pasada. El lápiz queda más lejos a propósito, porque el
+    papel sin pintar entre fibra y fibra ES el material.
+
   - **Balde**: el único que no es trazo. Rellena la región entera de un toque.
-  - **Acuarela** (`stampBrush`): lo que la hace acuarela y no un aerógrafo es el **borde
-    mojado** — el agua arrastra el pigmento hacia la orilla y al secarse deja ahí una franja
+  - **Acuarela** (`stampBrush`): tapa (llega a opaca con poca agua) y el degradé del borde es
+    angosto — con un borde ancho el trazo parece soplado con aerógrafo en vez de apoyado con un
+    pincel. Lo que la hace acuarela y no un marcador es el **borde mojado** — el agua arrastra el pigmento hacia la orilla y al secarse deja ahí una franja
     más oscura que en el medio. Eso no sale de un estampado suelto, porque el estampado no sabe
     dónde termina el trazo: el agua se va acumulando en una máscara (`acuaMask`) y el color se
-    recompone mirándola, con una campana centrada donde el agua empieza a escasear. Cada trazo
+    recompone mirándola, con una campana centrada donde el agua empieza a escasear. La orilla
+    NO se marca subiendo el alfa —el trazo va casi opaco— sino **oscureciendo el pigmento**, que
+    es lo que pasa de verdad cuando el agua lo arrastra al borde y se seca. Cada trazo
     es UNA aguada: se compone sobre una foto de la pintura tomada al apretar (`acuaFondo`), así
     que repasar quince veces adentro del mismo trazo no lo pone quince veces más oscuro, pero
     levantar el dedo y volver a pasar SÍ superpone otra aguada. Es como se comporta la de
