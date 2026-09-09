@@ -219,14 +219,21 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
     papel sin pintar entre fibra y fibra ES el material.
 
   - **Balde**: el único que no es trazo. Rellena la región entera de un toque.
-  - **Acuarela** (`stampBrush`): tapa (llega a opaca con poca agua) y el degradé del borde es
-    angosto — con un borde ancho el trazo parece soplado con aerógrafo en vez de apoyado con un
-    pincel. Lo que la hace acuarela y no un marcador es el **borde mojado** — el agua arrastra el pigmento hacia la orilla y al secarse deja ahí una franja
+  - **Acuarela** (`stampBrush`): tapa, y **el borde es corto**. Este es el punto que más veces
+    salió mal: con el degradé largo —una campana que se apaga a lo largo de casi todo el radio—
+    un color fuerte con halo difuso alrededor se ve como **NEÓN**, un tubo de luz y no pintura.
+    La máscara de agua va con meseta y caída corta, y el filo se corre un poco según el papel,
+    porque dos bordes rectos y paralelos parecen cinta pegada. La variación del pincel va en el
+    **pigmento** (los pelos no depositan parejo) y **no en la transparencia**: variando la
+    transparencia el trazo se vuelve translúcido y disparejo, que otra vez es aspecto de luz y
+    no de materia. Lo que la hace acuarela y no un marcador es el **borde mojado** — el agua arrastra el pigmento hacia la orilla y al secarse deja ahí una franja
     más oscura que en el medio. Eso no sale de un estampado suelto, porque el estampado no sabe
     dónde termina el trazo: el agua se va acumulando en una máscara (`acuaMask`) y el color se
     recompone mirándola, con una campana centrada donde el agua empieza a escasear. La orilla
     NO se marca subiendo el alfa —el trazo va casi opaco— sino **oscureciendo el pigmento**, que
-    es lo que pasa de verdad cuando el agua lo arrastra al borde y se seca. Cada trazo
+    es lo que pasa de verdad cuando el agua lo arrastra al borde y se seca. Y va justo ADENTRO
+    del borde, donde la pintura ya tapa: así se lee como una línea que encierra el trazo, no
+    como un resplandor que se escapa hacia afuera. Cada trazo
     es UNA aguada: se compone sobre una foto de la pintura tomada al apretar (`acuaFondo`), así
     que repasar quince veces adentro del mismo trazo no lo pone quince veces más oscuro, pero
     levantar el dedo y volver a pasar SÍ superpone otra aguada. Es como se comporta la de

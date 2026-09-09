@@ -786,7 +786,7 @@
     // trazo—, así que se acumula el agua en `acuaMask` y el color se
     // recompone mirando esa máscara: donde hay poca agua (la orilla) el
     // pigmento se concentra.
-    function stampBrush(px, py, rgba, radius) {
+    function stampBrush(px, py, rgba, radius, ux, uy) {
       const data = paintData.data;
       const r2 = radius * radius;
       // 1) mojar
@@ -797,12 +797,22 @@
           const dx = x - px, dy = y - py;
           const d2 = dx * dx + dy * dy;
           if (d2 > r2) continue;
-          const caida = 1 - Math.sqrt(d2) / radius;
+          // Meseta con caída CORTA, no una campana. Con una campana el
+          // color se apaga a lo largo de casi todo el radio del pincel, y
+          // un color fuerte con halo difuso alrededor es justo lo que se
+          // ve como NEÓN. La pintura tiene el borde corto.
+          const t = Math.sqrt(d2) / radius;
+          // El filo no es perfecto: se corre un poco según el papel. Sin
+          // esto el trazo tiene dos bordes rectos y paralelos y parece
+          // cinta pegada, no pintura apoyada.
+          const filo = 0.82 + (ruido(x, y) - 0.5) * 0.12;
+          const perfil = t < filo ? 1 : (1 - t) / (1 - filo);
           const idx = y * W + x;
           // El tope corta el oscurecimiento adentro del mismo trazo.
-          acuaMask[idx] = Math.min(1.2, acuaMask[idx] + caida * caida * 0.6);
+          acuaMask[idx] = Math.min(1.2, acuaMask[idx] + perfil * 0.75);
         }
       }
+      const dirX = ux || 1, dirY = uy || 0;
       // 2) recomponer, con un margen: al alargarse el trazo, la orilla
       //    de hace un momento pasa a ser el medio y hay que repintarla.
       const m = Math.ceil(radius * 0.5);
@@ -823,15 +833,23 @@
           // 2,2 y no 1,5: la pintura tapa rápido y el degradé del borde
           // queda angosto. Con un borde ancho el trazo parece soplado
           // con aerógrafo en vez de apoyado con un pincel.
-          const cuerpo = Math.min(1, mojado * 2.2);
+          const cuerpo = Math.min(1, mojado * 1.6);
           // Campana centrada donde el agua empieza a escasear: ahí queda
           // la orilla. Ya no la marca subiendo el alfa —el trazo va casi
           // opaco— sino OSCURECIENDO el pigmento, que es lo que pasa de
           // verdad cuando el agua lo arrastra a la orilla y se seca.
-          const orilla = Math.exp(-Math.pow((mojado - 0.55) / 0.22, 2));
-          const k = 1 - 0.2 * orilla;
-          const alpha = cuerpo * (0.93 + ruido(x, y) * 0.07);
-          sobreFondo(data, idx * 4, rgba[0] * k, rgba[1] * k, rgba[2] * k, alpha);
+          // La orilla queda justo ADENTRO del borde, donde la pintura ya
+          // tapa: así se lee como una línea más oscura que encierra el
+          // trazo, no como un resplandor que se escapa hacia afuera.
+          const orilla = Math.exp(-Math.pow((mojado - 0.85) / 0.13, 2));
+          // Los pelos del pincel no depositan parejo. La variación va en
+          // el PIGMENTO y no en la transparencia: variando la
+          // transparencia el trazo se vuelve translúcido y disparejo, que
+          // es otra vez el aspecto de luz y no de pintura.
+          const u = x * dirX + y * dirY, v = -x * dirY + y * dirX;
+          const pelo = ruido(Math.floor(u / 14), Math.floor(v / 2));
+          const k = (1 - 0.22 * orilla) * (0.95 + 0.1 * pelo);
+          sobreFondo(data, idx * 4, rgba[0] * k, rgba[1] * k, rgba[2] * k, cuerpo);
         }
       }
       if (!acuaBox) acuaBox = [x0, y0, x1, y1];
@@ -1042,7 +1060,7 @@
       if (tool === 'eraser') { stampEraser(x, y, radius); return; }
       if (tool === 'marker') stampMarker(x, y, rgba, radius);
       else if (tool === 'pencil') stampPencil(x, y, rgba, radius, ux, uy);
-      else if (tool === 'brush') stampBrush(x, y, rgba, radius);
+      else if (tool === 'brush') stampBrush(x, y, rgba, radius, ux, uy);
       else if (tool === 'spray') stampSpray(x, y, rgba, radius);
       else if (tool === 'glitter') stampGlitter(x, y, rgba, radius);
     }
