@@ -32,7 +32,18 @@
      vocal      si viene (ej. 'A'), la pagina muestra SOLO esa vocal y encadena
                 sus dos formas: primero la mayuscula, y al terminarla pasa sola
                 a la minuscula. Es el modo que usa el menu. Sin `vocal`, la
-                pagina muestra las cinco con el selector de abajo.
+                pagina muestra las cinco con el selector de abajo. En el juego
+                de numeros el equivalente es `solo` (ej. solo:'3'), que muestra
+                una sola cifra — ahi no hay dos formas que encadenar.
+     nombreItem como se nombra cada item en los aria-label (default 'Vocal';
+                el juego de numeros pasa 'Numero')
+
+   VOCALES O NUMEROS
+   El motor no sabe si lo que traza son letras o numeros: recibe `letras` y
+   usa siempre forma(v) = v[caso]. Si NINGUN item trae `minus` (el caso de
+   los numeros) el boton Aa ni se muestra, el modo de a uno no encadena nada
+   y el selector pasa a modo compacto para que entren las diez cifras. Ver
+   numeros/numeros.js.
 
    COMO FUNCIONA EL TRAZADO
    - Cada trazo es un path abierto que se muestrea cada SAMPLE_STEP unidades
@@ -90,16 +101,22 @@ function TukuToonTracePage(cfg){
   // vinculo entre mayuscula y minuscula no es obvio a los 2-5 anos, y verlas
   // como dos caras de la misma vocal es justamente lo que hay que ensenar.
   var unaSola = false;
-  if(cfg.vocal && VOWELS){
-    var solo = VOWELS.filter(function(v){
-      return v.letter.toUpperCase() === String(cfg.vocal).toUpperCase(); });
-    if(solo.length){ VOWELS = solo; unaSola = true; }
+  var pedido = cfg.solo || cfg.vocal;   // `solo` es el nombre generico
+  if(pedido && VOWELS){
+    var uno = VOWELS.filter(function(v){
+      return v.letter.toUpperCase() === String(pedido).toUpperCase(); });
+    if(uno.length){ VOWELS = uno; unaSola = true; }
   }
   if(!VOWELS || !VOWELS.length){
     document.body.innerHTML = '<p style="font:16px sans-serif;padding:24px">' +
       'No llegaron las letras: falta cargar vocales.js antes que el motor.</p>';
     return;
   }
+
+  // ¿hay minusculas? Las vocales si; los numeros no, y de ahi salen las
+  // tres diferencias de esta pagina (boton Aa, encadenado, selector).
+  var HAY_MINUS = VOWELS.some(function(v){ return !!v.minus; });
+  var NOMBRE_ITEM = cfg.nombreItem || 'Vocal';
 
   buildDOM(cfg);
 
@@ -174,7 +191,7 @@ function buildDOM(cfg){
 /* Mayuscula o minuscula. La forma activa sale siempre de forma(v), nunca
    de v.strokes directo, asi agregar otro caso (cursiva, por ejemplo) es
    sumar una clave mas a cada vocal. */
-var caso = cfg.caso || 'mayus';
+var caso = (HAY_MINUS && cfg.caso) ? cfg.caso : 'mayus';
 function forma(v){ return v[caso]; }
 function letraDe(v){ return caso === 'mayus' ? v.letter : v.letter.toLowerCase(); }
 
@@ -268,6 +285,8 @@ function saveDone(){
 function buildStars(){
   var box = document.getElementById('stars');
   box.innerHTML = '';
+  // idem el selector: con diez items las estrellas no entran en el header
+  box.className = 'stars' + (VOWELS.length > 7 ? ' compacto' : '');
   VOWELS.forEach(function(v){
     var s = document.createElementNS(SVG_NS, 'svg');
     s.setAttribute('viewBox', '0 0 100 100');
@@ -281,6 +300,20 @@ function buildStars(){
 function buildPicker(){
   var box = document.getElementById('picker');
   box.innerHTML = '';
+  // con muchos items (las diez cifras) los botones se achican y envuelven
+  box.className = VOWELS.length > 7 ? 'compacto' : '';
+
+  if(unaSola && !HAY_MINUS){
+    // una sola cifra: no hay par que mostrar, solo ella
+    var u = VOWELS[0];
+    var bu = document.createElement('button');
+    bu.className = 'vbtn sel' + (done.indexOf(letraDe(u)) >= 0 ? ' done' : '');
+    bu.style.setProperty('--c', u.color);
+    bu.textContent = letraDe(u);
+    bu.setAttribute('aria-label', NOMBRE_ITEM + ' ' + letraDe(u));
+    box.appendChild(bu);
+    return;
+  }
 
   if(unaSola){
     // el par de la vocal: A y a, con la activa marcada y la hecha con tilde
@@ -306,7 +339,7 @@ function buildPicker(){
     b.className = 'vbtn' + (i === vIdx ? ' sel' : '') + (done.indexOf(letraDe(v)) >= 0 ? ' done' : '');
     b.style.setProperty('--c', v.color);
     b.textContent = letraDe(v);
-    b.setAttribute('aria-label', 'Vocal ' + letraDe(v));
+    b.setAttribute('aria-label', NOMBRE_ITEM + ' ' + letraDe(v));
     // el selector nunca se bloquea: cambiar de vocal siempre es seguro, incluso
     // durante el festejo (si no, queda mudo hasta que aparece la tarjeta)
     b.addEventListener('click', function(){ hideCard(); loadVowel(i); });
@@ -319,7 +352,7 @@ function refreshChrome(){
   cardEl.style.setProperty('--c', VOWELS[vIdx].color);
   var cb = document.getElementById('caso-btn');
   // en modo una vocal el flujo encadena las dos formas: el boton sobra
-  cb.style.display = unaSola ? 'none' : '';
+  cb.style.display = (unaSola || !HAY_MINUS) ? 'none' : '';
   cb.textContent = caso === 'mayus' ? 'Aa' : 'aA';
   cb.className = 'icon-btn caso-btn' + (caso === 'minus' ? ' min' : '');
 }
@@ -784,7 +817,7 @@ function completeLetter(){
   }
 
   promptEl.textContent = '¡Muy bien! 🎉';
-  setTimeout(function(){ speak(v.letter); }, 420);
+  setTimeout(function(){ speak(v.decir || v.letter); }, 420);
   setTimeout(function(){ speak(v.word); }, 1250);
   setTimeout(showCard, 900);
 }
@@ -909,13 +942,27 @@ function runFx(){
 function showCard(){
   var v = VOWELS[vIdx];
   cardEl.style.setProperty('--c', v.color);
-  document.getElementById('card-emoji').textContent = v.emoji;
+  // `cantidad` (numeros): el emoji se repite para poder contarlo
+  var emojiBox = document.getElementById('card-emoji');
+  emojiBox.textContent = v.cantidad ? repetir(v.emoji, v.cantidad) : v.emoji;
+  emojiBox.className = 'card-emoji' + (v.cantidad > 3 ? ' muchos' : '');
+
+  // 'Abeja' con la A destacada; con los numeros ('1' / 'Uno') no hay inicial
+  // que resaltar, se muestran los dos: el simbolo y la palabra
+  var ch = letraDe(v), w = v.word;
   document.getElementById('card-word').innerHTML =
-    '<b>' + letraDe(v) + '</b>' + v.word.slice(1).toLowerCase();
+    (w.charAt(0).toLowerCase() === ch.toLowerCase())
+      ? '<b>' + ch + '</b>' + w.slice(1).toLowerCase()
+      : '<b>' + ch + '</b> ' + w;
   if(unaSola && cfg.menuHref){
     document.getElementById('btn-next').innerHTML = 'Al men\u00fa \u2192';
   }
   cardEl.classList.add('show');
+}
+function repetir(emoji, n){
+  var out = '';
+  for(var i = 0; i < n; i++){ out += emoji; }
+  return out;
 }
 function hideCard(){ cardEl.classList.remove('show'); }
 
