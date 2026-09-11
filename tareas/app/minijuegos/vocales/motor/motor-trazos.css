@@ -278,3 +278,16 @@ footer{position:relative;z-index:2;flex:0 0 auto;display:flex;
   .face .eyes{animation:none}
   .card-box{animation:none}
 }
+
+/* Muchos items (las diez cifras del juego de numeros): el selector y las
+   estrellas se achican para que entren todos en un celular angosto. */
+footer.compacto{gap:clamp(3px,1.2vw,10px);padding-left:4px;padding-right:4px;flex-wrap:wrap}
+footer.compacto .vbtn{
+  width:clamp(30px,7.6vw,54px);height:clamp(30px,7.6vw,54px);border-radius:16px;
+  font-size:clamp(16px,4.2vw,28px);
+}
+.stars.compacto{gap:2px;flex-wrap:wrap;justify-content:flex-end;max-width:52vw}
+.stars.compacto .star{width:clamp(14px,3.8vw,22px);height:clamp(14px,3.8vw,22px)}
+
+/* Varios emojis para contar en la tarjeta (numeros): mas chicos y envueltos */
+.card-emoji.muchos{font-size:clamp(24px,7vw,40px);line-height:1.25;word-break:break-word}
