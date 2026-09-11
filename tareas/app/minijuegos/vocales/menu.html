@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>TukuToon · Las vocales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Comfortaa:wght@400;700&family=Plus+Jakarta+Sans:wght@600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overscroll-behavior:none}
+body{
+  /* 100dvh, nunca 100vh: el chrome dinamico del navegador movil corta la pantalla */
+  height:100vh; height:100dvh;
+  font-family:'Comfortaa',system-ui,-apple-system,sans-serif;
+  color:#2B2140;
+  /* el celeste de las paredes del aula, por si la ilustracion tarda en cargar */
+  background:#2E9BB8;
+  overflow:hidden;
+  display:flex; flex-direction:column; justify-content:space-between;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* ---------- encabezado ---------- */
+header{
+  position:relative;z-index:3;flex:0 0 auto;text-align:center;
+  padding:clamp(8px,2.4vh,20px) 16px clamp(4px,1vh,8px);
+}
+h1{
+  font-family:'Fredoka',sans-serif;font-weight:600;color:#fff;
+  font-size:clamp(18px,5vw,30px);margin:0;line-height:1.1;
+  text-shadow:0 2px 0 rgba(0,0,0,.14);
+}
+h1 small{
+  display:block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;
+  font-size:.46em;opacity:.85;letter-spacing:.06em;margin-top:2px;
+}
+
+/* ---------- el aula ---------- */
+.aula{position:fixed;inset:0;z-index:0;overflow:hidden}
+/* Relleno: la misma ilustracion, borrosa y a pantalla completa. Solo asoma
+   en pantallas mas angostas que la escena (el celular parado), donde un
+   16:9 no llega a cubrir sin comerse el pizarron por los costados. */
+.aula::before{
+  content:'';position:absolute;inset:0;
+  background:url(fondo-menu.png) center/cover no-repeat;
+  filter:blur(26px) brightness(.62) saturate(.9);transform:scale(1.12);
+}
+/* Velo arriba y abajo: el titulo y el pie caen sobre el dibujo y sin esto
+   el blanco se pierde contra el techo claro del aula. */
+.aula::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(18,26,40,.34) 0%,rgba(18,26,40,0) 17%,
+                             rgba(18,26,40,0) 83%,rgba(18,26,40,.3) 100%);
+}
+.escena{
+  /* Proporcion fija 16:9, la del PNG: las vocales van posicionadas en
+     porcentajes sobre el pizarron que ya trae dibujado la ilustracion, asi
+     que la caja tiene que conservar la forma de la foto o se desalinean.
+     Se agranda hasta tapar la pantalla, pero nunca mas de 145vw: pasado
+     ese punto el pizarron se empieza a ir de la pantalla por los costados. */
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  aspect-ratio:16/9;
+  width:min(max(100vw, calc(100dvh * 16 / 9)), 145vw);
+}
+.escena .foto{
+  position:absolute;inset:0;display:block;
+  width:100%;height:100%;object-fit:cover;
+}
+
+/* ---------- el pizarron ---------- */
+/* Caja invisible: es el rectangulo verde de la ilustracion, medido sobre el
+   PNG (x 18.1%-82.5%, y 24.5%-88.1%) y metido un pelin hacia adentro para que
+   ninguna vocal se apoye en el marco naranja. */
+.pizarron{position:absolute;left:19%;top:26%;width:62%;height:60%}
+
+/* ---------- cada vocal, suelta sobre el pizarron ---------- */
+.vocal{
+  position:absolute;display:flex;flex-direction:column;align-items:center;gap:2px;
+  text-decoration:none;color:inherit;cursor:pointer;touch-action:manipulation;
+  transition:transform .14s;
+}
+.vocal:active{transform:scale(.93) rotate(0deg) !important}
+.vocal:focus-visible{outline:4px solid #FFD84D;outline-offset:6px;border-radius:14px}
+.vocal .par{display:flex;align-items:flex-end;justify-content:center;width:100%}
+.vocal img{display:block;width:50%;height:auto;aspect-ratio:1;object-fit:contain}
+/* Sobre el verde del pizarron el contorno ocre del arte original se pierde:
+   la letra que todavia falta se pinta de blanco, como tiza. La que ya esta
+   hecha va a color, con una sombra que la despega del verde. */
+.vocal img.pendiente{filter:brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.35));opacity:.92}
+.vocal img.hecha{filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.vocal .palabra{
+  /* pastilla del color de la vocal: contra el verde, el texto suelto a color
+     no se leia (el rojo y el violeta se apagan contra el fondo) */
+  font-family:'Fredoka',sans-serif;font-weight:600;color:#2B2140;
+  font-size:clamp(11px,1.6vw,20px);white-space:nowrap;
+  display:flex;align-items:center;gap:4px;margin-top:-4%;
+  background:var(--c);border-radius:999px;
+  padding:2px clamp(6px,1vw,10px);
+  box-shadow:0 2px 0 rgba(0,0,0,.2);
+}
+.vocal .estrellas{
+  position:absolute;top:-4%;right:2%;font-size:clamp(12px,2vw,26px);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.25));
+}
+
+/* Distribucion suelta, no en fila. Cada una con su leve inclinacion, como
+   letras magneticas pegadas en el pizarron por una mano de tres anos.
+   La esquina de abajo a la derecha queda libre a proposito: ahi entra el
+   puntero de la maestra de la ilustracion. */
+.v-A{left:0%;  top:2%;  width:31%; transform:rotate(-3deg)}
+.v-E{left:34%; top:7%;  width:30%; transform:rotate(2deg)}
+.v-I{left:70%; top:1%;  width:27%; transform:rotate(-2deg)}
+.v-O{left:10%; top:52%; width:31%; transform:rotate(3deg)}
+.v-U{left:45%; top:55%; width:30%; transform:rotate(-2deg)}
+
+/* ---------- pie ---------- */
+footer{
+  position:relative;z-index:3;flex:0 0 auto;text-align:center;
+  padding:clamp(8px,1.6vh,14px) 16px max(8px,env(safe-area-inset-bottom));
+}
+.reinicio{
+  border:none;background:rgba(255,255,255,.22);color:#fff;
+  font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;font-size:12px;
+  letter-spacing:.04em;border-radius:20px;padding:7px 16px;cursor:pointer;
+  touch-action:manipulation;
+}
+.reinicio:active{background:rgba(255,255,255,.32)}
+
+/* Celular acostado: queda poco alto y el titulo y el pie se comen el
+   pizarron. Se achican los dos para que no lo tapen. */
+@media (orientation:landscape) and (max-height:520px){
+  header{padding:5px 12px 2px}
+  h1{font-size:clamp(15px,3.6vh,22px)}
+  footer{padding:5px 12px max(5px,env(safe-area-inset-bottom))}
+  .reinicio{font-size:11px;padding:5px 13px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .vocal{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="aula">
+  <div class="escena">
+    <img class="foto" src="fondo-menu.png" alt="" aria-hidden="true">
+    <div class="pizarron" id="pizarron"></div>
+  </div>
+</div>
+
+<header>
+  <h1>Las vocales<small>ELEGÍ UNA PARA TRAZARLA</small></h1>
+</header>
+
+<footer><button class="reinicio" id="reinicio">Empezar de nuevo</button></footer>
+
+<script src="vocales.js"></script>
+<script>
+(function(){
+'use strict';
+
+var STORE_KEY = 'tukutoon:vocales:completadas';
+
+function hechas(){
+  try{
+    var raw = localStorage.getItem(STORE_KEY);
+    var a = raw ? JSON.parse(raw) : [];
+    return Array.isArray(a) ? a : [];
+  }catch(e){ return []; }
+}
+
+function pintar(){
+  var listas = hechas();
+  var box = document.getElementById('pizarron');
+  box.innerHTML = '';
+
+  VOCALES.forEach(function(v){
+    var may = v.letter, min = v.letter.toLowerCase();
+    var nMay = listas.indexOf(may) >= 0, nMin = listas.indexOf(min) >= 0;
+
+    var a = document.createElement('a');
+    a.className = 'vocal v-' + may;
+    a.href = 'trazos-vocales-tukutoon.html?vocal=' + may;
+    a.style.setProperty('--c', v.color);
+    a.setAttribute('aria-label',
+      'Vocal ' + may + ' ' + min + ', ' + v.word +
+      (nMay && nMin ? '. Completa' : (nMay || nMin) ? '. A medias' : ''));
+
+    // Las dos formas juntas: que el chico vea desde el menu que la A y la a
+    // son la misma vocal. A color si ya la hizo, en contorno si no — asi el
+    // pizarron es tambien el mapa de lo que lleva hecho.
+    var par = document.createElement('div');
+    par.className = 'par';
+    [[v.mayus, nMay, may], [v.minus, nMin, min]].forEach(function(f){
+      // .pendiente pinta la imagen de blanco, como tiza. Solo vale para el
+      // contorno: si una letra no lo tuviera y cayera al arte a color, el
+      // filtro la dejaria como una mancha blanca.
+      var hueca = !f[1] && !!f[0].contorno;
+      var img = document.createElement('img');
+      img.src = hueca ? f[0].contorno : f[0].arte;
+      img.className = hueca ? 'pendiente' : 'hecha';
+      img.alt = f[2];
+      par.appendChild(img);
+    });
+    a.appendChild(par);
+
+    var p = document.createElement('div');
+    p.className = 'palabra';
+    p.innerHTML = '<span>' + v.emoji + '</span>' + v.word;
+    a.appendChild(p);
+
+    if(nMay || nMin){
+      var e = document.createElement('div');
+      e.className = 'estrellas';
+      e.textContent = (nMay && nMin) ? '⭐⭐' : '⭐';
+      a.appendChild(e);
+    }
+
+    box.appendChild(a);
+  });
+}
+
+document.getElementById('reinicio').addEventListener('click', function(){
+  try{ localStorage.removeItem(STORE_KEY); }catch(e){}
+  pintar();
+});
+
+// al volver del juego (incluso desde el cache de atras) se repinta el progreso
+window.addEventListener('pageshow', pintar);
+pintar();
+
+})();
+</script>
+
+</body>
+</html>

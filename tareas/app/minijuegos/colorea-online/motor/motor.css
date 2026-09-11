@@ -18,6 +18,42 @@
   --plum:#3D2C4E;
   --plum-soft:#7A6A8A;
 }
+
+/* ============================================================
+   GRID TUKUTOON — de la guía "TukuToon App UI Style Guideline".
+     Mobile   918x413 : 4 columnas de 200px + medianil 24px = 872px
+     Tablet  1024x768 : 6 columnas de 140px + medianil 24px = 960px
+   Los dos son "tipo Centro": el bloque de grilla va centrado y el resto
+   del ancho queda repartido como margen a los costados.
+
+   El breakpoint mira el LADO LARGO de la pantalla, no el ancho: con el
+   truco de horizontal forzado (más abajo) el teléfono en vertical se
+   renderiza como 100vh de ancho, pero las media queries siguen viendo el
+   viewport real — por eso "tablet" se detecta como landscape+min-width o
+   portrait+min-height.
+
+   Mismo bloque que en css/style.css (el menú): los dos archivos son
+   independientes, no hay un CSS de tokens compartido todavía.
+   ============================================================ */
+:root{
+  --medianil:24px;
+  --col:200px;
+  --grid-max:872px;                                  /* 4*200 + 3*24 */
+  --card:var(--col);            /* columnas que abarca una tarjeta: 1 */
+
+  /* Escala de spacing de la guía */
+  --sp-8:8px;   --sp-16:16px; --sp-24:24px; --sp-32:32px; --sp-40:40px;
+  --sp-64:64px; --sp-80:80px; --sp-96:96px; --sp-120:120px;
+}
+@media (orientation:landscape) and (min-width:1024px),
+       (orientation:portrait) and (min-height:1024px){
+  :root{
+    --col:140px;
+    --grid-max:960px;                                /* 6*140 + 5*24 */
+    --card:calc(var(--col) * 2 + var(--medianil));   /* 2 columnas = 304px */
+  }
+}
+
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html{-webkit-text-size-adjust:100%; height:100%;}
 
@@ -93,8 +129,8 @@ header{
   display:grid;
   grid-template-columns:auto 1fr auto;
   align-items:center;
-  gap:8px;
-  padding:26px 16px 4px;
+  gap:var(--sp-8);
+  padding:var(--sp-24) var(--sp-24) var(--sp-8);
   position:relative;
   z-index:3;
   flex:none;
@@ -152,7 +188,7 @@ header{
 }
 .pill h1 span{color:var(--coral);}
 .pill p{
-  margin:4px 0 0;
+  margin:var(--sp-8) 0 0;
   color:var(--plum-soft);
   font-weight:600;
   font-size:12.5px;
@@ -162,14 +198,14 @@ header{
    barras de pinceles/colores quedan a los costados para no robarle
    ancho al lienzo. */
 .app{
-  max-width:1180px;
+  max-width:var(--grid-max);
   width:100%;
-  margin:14px auto;
-  padding:0 16px;
+  margin:var(--sp-16) auto;
+  padding:0 var(--sp-24);
   display:flex;
   align-items:stretch;
   justify-content:center;
-  gap:18px;
+  gap:var(--medianil);
   position:relative;
   z-index:2;
   flex:none;
@@ -197,12 +233,12 @@ header{
    chico), así que se comprimen los espacios verticales para que todo
    entre sin scroll. */
 @media (orientation:landscape) and (max-height:500px), (orientation:portrait) and (max-width:500px){
-  header{padding:8px 16px 2px;}
+  header{padding:var(--sp-8) var(--sp-24) 2px;}
   .back-btn, .back-btn-spacer{width:36px; height:36px;}
   .back-btn svg{width:16px;height:16px;}
   .pill{padding:8px 22px 8px 54px;}
   .pill p{display:none;}
-  .app{margin:8px auto; gap:12px;}
+  .app{margin:var(--sp-8) auto; gap:var(--sp-16);}
   .tool-btn{width:42px; height:42px;}
   .tool-btn svg{width:17px;height:17px;}
   .nav-arrow{width:40px;height:40px;}
@@ -238,7 +274,7 @@ header{
   position:relative;
   background:url('../hoja-dibujo.png') center / 100% 100% no-repeat, var(--cream);
   border-radius:20px;
-  padding:22px;
+  padding:var(--sp-24);
   max-width:100%;
   max-height:100%;
   box-shadow:
@@ -389,13 +425,13 @@ canvas{
   display:none;
   align-items:center; justify-content:center;
   z-index:50;
-  padding:20px;
+  padding:var(--sp-24);
 }
 .modal-overlay.show{display:flex;}
 .modal{
   background:var(--cream);
   border-radius:22px;
-  padding:32px 26px;
+  padding:var(--sp-32) var(--sp-24);
   text-align:center;
   max-width:320px;
   position:relative;
@@ -404,7 +440,7 @@ canvas{
 @keyframes pop{from{transform:scale(.7); opacity:0;} to{transform:scale(1); opacity:1;}}
 .modal .badge{
   width:96px;height:96px;
-  margin:0 auto 14px;
+  margin:0 auto var(--sp-16);
   border-radius:50%;
   background:linear-gradient(180deg,var(--sun),#FFB020);
   display:flex;align-items:center;justify-content:center;
@@ -415,10 +451,10 @@ canvas{
   font-family:'Fredoka',sans-serif;
   font-weight:600;
   font-size:22px;
-  margin:0 0 6px;
+  margin:0 0 var(--sp-8);
   color:var(--plum);
 }
-.modal p{font-family:'Comfortaa',sans-serif; color:var(--plum-soft); font-weight:600; margin:0 0 20px; font-size:14px;}
+.modal p{font-family:'Comfortaa',sans-serif; color:var(--plum-soft); font-weight:600; margin:0 0 var(--sp-24); font-size:14px;}
 .modal button{
   background:var(--teal);
   color:#fff;
