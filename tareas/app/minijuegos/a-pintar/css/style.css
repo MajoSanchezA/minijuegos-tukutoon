@@ -6,6 +6,43 @@
   --mint:#EAF7F0; --wood:#F6DFA9; --wood-deep:#E9C27F; --cream:#FFFDF6;
   --coral:#FF6F59; --sun:#FFC94A; --teal:#2EC4B6; --plum:#3D2C4E; --plum-soft:#7A6A8A;
 }
+
+/* ============================================================
+   GRID TUKUTOON — de la guía "TukuToon App UI Style Guideline".
+     Mobile   918x413 : 4 columnas de 200px + medianil 24px = 872px
+     Tablet  1024x768 : 6 columnas de 140px + medianil 24px = 960px
+   Los dos son "tipo Centro": el bloque de grilla va centrado y el resto
+   del ancho queda repartido como margen a los costados.
+
+   El breakpoint mira el LADO LARGO de la pantalla, no el ancho: con el
+   truco de horizontal forzado (más abajo) el teléfono en vertical se
+   renderiza como 100vh de ancho, pero las media queries siguen viendo el
+   viewport real — por eso "tablet" se detecta como landscape+min-width o
+   portrait+min-height.
+   ============================================================ */
+:root{
+  --medianil:24px;
+  --col:200px;
+  --grid-max:872px;                                  /* 4*200 + 3*24 */
+  /* Una tarjeta NO es una columna: es cuántas columnas abarca. En mobile
+     abarca 1 (200px, entran 4); en tablet abarca 2, que con el medianil
+     del medio da 304px y entran 3 — círculos grandes, sin salirse de la
+     grilla. */
+  --card:var(--col);
+
+  /* Escala de spacing de la guía */
+  --sp-8:8px;   --sp-16:16px; --sp-24:24px; --sp-32:32px; --sp-40:40px;
+  --sp-64:64px; --sp-80:80px; --sp-96:96px; --sp-120:120px;
+}
+@media (orientation:landscape) and (min-width:1024px),
+       (orientation:portrait) and (min-height:1024px){
+  :root{
+    --col:140px;
+    --grid-max:960px;                                /* 6*140 + 5*24 */
+    --card:calc(var(--col) * 2 + var(--medianil));   /* 2 columnas = 304px */
+  }
+}
+
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 body{
   margin:0;
@@ -13,9 +50,16 @@ body{
   font-family:'Comfortaa',sans-serif;
   color:var(--plum);
   background:var(--wood);
-  padding:28px 20px 56px;
+  padding:var(--sp-32) var(--sp-24) var(--sp-32);
   position:relative;
   overflow-x:hidden;
+  /* En una tablet la pantalla es mucho más alta que el contenido: sin esto
+     el título y los círculos quedan colgados arriba y sobra media pantalla
+     de fondo. "safe" = si el contenido llegara a no entrar, se comporta
+     como flex-start y no se come el borde de arriba. */
+  display:flex;
+  flex-direction:column;
+  justify-content:safe center;
 }
 
 /* Foto de fondo como <img> real (no background-image de CSS): en el
@@ -70,7 +114,7 @@ body{
 .floaty{position:absolute; opacity:.5; pointer-events:none;}
 .floaty svg{display:block;}
 
-header{text-align:center; margin-bottom:34px; position:relative; z-index:2;}
+header{text-align:center; margin-bottom:var(--sp-32); position:relative; z-index:2;}
 header h1{
   font-family:'Sniglet',sans-serif;
   font-weight:800;
@@ -83,7 +127,7 @@ header h1{
   text-transform:uppercase;
 }
 header p{
-  margin:14px 0 0;
+  margin:var(--sp-16) 0 0;
   color:var(--plum-soft);
   font-weight:700;
   font-size:14px;
@@ -91,14 +135,20 @@ header p{
 
 .grid-wrap{
   position:relative;
-  max-width:1180px;
+  /* +16px = los 8px de padding lateral de .grid, asi el ancho útil de la
+     grilla es exactamente --grid-max */
+  max-width:calc(var(--grid-max) + 16px);
   margin:0 auto;
   display:flex;
   align-items:center;
-  gap:6px;
 }
+/* Las flechas van SUPERPUESTAS sobre los bordes de la grilla, no al lado:
+   en mobile la grilla (872px) ya ocupa el canvas entero de 918px y no
+   queda lugar para ponerlas afuera. Caen justo sobre el fundido de 36px
+   del mask-image de .grid, que existe para eso. */
 .grid-arrow{
-  flex:none;
+  position:absolute;
+  top:50%;
   width:44px;
   height:44px;
   border-radius:50%;
@@ -111,23 +161,28 @@ header p{
   cursor:pointer;
   box-shadow:0 4px 0 rgba(61,44,78,.16), 0 10px 16px -8px rgba(61,44,78,.4);
   transition:opacity .15s ease, transform .15s ease;
-  position:relative;
+  transform:translateY(-50%);
   z-index:3;
 }
+.grid-arrow.left{left:0;}
+.grid-arrow.right{right:0;}
 .grid-arrow svg{width:20px; height:20px;}
-.grid-arrow:hover{transform:scale(1.08);}
-.grid-arrow:active{transform:scale(.96);}
+.grid-arrow:hover{transform:translateY(-50%) scale(1.08);}
+.grid-arrow:active{transform:translateY(-50%) scale(.96);}
 .grid-arrow[hidden]{display:none;}
 .grid{
   flex:1;
   min-width:0;
+  /* +16px = los 8px de padding lateral de cada lado, para que el ancho
+     útil sea exactamente el de la grilla (4 col de 200 / 6 col de 140) */
+  max-width:calc(var(--grid-max) + 16px);
   display:flex;
   flex-wrap:nowrap;
   align-items:flex-start;
-  gap:26px;
+  gap:var(--medianil);
   overflow-x:auto;
   overflow-y:visible;
-  padding:10px 8px 22px;
+  padding:var(--sp-8) 8px var(--sp-24);
   scroll-snap-type:x proximity;
   -webkit-overflow-scrolling:touch;
   position:relative;
@@ -139,7 +194,7 @@ header p{
 }
 .grid::-webkit-scrollbar{display:none;}
 .card{
-  flex:0 0 190px;
+  flex:0 0 var(--card);
   scroll-snap-align:center;
   display:flex;
   flex-direction:column;
@@ -151,7 +206,7 @@ header p{
 .card:hover, .card:focus-visible{transform:translateY(-5px) scale(1.03);}
 .card-thumb{
   position:relative;
-  width:190px;
+  width:var(--card);
   aspect-ratio:1/1;
   border-radius:50%;
   border:7px solid var(--card-color, var(--teal));
@@ -185,9 +240,11 @@ header p{
 }
 .empty code{background:rgba(61,44,78,.08); padding:1px 5px; border-radius:5px;}
 
+/* Pantalla física chica (teléfono en vertical, ya rotado por el truco de
+   arriba): solo ajustes cosméticos. El tamaño de la tarjeta NO se toca acá
+   — lo define --col, que es el ancho de columna de la grilla. */
 @media (max-width:480px){
   header h1{-webkit-text-stroke:2px var(--plum); text-shadow:0 4px 0 var(--plum);}
-  .grid{gap:16px; padding:8px 8px 18px;}
-  .card{flex-basis:130px;}
-  .card-thumb{width:130px; border-width:5px;}
+  .grid{padding:var(--sp-8) 8px var(--sp-16);}
+  .card-thumb{border-width:5px;}
 }

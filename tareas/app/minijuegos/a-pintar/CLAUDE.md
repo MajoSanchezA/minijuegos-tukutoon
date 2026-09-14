@@ -25,12 +25,18 @@ a-pintar/
 ├── menu.html               # molde vacío del grid de miniaturas (sin contenido de dibujos)
 ├── paginas.js              # fuente de verdad del menú: const PAGINAS = [...]
 ├── fondo-menu.png          # imagen de fondo (playa) usada SOLO en el menú
-├── fondo-dibujo.png        # imagen de fondo (lápiz + hoja sobre violeta), usada en
-│                             # motor.css, se ve en TODAS las páginas de dibujo
-├── hoja-dibujo.png          # recorte de SOLO la hoja crema de fondo-dibujo.png
-│                             # (sin el violeta ni el lápiz), fondo de `.paper` en
-│                             # motor.css (ver más abajo)
+├── fondo-dibujo.png        # EL fondo del juego: mesa + hoja + decoración ya
+│                             # compuestos en una sola imagen, 1748x804. Es lo único
+│                             # que carga el motor (ver por qué más abajo)
+├── fondo-mesa.png           # la mesa sola (03_CENITAL_MESA del arte). FUENTE, no se
+│                             # usa en el juego
+├── decoracion-dibujo.png    # útiles y stickers, con alfa. FUENTE
+├── hoja-dibujo.png          # la hoja crema, 880x982, con su borde irregular y su
+│                             # sombra. FUENTE
 ├── CLAUDE.md                # este archivo
+├── GUIA-DISENADORES.md      # spec de entrega de los PNG de linea, para mandarle
+│                             # al equipo de diseno (formato, tamano, errores que rompen
+│                             # el juego, checklist)
 │
 ├── css/
 │   └── style.css           # estilos del menú/index (NO del motor de dibujo)
@@ -41,8 +47,28 @@ a-pintar/
 │   ├── motor.js             # TukuToonColorPage({...}): paleta, pinceles, balde, fit a pantalla
 │   └── motor.css            # estilos visuales del juego de colorear
 │
+├── iconos/                  # iconos ilustrados de las herramientas (PNG con transparencia,
+│   │                        # 144x144, recortados al dibujo y escalados para que LLENEN el
+│   │                        # lienzo: en el prototipo ocupan el 100% de su caja de 48. Si se
+│   │                        # les deja margen adentro se ven chicos Y más separados, porque
+│   │                        # ese aire se suma al hueco entre iconos)
+│   ├── balde.png            # balde
+│   ├── lapiz.png            # lápiz
+│   ├── pincel.png           # acuarela
+│   ├── especial.png         # brillantina
+│   ├── borrador.png         # borrador
+│   ├── salir.png            # la X de volver al menú
+│   ├── reiniciar.png        # la flecha circular de empezar de nuevo
+│   └── descargar.png        # el botón naranja de guardar el dibujo
+│
 ├── plantillas/
 │   └── plantilla-horizontal.html   # molde para crear una página de colorear nueva
+│                                   # (queda como referencia del formato; el flujo
+│                                   # normal ahora usa herramientas/preparar-dibujo.html)
+│
+├── herramientas/            # utilidades internas, NO son parte del juego
+│   └── preparar-dibujo.html # se abre con doble clic: valida el PNG del diseñador y
+│                            # genera la página de colorear con el base64 ya incrustado
 │
 └── paginas/                 # una carpeta por dibujo (autocontenida)
     ├── aida/
@@ -77,23 +103,239 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   normal, no un canvas, así que ahí sí es seguro usar el archivo externo). Si `init()` ve
   algo raro al procesar la imagen, ahora lo muestra en el marcador de posición en vez de
   fallar en silencio (`try/catch` en `motor.js`).
-- El fondo de página es `fondo-dibujo.png` (lápiz + hoja sobre violeta), igual que en el resto
-  del sitio. **Es un `<img class="bg-photo">` real** (agregado en `buildDOM()`, primer elemento
-  del `body`, posicionado `absolute; inset:0; object-fit:cover` detrás de todo por z-index), NO
-  un `background-image` de CSS — ver más abajo, en "Horizontal forzado en celular", por qué. El
-  contenedor `.paper` (donde vive el lienzo) usa por separado `hoja-dibujo.png` (recorte de SOLO
-  la hoja crema, sin el violeta ni el lápiz) como fondo CSS estirado
-  (`background-size:100% 100%`) — así el dibujo queda "apoyado" sobre una hoja con la misma
-  textura que la de la imagen de fondo, en vez de sobre un rectángulo crema liso. No están
-  alineados píxel a píxel con la hoja de `fondo-dibujo.png` (la posición de esta varía según el
-  tamaño/proporción de pantalla porque usa `object-fit:cover`), pero al compartir la misma
-  textura se leen como una sola hoja.
+- **El fondo es UNA sola imagen con la hoja ya dibujada adentro** (`fondo-dibujo.png`,
+  1748x804 = el doble del frame del prototipo). Es un **`<img class="bg-photo">`** real con
+  `object-fit:cover`, no un `background-image` de CSS — ver más abajo, en "Horizontal forzado
+  en celular", por qué.
+
+  **Por qué compuesta y no en capas:** en el diseño la decoración va ENCIMA de la hoja — mirá
+  el lápiz oscuro de abajo a la izquierda, que le pasa por arriba. Con la hoja como elemento
+  aparte eso es imposible: o la hoja queda arriba de la decoración (mal), o la decoración
+  queda arriba de todo y tapa los rails. Además así la hoja cae exactamente donde la puso
+  diseño, sin que la ubique el layout.
+
+  **Cómo se recompone** (con las tres fuentes que quedaron en la carpeta): lienzo de 1748x804,
+  `fondo-mesa.png` y `decoracion-dibujo.png` escaladas con `cover` centrado, y
+  `hoja-dibujo.png` en **x=516, y=92, 806x899** — medido sobre el frame del prototipo, donde
+  la hoja va de x 258 a 661 y su borde de arriba cae en y=46 (por 2, porque componemos al
+  doble). Orden: mesa, hoja, decoración. Si se recompone, hay que actualizar la constante
+  `FONDO` en `motor.js`.
+- **Los tamaños de la interfaz son proporcionales al alto del juego, no px fijos.**
+  `fitStage()` los recalcula en cada resize y los publica como variables CSS en `<html>`
+  (`--ico`, `--rail-gap`, `--grosor`, `--lapiz`, `--lapiz-sel`); `motor.css` solo las consume,
+  con valores de arranque en `:root` para la primera pintada. Las proporciones (objeto `P` en
+  motor.js) están medidas sobre el frame del prototipo, 874x402: **icono 11,9% del alto**,
+  aire entre iconos 2,5%, **grosor del lápiz 9,5%**, hoja 112% de alto con el borde de arriba
+  al 11,4%.
+  Con px fijos esto se veía bien en un celular horizontal y demasiado chico en una pantalla más
+  alta, porque el `@media` de pantallas bajas dejaba de aplicar justo cuando había más lugar.
+  Por eso `.app` tampoco lleva `margin` vertical ni `max-width`: en el diseño la columna de
+  iconos llena el alto entero y los rails tocan los bordes.
+- El grosor del lápiz es **siempre** el 9,5% del diseño, aunque la paleta no entre entera: se
+  ven **seis** (`P.lapicesVisibles`) y el resto se desliza, como en el prototipo. Antes se
+  achicaban para que entraran todos y quedaban finitos.
+  **La barra de scroll va oculta a propósito** (`scrollbar-width:none` + `::-webkit-scrollbar`):
+  si se viera, se comería 15px de ancho y los lápices dejarían de llegar al borde de la
+  pantalla, que es justo donde tienen que cortarse. Se desliza con el dedo igual.
+- **TODO se ubica desde las coordenadas del fondo, no desde el layout.** Antes los rails eran
+  flex y repartían el espacio disponible; el diseño, en cambio, pone cada cosa en un lugar fijo
+  respecto del arte. Por eso nada coincidía y cada arreglo puntual corría otra cosa. Ahora los
+  cinco grupos —columna de iconos, hoja, lápices, guardar y reiniciar— se posicionan en
+  absoluto: `fitStage()` mapea coordenadas del fondo a pantalla con las funciones `X()` e
+  `Y()`, que replican la transformación de `object-fit:cover`. **Todas las posiciones viven en
+  la constante `FONDO`** de motor.js, medidas sobre el frame del prototipo (874x402) y llevadas
+  al doble. Si cambia el prototipo o se recompone el fondo, se toca ahí y nada más.
+- Tres cosas que hay que entender de esa distribución, porque no son evidentes:
+  - **Guardar NO pertenece a la columna de la izquierda**, y va **AL LADO de la estrella, a la
+    misma altura** — en el prototipo las dos ocupan y 328..369. Es un botón suelto, igual que
+    reiniciar del otro lado. Puesto al costado, la columna entra con la separación del diseño
+    (123) sin que nada se pise; puesto debajo no entraba.
+  - **Reiniciar va al COSTADO de los lápices, no debajo** (x 82,7% / y 87,1%).
+  - El `top` de guardar y de reiniciar NO se calcula desde `FONDO` sino **con la misma cuenta
+    que usa el rail para su último icono**. Calculado aparte quedaban 2px más arriba que la
+    estrella: el rail acumula el redondeo del gap seis veces y el resultado no coincide al
+    píxel.
+  - **Lo que va pegado a un borde se mide DESDE ese borde** (`desdeIzq` / `desdeDer`), no con
+    `X()`. Si la pantalla es más angosta que el diseño, el fondo se recorta a lo ancho, y con
+    `X()` la interfaz se iba recortada junto con él: a 663x456 la columna quedaba en x −66 y
+    los lápices en 827 con la pantalla de 663, o sea las dos afuera. Medido desde el borde, sin
+    recorte da exactamente lo mismo y con recorte se queda donde se ve.
+- **El layout está calibrado para la relación del prototipo, 2,17** (un celular horizontal real
+  da 2,16). En ventanas mucho más angostas —1,45, por ejemplo— la hoja pasa a ocupar el 69% del
+  ancho en vez del 46%, y guardar y reiniciar terminan apoyados sobre ella. Como la hoja está
+  dibujada dentro del fondo no se la puede achicar para hacerles lugar: es el precio de haberla
+  compuesto, y en el dispositivo real no pasa.
+- **El orden de las herramientas es el del prototipo** (pincel, borrador, lápiz, balde,
+  estrella) y NO el que uno pondría: el balde va cuarto aunque sea el que más se usa. Por eso
+  la que arranca elegida se define aparte, en `TOOL_INICIAL`, en vez de ser la primera de la
+  lista.
+- **No hay control de grosor.** El trazo es fijo, una fracción del ancho del dibujo (`TRAZO`),
+  así se siente igual en un dibujo de 1100 px que en uno de 2000. Un chico de 2 a 5 años no va
+  a regular un slider, y el diseño tampoco lo tiene.
+- El **brillo** del lápiz sube 10 puntos de luminosidad, que es exactamente lo que hace el
+  archivo de diseño (cuerpo `#C94BFE` → brillo `#D97EFE`). Antes subía un 28% de lo que faltaba
+  para blanco: con colores pastel eso daba 5 puntos y el lápiz quedaba plano.
+- El **viewBox del lápiz arranca en negativo** (`LAPIZ_AIRE`): el contorno sobresale media
+  pluma del dibujo, y sin ese aire el borde de la PUNTA quedaba cortado justo del lado que más
+  se ve.
+- **Como la hoja viene dentro del fondo, `fitStage()` tiene que deducir dónde cayó**: replica
+  a mano la transformación de `object-fit:cover` (escala para cubrir, y el sobrante se recorta
+  por partes iguales de los dos lados) y con eso le da `left/top/width/height` a `.paper`, que
+  ya no dibuja nada y quedó solo como la caja que ubica al lienzo. Los números de la hoja
+  dentro del fondo están en la constante `FONDO` de `motor.js`.
+  La hoja es **más alta que la pantalla** y se corta contra el borde de abajo, así que el
+  dibujo se centra en la parte **visible** de la hoja y no en la hoja entera — si se centrara
+  en la hoja entera quedaría medio tapado. Ya no es un rectángulo al que le poníamos borde y sombra por CSS (eso se
+  podía estirar a la proporción que pidiera cada dibujo): ahora es un asset con su propio borde
+  irregular y su propia sombra dibujada, así que estirarla la deforma. `fitStage()` primero
+  calcula cuánto puede medir la hoja respetando `HOJA_RATIO` (880/982, la proporción real del
+  archivo) y recién después acomoda el lienzo adentro, en el 80% de su ancho. Ese 80% sale de
+  medir el PNG: el área crema ocupa el 89,8% del ancho, así que el dibujo queda con aire parejo
+  adentro del crema. `.paper` ya no lleva `border-radius` ni `box-shadow` — se los sumaría a los
+  que la imagen ya trae.
+- **El lienzo ES la hoja, no el dibujo.** El dibujo se pega adentro, en un lugar fijo
+  (`DIBUJO_ANCHO` / `DIBUJO_ALTO` / `DIBUJO_CY`). Antes el lienzo era un cuadrado del 80% del
+  ancho de la hoja, centrado en la parte visible, y al pintar el afuera del personaje la
+  pintura se llenaba hasta ese límite: quedaba un **MARCO** rectangular sobre el papel, más
+  chico que el papel y con las esquinas en ángulo recto. Consecuencias de este cambio:
+  - El alto del lienzo sale de la proporción de `FONDO.hoja`, no de la imagen del dibujo.
+  - La posición del dibujo pasó a ser **fija respecto de la hoja** en vez de recalcularse con
+    la ventana. Las constantes salen de medir dónde caía antes a la proporción de diseño (76%
+    del ancho, centro al 39,6% del alto). En pantallas mucho más anchas que un celular
+    acostado se ve menos hoja y el dibujo puede quedar rozando el borde de abajo.
+  - Lo que se pinta sobre la hoja tapa la decoración que el fondo dibuja ENCIMA del papel (el
+    lápiz oscuro de abajo a la izquierda), porque el lienzo va arriba del fondo.
+- **La silueta del papel va embebida** en `motor.js` como `HOJA_MASCARA` (data URI, 248x277,
+  sacada del alfa de `hoja-dibujo.png`). Tiene que ir embebida y no como archivo suelto: con
+  `file://` el navegador marca el lienzo como contaminado y `getImageData` tira `SecurityError`
+  — el mismo motivo por el que el dibujo va como `data:`. Con ella, ni los pinceles ni el balde
+  pasan del borde del papel. Si no cargara, el juego sigue andando sin el recorte.
+- **El afuera del dibujo se PINTA pero no se RELLENA.** Son dos cosas distintas y al principio
+  las trataba como una sola, bloqueando las dos:
+  - Con el **balde** quedaba el cuadrado. Es la región más grande y la más fácil de tocar sin
+    querer, y como el dibujo es cuadrado el relleno tapaba la hoja entera de un color, con un
+    borde recto que no tiene nada que ver con el personaje. Por eso sigue con `labels = -2`.
+  - Con los **pinceles** no molesta: el chico decora alrededor del personaje y el trazo se
+    corta solo contra el borde del lienzo, que ya está adentro de la hoja. Por eso el afuera
+    **no** se marca en `wallMask`.
+  Para encontrarlo se recorre el borde **DEL PAPEL** —todo píxel de papel que tenga al lado un
+  píxel que ya no es papel— y no el borde de la imagen: desde que el lienzo es la hoja, el
+  afuera del personaje ya no toca el borde de la imagen, entre los dos está el resto de la hoja.
+  Y se recorre entero, no solo las esquinas: si el personaje llega cerca de un lado —los brazos
+  de Tuku, por ejemplo— parte el afuera en varias regiones sueltas.
 - Capas: canvas de pintura debajo (`#paint-canvas`) + canvas de tinta (líneas) encima
   (`#ink-canvas`). Los trazos nunca pisan las líneas (se respeta `wallMask`).
-- Herramientas (`TOOLS` en motor.js): balde, marcador (trazo duro y opaco), lápiz (fino,
-  semitransparente, granulado), acuarela (muy translúcida, se acumula al repasar el mismo
-  lugar), aerosol (puntitos dispersos), brillantina (color sólido + destellos casi blancos
-  al azar) y borrador (limpia la región completa).
+- Herramientas (`TOOLS` en motor.js): la barra muestra **cinco**, y cada una tiene que
+  SENTIRSE distinta al arrastrar — si todas dejan la misma mancha, sobran cuatro. Pero hay una
+  regla que va ANTES que el realismo:
+  - **El color que sale tiene que ser el que el chico eligió.** La primera versión de estos
+    materiales era fiel a la física y muy translúcida: la acuarela no pasaba de 0,63 de
+    opacidad y la brillantina pintaba un velo de 0,12. Sobre la hoja crema eso no devuelve un
+    color más claro, devuelve OTRO color — tocás un rosa fuerte y te sale un malva lavado. La
+    textura del material tiene que salir del grano, del borde y de los brillos, nunca de bajarle
+    el color. Medido contra el color de la paleta (distancia RGB sobre 255): acuarela 30,
+    brillantina 56 y lápiz 84 de una pasada. El lápiz queda más lejos a propósito, porque el
+    papel sin pintar entre fibra y fibra ES el material.
+
+  - **Balde**: el único que no es trazo. Rellena la región entera de un toque.
+  - **Acuarela** (`stampBrush`): tapa, y **el borde es corto**. Este es el punto que más veces
+    salió mal: con el degradé largo —una campana que se apaga a lo largo de casi todo el radio—
+    un color fuerte con halo difuso alrededor se ve como **NEÓN**, un tubo de luz y no pintura.
+    La máscara de agua va con meseta y caída corta, y el filo se corre un poco según el papel,
+    porque dos bordes rectos y paralelos parecen cinta pegada. La variación del pincel va en el
+    **pigmento** (los pelos no depositan parejo) y **no en la transparencia**: variando la
+    transparencia el trazo se vuelve translúcido y disparejo, que otra vez es aspecto de luz y
+    no de materia. Lo que la hace acuarela y no un marcador es el **borde mojado** — el agua arrastra el pigmento hacia la orilla y al secarse deja ahí una franja
+    más oscura que en el medio. Eso no sale de un estampado suelto, porque el estampado no sabe
+    dónde termina el trazo: el agua se va acumulando en una máscara (`acuaMask`) y el color se
+    recompone mirándola, con una campana centrada donde el agua empieza a escasear. La orilla
+    NO se marca subiendo el alfa —el trazo va casi opaco— sino **oscureciendo el pigmento**, que
+    es lo que pasa de verdad cuando el agua lo arrastra al borde y se seca. Y va justo ADENTRO
+    del borde, donde la pintura ya tapa: así se lee como una línea que encierra el trazo, no
+    como un resplandor que se escapa hacia afuera. Cada trazo
+    es UNA aguada: se compone sobre una foto de la pintura tomada al apretar (`acuaFondo`), así
+    que repasar quince veces adentro del mismo trazo no lo pone quince veces más oscuro, pero
+    levantar el dedo y volver a pasar SÍ superpone otra aguada. Es como se comporta la de
+    verdad.
+  - **Lápiz de color** (`stampPencil`): fino (30% del trazo base), con el grano del papel y con
+    **veta**: raya en la dirección en la que va la mano. La veta sale de leer el ruido en
+    coordenadas giradas —constante a lo largo del trazo, cambiante a lo ancho—, así que quedan
+    rayitas paralelas al movimiento. Por eso `applyStroke` recibe la dirección del trazo.
+  - **Estrella** (`stampGlitter`): **pinta CON ESTRELLAS**. El trazo es un reguero de
+    estrellitas de cinco puntas del color elegido, de tamaños y giros distintos, con alguna más
+    clara y un par de chispitas sueltas alrededor. No lleva ningún velo de color de fondo: si lo
+    llevara volvería a ser un pincel más y las estrellas se perderían adentro. Por lo mismo NO
+    sirve para rellenar una zona de forma pareja — para eso está el balde; esta es la
+    herramienta para decorar.
+    - Las estrellas se plantan **cada tanto de recorrido** (`ultEstX`/`ultEstY`), no una por
+      punto interpolado: una por punto quedarían encimadas y el trazo volvería a ser una franja.
+      Un toque sin arrastrar planta una, porque `pointerDown` reinicia esa posición.
+    - `estrellaPintada` las dibuja **a mano sobre los píxeles**, no con un `path` del contexto
+      2D: el motor trabaja sobre `paintData` y lo empuja con `putImageData`, así que cualquier
+      cosa dibujada con el contexto la borra el siguiente estampado de otra herramienta. El
+      contorno sale de la fórmula polar de la estrella, y comparar esa distancia con la del
+      píxel da además el suavizado del borde, que si no queda en escalera.
+  - **Borrador** (`stampEraser`): borra **por trazo**, no la región entera. Antes era un balde
+    al revés —un toque y desaparecía todo el color de esa zona— y así no se puede corregir un
+    pedacito. Va más gordo que el pincel (radio × 1,5): un borrador de verdad es un ladrillo y
+    tiene que perdonar la puntería. Es el único que **no mira `wallMask`**: tiene que limpiar
+    todo lo que encuentre. Las líneas del dibujo van en el otro lienzo y no se tocan nunca.
+  - **Cada material tiene su grosor** (`RADIO`), y el paso entre estampados va con el radio DE
+    LA HERRAMIENTA, no con el grosor base: el lápiz es fino y avanzando el paso del pincel
+    quedan huecos entre estampado y estampado — el trazo sale punteado.
+  - **En `ruido(x, y)` los desplazamientos van con `>>>`, no con `>>`.** Con el aritmético el
+    signo se arrastra y el XOR final fuerza el bit más alto a 0 siempre: la función nunca pasa
+    de 0,5 y promedia 0,25 en vez de 0,5. Con eso el lápiz casi no pintaba —apenas el 5% de los
+    píxeles llegaba al umbral de agarre, contra el 65% esperado— y parecía un problema de
+    grosor o de alfa, que no lo era.
+  - **El grano tiene que ser ruido ESTABLE, no `Math.random()`** (función `ruido(x, y)`). Con
+    `Math.random()` cada pasada cae en píxeles distintos, así que al repasar se rellena todo
+    parejo y el grano desaparece: queda un relleno plano y sucio. Con ruido estable las mismas
+    fibras agarran color siempre y las mismas quedan en blanco, entonces repasar OSCURECE sin
+    perder la textura. Las chispas de la brillantina son la excepción y SÍ van al azar:
+    tienen que titilar por todos lados mientras el chico arrastra, no quedarse pegadas.
+  Son cinco porque es el set de iconos que hizo diseño y porque con chicos
+  de 2 a 5 años cinco botones grandes se aciertan mejor que siete chicos. **Marcador** (trazo
+  duro y opaco) y **aerosol** (puntitos dispersos) siguen implementados (`stampMarker` /
+  `stampSpray`, y sus ids siguen en `STROKE_TOOLS`) pero no están en la barra: para
+  devolverlos alcanza con conseguirles un icono y sumarles su línea a `TOOLS`.
+- **Los iconos de las herramientas son PNG ilustrados a color** (`iconos/`), no SVG. En
+  `TOOLS`, `icon` es el nombre del archivo, no marcado. Consecuencias:
+  - **Van a 48px, el tamaño chico de la grilla de iconos del sistema de diseño** (los tres
+    tamaños son 120, 80 y 48). El prototipo del juego usa ese, y nuestra pantalla en celular
+    horizontal (844x390) mide casi lo mismo que el frame del prototipo (874x402), así que van
+    1:1 sin recalcular. Los PNG traen el dibujo al 83% de su caja, así que a 48px de caja el
+    dibujo mide unos 40px — lo mismo que se mide en el prototipo. **No se achican en el
+    `@media` de pantallas bajas**: lo que se comprime ahí es el aire entre ellos.
+  - El icono de la herramienta elegida llega a 48px pero **no lo pasa**. Si se saliera de su
+    botón, el rail contaría ese desborde en su área de scroll y aparecerían las dos barras.
+    Por eso los no elegidos van a 44 y el elegido a 48, en vez de agrandar el elegido más allá
+    de su caja.
+  - `.tools` es un flex propio, con su `gap` aparte del `gap` del rail. Si se aprieta uno hay
+    que apretar el otro: con cinco botones, 10px de hueco son 40px que hacen desbordar el rail.
+  - No se les puede cambiar el color por CSS. Por eso la herramienta elegida se marca
+    **agrandando el icono** y no invirtiendo su color ni
+    pintándole un fondo coral encima. El botón en sí es transparente — los iconos van
+    sueltos, sin la pastilla crema que sí llevan los botones redondos de acción (volver,
+    reiniciar, guardar, que también son PNG del arte — ya no queda ningún ícono SVG).
+  - Es a propósito que el estado activo NO use `transform:scale()`: el rail tiene
+    `overflow-y:auto`, y eso obliga al navegador a calcular `overflow-x` como `auto`
+    también, así que cualquier escalado del botón se pasa del ancho del rail y dispara una
+    barra de scroll horizontal. Creciendo el icono dentro de un botón de tamaño fijo eso no
+    puede pasar.
+  - La ruta de `iconos/` se deduce sola del `src` del propio `<script>` de motor.js
+    (`ICONS_BASE`), así que —a diferencia de `bgSrc` y `menuHref`— **las páginas no tienen
+    que pasar ninguna ruta**. `cfg.iconsBase` la puede pisar si alguna vez hace falta.
+- **En `motor.css`, los dos bloques `@media` de tamaño de pantalla van AL FINAL del archivo, a
+  propósito.** Pisan a `.tool-btn`, `.swatch`, `.nav-arrow` y `.brush-size` con la misma
+  especificidad (una clase), así que lo único que los hace ganar es estar después. Estuvieron
+  arriba mucho tiempo y esas reglas no hacían nada: en celular los botones seguían midiendo el
+  tamaño de escritorio y el rail de herramientas desbordaba con barra de scroll. Si agregás una
+  regla nueva a un componente, va ANTES de ese bloque. En el mismo bloque, ojo con
+  `@media (max-width:420px)`: ahí NO se agrandan `.tool-btn` ni `.swatch` aunque parezca que un
+  celular chico los pide más grandes — con la rotación forzada el juego siempre se ve apaisado,
+  así que en un celular vertical el ANCHO de pantalla es el alto disponible del juego, y menos
+  ancho significa menos lugar para los rails, no más.
 - `fitStage()` recalcula el tamaño del lienzo para que TODO el juego (header + barras + dibujo)
   entre en una sola pantalla sin scroll, respetando la proporción real de la imagen.
 - **Horizontal forzado en celular**: en `motor.css` (y en `css/style.css` para el menú),
@@ -147,10 +389,100 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   afectadas por el transform de un ancestro. Si se cambia el ángulo de rotación o el
   centrado del `<html>` en motor.css, hay que volver a deducir esta fórmula — no es genérica
   para cualquier transform, es específica de esta rotación de 90° centrada en el viewport.
-- Botón "volver al menú" arriba a la izquierda: usa `cfg.menuHref` (por defecto `'menu.html'`,
-  pero las páginas dentro de `paginas/<nombre>/` necesitan pasar `'../../menu.html'` porque
-  están dos niveles más abajo).
-- Al tocar "Listo" (`done-btn`), además del confeti, `motor.js` guarda una foto del
+- **No hay encabezado.** El diseño no lleva píldora con título ni subtítulo: la pantalla es la
+  hoja y los dos rails, nada más. `cfg.title` sigue usándose para el `document.title` (la
+  pestaña del navegador), y `cfg.titleHtml`, `cfg.subtitle` y `cfg.badgeEmoji` quedaron sin uso
+  visible — no los borré de las páginas porque no molestan y documentan qué dibujo es cada una.
+  Sacar el encabezado no fue solo estético: liberó 57px de alto, que son los que necesitaba la
+  hoja vertical para no dejar sin lugar a los rails en celular.
+- Botón "volver al menú": es la X (`iconos/salir.png`), arriba del todo en el rail izquierdo,
+  suelta y sin pastilla igual que las herramientas. Usa `cfg.menuHref` (por defecto
+  `'menu.html'`, pero las páginas dentro de `paginas/<nombre>/` necesitan pasar
+  `'../../menu.html'` porque están dos niveles más abajo).
+- **Los colores son lápices, no círculos.** `lapizSVG(hex)` en motor.js los dibuja: los paths
+  salen de `BOTONES/LAPIZ_BASE_SELECTOR DE COLOR.ai` del arte — que por dentro es un PDF, así
+  que se descomprimieron sus flujos de contenido y se pasaron los operadores de dibujo a SVG,
+  invirtiendo el eje Y. Van **parametrizados por color en vez de un PNG por lápiz**: las paletas
+  son propias de cada dibujo (9 o 10 colores por personaje), así que un archivo por color no era
+  viable. Las relaciones de tono salen del mismo archivo de diseño: sobre un cuerpo `#C94BFE`,
+  el brillo sube 10 puntos de luminosidad. La madera es fija (`#FCD6B5` /
+  `#C88B74`), es la misma en todos los lápices del arte. Pasado 85 de luminosidad el brillo se
+  invierte y pasa a ser sombra: un lápiz casi blanco no tiene margen para aclarar y quedaría
+  plano.
+  - En el archivo el lápiz está parado (191x1418); en la barra va **acostado con la punta hacia
+    el dibujo**, así que `lapizSVG` lo rota 90°.
+  - **Cómo se arma el lápiz, medido sobre el prototipo.** El arte del `.ai` viene PLANO, sin
+    contorno; el contorno lo pone el motor. Todo lo de abajo sale de escanear los lápices del
+    prototipo píxel por píxel, que es la única fuente confiable — a ojo me equivoqué tres veces.
+    - **El contorno rodea SOLO el cuerpo** (`LAPIZ_CUERPO`). El cono de madera NO lleva contorno
+      de color: sus bordes son los dos filos marrones que el arte ya trae (`#C88B74`, 18px sobre
+      un cono de 162 en el prototipo), y esos filos se ven contra el fondo, no están tapados.
+      Contornear el cono además deja un escalón feo, porque el cono es más ancho que el cuerpo.
+    - **La punta va del MISMO color que el contorno.** Es una argolla —un triángulo con otro
+      adentro— y el prototipo la pinta del color del borde con el color del cuerpo adentro:
+      leyendo el lápiz verde a lo largo del eje salen 30px de `#01AF01` (el anillo), 18px de
+      `#00C600` (el cuerpo) y 24px de `#00B700`. El anillo que ya trae el arte mide 28 unidades,
+      justo el grosor del contorno, así que la punta no necesita contorno aparte.
+    - **El contorno asoma el 11% del grosor por lado** (24px de borde sobre 216 de lápiz en el
+      prototipo). El cuerpo mide 155 unidades de grosor, así que `LAPIZ_BORDE` = 44 deja 22 por
+      lado.
+    - **El color del borde baja la luminosidad a 0,88** (cuerpo `#00CE00` → borde `#00B500`).
+      Con 0,62, que era lo que había antes, quedaba un borde casi negro y pesadísimo. Por debajo
+      de 22 aclara en vez de oscurecer, si no un lápiz casi negro se queda sin contorno.
+  - **El contorno es geometría, no un filtro.** Se dibuja como una **capa de abajo**: el mismo
+    cuerpo, relleno y engordado con un `stroke` del color del borde. Encima van los rellenos
+    normales, que lo tapan entero, así que del contorno solo queda lo que asoma por afuera.
+    - **No sacarlo con desenfoque + umbral.** Eso no engorda la silueta: la derrite. Con una
+      desviación de 24 sobre un lápiz de 191 de grosor el cuerpo pierde los lados rectos y queda
+      como una salchicha, y las figuras que no entran en la unión —los filos del cono, que son
+      la parte MÁS ANCHA del lápiz— asoman peladas como púas marrones.
+    - **Tampoco `feMorphology`**: engorda con un núcleo rectangular, cuadra las esquinas y el
+      contorno sale blocado, sobre todo en la punta.
+    - Y **no poner el `stroke` en cada figura**: eso dibuja también los bordes INTERNOS, el
+      cuerpo y el cono se superponen y en la junta quedan dos líneas oscuras. Eso es el
+      **contorno doble**. Un solo `stroke`, sobre el cuerpo, en una capa de abajo.
+  - **El cuerpo se estira 20 unidades para llegar al cono** (`LAPIZ_CRECE`). En el archivo de
+    diseño las dos aristas NO se tocan: la del cono corre unas 20 unidades por debajo de la del
+    cuerpo. Sin contorno casi no se nota, pero al ponerle contorno ese hueco se abre y se ve el
+    FONDO entre el cuerpo y la madera. El cuerpo se dibuja con un `stroke` de su propio color, y
+    como el cono va después, el estirón queda tapado en todo lo demás. El trazo del contorno
+    lleva sumado ese estirón, para que lo que asoma siga siendo `LAPIZ_BORDE / 2`.
+  - `.nav-arrow` necesita `padding:0` explícito: un `<button>` trae `1px 6px` por defecto y,
+    con `box-sizing:border-box`, esos 12px de los lados le comen el ancho al icono — el de
+    reiniciar salía achatado.
+  - **Dónde va cada rail** (medido sobre el frame del prototipo, 874x402): los siete iconos de
+    la izquierda van repartidos parejo, del 10,2% al 98,8% del alto — siete cajas del 11,9% más
+    seis huecos del 2,5% ya suman el 98,3%, así que alcanza con el `gap` y NO hay que empujar
+    el último con `margin-top:auto`. Los lápices, en cambio, van **abajo**: en el prototipo el
+    primero cae al 28,5% y el último al 88,2%, justo arriba de reiniciar, y eso lo consigue el
+    `margin-top:auto` de `.swatches`.
+  - **Se cortan contra el borde de la pantalla**, como en el prototipo: `.rail-right` cancela
+    el padding lateral del `.app` con un margen negativo. El corte lo hace el propio SVG, con
+    `preserveAspectRatio="xMinYMid slice"` — el dibujo se escala para CUBRIR la caja y lo que
+    sobra se recorta del lado derecho, dejando la punta siempre visible. El rail no puede
+    dejar que se desborden de verdad porque su `overflow-y:auto` fuerza `overflow-x` a `auto`.
+  - Recortar así (y no achicando el `viewBox`) deja **el grosor y el largo independientes**:
+    `--grosor` fija el alto, que no cambia nunca, y `--lapiz` / `--lapiz-sel` el ancho. Por eso
+    el elegido sobresale hacia el dibujo sin engordar ni correr a los demás de fila.
+  - **`--grosor` está calculado para que la paleta más larga entre sin barra de scroll.** Con
+    10 colores (Aida) el margen es de 5px. Si alguna paleta pasa de 10, hay que bajarlo: si
+    aparece la barra, además de que un nene de 3 años no la va a usar, se come 15px de ancho y
+    los lápices dejan de llegar al borde de la pantalla.
+- **El control de grosor (`.brush-size`) cuelga del `.app`, no del rail**, aunque
+  visualmente esté al lado de la columna de iconos. Metido en el rail rompía dos veces: como
+  elemento en el flujo era un octavo ítem en una columna calculada para siete, y flotado con
+  `position:absolute` sobresalía del ancho del rail, le disparaba una barra de scroll
+  horizontal, y esa barra le comía 15px de alto — con lo que la columna volvía a desbordar.
+- **Los dos botones de acción están cruzados respecto de lo que uno esperaría, y es a
+  propósito**: en el prototipo el naranja de **guardar** va abajo del rail IZQUIERDO y el
+  turquesa de **reiniciar** abajo del DERECHO. El id `done-btn` quedó con su nombre viejo, de
+  cuando era el botón "Listo".
+- Al tocar guardar (`done-btn`), `motor.js` hace tres cosas: **baja el dibujo como PNG**
+  (`descargarDibujo()`), guarda la miniatura para el menú y muestra el confeti. El PNG se arma
+  aparte sobre fondo blanco, porque los dos lienzos del juego son transparentes — se ve la hoja
+  de atrás — y un PNG transparente se vería raro al abrirlo o imprimirlo. Si el navegador
+  bloquea la descarga, el resto sigue funcionando igual.
+- Al tocar guardar, además del confeti, `motor.js` guarda una foto del
   dibujo ya pintado (fondo blanco + color + líneas, achicada a 480px) en `localStorage`, con
   clave `tukutoon:progreso:<carpeta>` (la carpeta se deduce sola de la URL, ej. `.../paginas/
   ana/...` → `tukutoon:progreso:ana`). `js/script.js` la busca por `d.id` al armar el menú y,
@@ -173,18 +505,30 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
 
 ## Flujo para agregar un dibujo nuevo
 
-1. Crear una carpeta nueva dentro de `paginas/` con el nombre del dibujo, ej. `paginas/dinosaurio/`.
-2. Copiar `plantillas/plantilla-horizontal.html` dentro de esa carpeta y renombrarlo.
-3. Preparar el PNG de línea: horizontal (3:2 o 4:3 recomendado), fondo blanco opaco (NO
-   transparente), líneas negras cerradas de 6-10px. Ponerlo en la misma carpeta que el HTML.
-4. En `TukuToonColorPage({...})` de ese HTML, poner `imgSrc` como `data:image/png;base64,...`
-   (NO como nombre de archivo — ver por qué en "Cómo funciona el motor" más arriba), y ajustar
-   `title`/`titleHtml`, `subtitle` y, si hace falta, `palette` propia.
-5. Sumar un objeto a `PAGINAS` en `paginas.js` (`id`, `nombre`, `miniatura`, `url`, `emoji`
-   opcional) para que aparezca en el menú. No hace falta tocar `menu.html` ni `js/script.js`.
+El PNG de línea lo prepara el equipo de diseño siguiendo `GUIA-DISENADORES.md` (ese archivo
+está escrito para mandárselo tal cual: formato, tamaño, los errores que rompen el juego y una
+checklist). Con el PNG en la mano:
 
-No hay todavía una herramienta de vectorización/preparación de assets (tipo la de otros
-prototipos de TukuToon) — los PNG de línea se preparan a mano antes de este flujo.
+1. Abrir `herramientas/preparar-dibujo.html` con doble clic y soltar el PNG adentro.
+2. Leer la revisión que devuelve. Mirar la vista de **Zonas**: cada área que el balde puede
+   rellenar por separado sale de un color distinto, así que dos partes que deberían ser
+   distintas y salen del mismo color = contorno abierto → se rebota al diseñador.
+3. Completar nombre corto, título, emoji y paleta (si el diseñador mandó la versión a color,
+   el botón "Muestrear del arte a color" saca los 9 colores principales solo).
+4. Bajar los dos archivos que genera, crear `paginas/<nombre-corto>/` y guardarlos ahí.
+5. Pegar la entrada que da la herramienta dentro de `PAGINAS`, en `paginas.js`. No hace falta
+   tocar `menu.html`, `js/script.js` ni el motor.
+
+La herramienta se encarga sola de las dos cosas que antes se hacían a mano y eran fáciles de
+olvidar: incrustar el PNG como `data:image/png;base64,...` (obligatorio, ver "Cómo funciona el
+motor" más arriba) y aplanar sobre blanco los PNG que hayan venido con fondo transparente.
+
+`preparar-dibujo.html` replica la lógica del motor (umbral de luminancia `175` + flood fill de
+4 vecinos) para que la revisión coincida con lo que el juego va a hacer de verdad. **Si esos
+valores cambian en `motor.js`, hay que cambiarlos también en la herramienta** (`THRESH`).
+
+Si por algún motivo hace falta armar la página a mano, `plantillas/plantilla-horizontal.html`
+sigue ahí con el formato de referencia y los pasos explicados en sus comentarios.
 
 ## Pendientes conocidos
 
@@ -194,4 +538,19 @@ prototipos de TukuToon) — los PNG de línea se preparan a mano antes de este f
 - Sello de textura/patrón como herramienta extra (rayas, puntos, estrellas…).
 - Solo hay tres dibujos cargados (Aida, Ana, Tuku) — falta sumar más personajes siguiendo
   el flujo de arriba.
+- **Los dibujos son los `*_sktch.png` del arte, cuadrados y con fondo transparente.** Se
+  aplanan sobre blanco al incrustarlos porque el motor lee el transparente como pared; ese
+  blanco no se ve nunca, porque el motor solo dibuja los píxeles de línea y el resto de las
+  capas queda transparente, así que se ve la hoja de atrás. Los que había antes traían un fondo
+  crema opaco metido en el propio PNG.
+- (Histórico) Los dibujos anteriores no llegaban a la proporción del diseño. El Figma
+  (`TUKUTOON APP UI STYLE GUIDELINE`, nodo `ZONA DE DIBUJO`) pide el dibujo **cuadrado**: los
+  cuatro personajes están en marcos de 285×285 y `ana_sktch` exportado da 1100×1100. En el repo
+  hay Aida 720×755 (0,95), Ana 1904×2082 (0,91) y Tuku 2200×1674 (1,31) — las dos primeras
+  andan cerca, Tuku no. Además Ana (4,0 MP) y Tuku (3,7 MP) son ~7× más pesados que Aida
+  (0,5 MP) para `buildRegions()`, que recorre píxel por píxel al abrir: conviene pasarlos por
+  `herramientas/preparar-dibujo.html` con el reescalado activado.
+  (Una versión anterior de este archivo decía que había que pedirlos **horizontales a
+  1500×1000**. Era un error: se dedujo del layout viejo, sin el diseño a la vista. Van
+  cuadrados.)
 - Juego de trazos (tracing): sin empezar, pendiente de las plantillas de trayectorias.

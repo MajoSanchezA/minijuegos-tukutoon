@@ -151,8 +151,18 @@ header{
   border:none;border-radius:50%;background:rgba(255,255,255,.92);
   color:#6E4FD0;font-size:clamp(17px,4.6vw,21px);line-height:1;
   box-shadow:0 3px 0 rgba(0,0,0,.14);cursor:pointer;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;text-decoration:none;
 }
 .icon-btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.14)}
+/* Volver y reiniciar son iconos ilustrados del mismo set que a-pintar
+   (iconos/), no glifos de texto: traen su propio circulo, sombra y
+   color, asi que el boton no les pone fondo ni caja encima. */
+.icon-btn.icon-art{background:none;box-shadow:none}
+.icon-btn.icon-art:active{box-shadow:none}
+.icon-btn img{
+  width:100%;height:100%;object-fit:contain;
+  pointer-events:none;user-select:none;-webkit-user-drag:none;
+}
 .caso-btn{font-family:'Fredoka',sans-serif;font-weight:600;font-size:clamp(13px,3.4vw,16px)}
 .caso-btn.min{background:#FFD84D;color:#2B2140}
 
