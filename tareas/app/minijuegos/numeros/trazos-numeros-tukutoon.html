@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>TukuToon · Traza los números</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Comfortaa:wght@400;700&family=Plus+Jakarta+Sans:wght@600&display=swap" rel="stylesheet">
+<!-- el mismo motor que las vocales: una sola copia, no se duplica -->
+<link rel="stylesheet" href="../vocales/motor/motor-trazos.css">
+</head>
+<body>
+
+<script src="numeros.js"></script>
+<script src="../vocales/motor/motor-trazos.js"></script>
+<script>
+  // Que numero mostrar sale de la URL: menu.html enlaza a ?numero=0, ?numero=1...
+  // Sin el parametro, la pagina cae al modo de los diez con el selector de
+  // abajo, que sigue sirviendo para probar todo de una.
+  var pedido = (location.search.match(/[?&]numero=(\d)/) || [])[1];
+
+  TukuToonTracePage({
+    letras: NUMEROS,
+    solo: pedido || null,
+    menuHref: 'menu.html',
+    titulo: 'TukuToon',
+    subtitulo: pedido ? 'EL NÚMERO ' + pedido : 'TRAZA LOS NÚMEROS',
+    nombreItem: 'Número',
+    storeKey: 'tukutoon:numeros:completados',
+    // la misma aula que las vocales: se traza sobre el pizarron del dibujo
+    fondo: '../vocales/fondo-menu.png',
+    // Encuadre del lienzo. Las diez cifras ocupan x 231-769, y 138-891 del
+    // lienzo de 1000: recortando ese aire, el numero se ve bastante mas
+    // grande sin tocar el arte ni los ejes de trazado.
+    caja: '190 110 620 810'
+    // tolerancia: 150   // subir si cuesta con dedos chicos
+  });
+</script>
+
+</body>
+</html>
