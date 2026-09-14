@@ -43,20 +43,42 @@ var GLOBOS_COLORES = [
 
      id        identifica la ronda y es la clave del progreso guardado.
      cuantos   globos en pantalla.
-     objetivo  id del color que hay que reventar. Sin `objetivo`, van todos
-               (la ronda libre, la de los mas chiquitos).
-     blancos   cuantos de ese color. Solo con `objetivo`.
-     consigna  opcional: si no viene, el motor la arma sola con el plural
-               del color.
+     objetivo  id del color que hay que reventar, o 'al-azar' para que lo
+               sortee el motor en cada partida. Sin `objetivo`, sirve
+               cualquier globo.
+     blancos   cuantos globos de ese color hay en pantalla. Solo con
+               `objetivo`.
+     pide      [minimo, maximo] de cuantos hay que reventar. El numero sale
+               al azar adentro de ese rango en cada partida, y el motor lo
+               deja SIEMPRE por debajo de los que hay — si pidiera todos,
+               no habria nada que contar: bastaria con seguir tocando.
+               Sin `pide`, hay que reventar todos los que sirven.
+     consigna  opcional: si no viene, el motor la arma sola.
 
-   La primera ronda es deliberadamente la mas facil que puede existir:
-   tocar cualquier cosa que se ve. Recien de la segunda en adelante hay que
-   elegir, que es el salto pedagogico grande — de coordinacion a
-   clasificacion por color. */
+   EL ORDEN, Y POR QUE
+
+   1. `cuantos`  — cuantos. Cualquier color sirve, asi que lo unico que hay
+      que hacer es contar y PARAR. Parar es la mitad del ejercicio.
+   2-5. los colores — clasificar. Aca no hay que contar: van todos los del
+      color pedido. Lo dificil no es reconocer el azul, es aguantarse de
+      tocar los otros cinco globos.
+   6. `combinada` — las dos cosas juntas: contar y clasificar, con mas
+      globos del color pedido que los que se piden. Es la mas dificil de
+      todas y por eso va al final.
+
+   Ojo con el techo de edad: tres del color pedido es comodo a los 4 anos y
+   cuatro es el maximo a los 5. Por eso `pide` no pasa de 4 en la combinada,
+   aunque en la primera ronda —donde no hay que clasificar nada— llega a 5.
+
+   Falta la puerta de entrada de los de 2 anos, que era una ronda sin numero
+   ni color ("explota todos los globos", puro tocar y que pase algo). Se
+   recupera agregando { id:'todos', cuantos:6 } como primera linea de la
+   lista: el motor la sigue soportando. */
 var GLOBOS_RONDAS = [
-  { id:'todos',    cuantos:6 },
-  { id:'azul',     cuantos:8, objetivo:'azul',     blancos:3 },
-  { id:'rojo',     cuantos:8, objetivo:'rojo',     blancos:3 },
-  { id:'amarillo', cuantos:8, objetivo:'amarillo', blancos:3 },
-  { id:'verde',    cuantos:8, objetivo:'verde',    blancos:3 }
+  { id:'cuantos',   cuantos:6, pide:[2, 5] },
+  { id:'azul',      cuantos:8, objetivo:'azul',     blancos:3 },
+  { id:'rojo',      cuantos:8, objetivo:'rojo',     blancos:3 },
+  { id:'amarillo',  cuantos:8, objetivo:'amarillo', blancos:3 },
+  { id:'verde',     cuantos:8, objetivo:'verde',    blancos:3 },
+  { id:'combinada', cuantos:9, objetivo:'al-azar',  blancos:5, pide:[2, 4] }
 ];

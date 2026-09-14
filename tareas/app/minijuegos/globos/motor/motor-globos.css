@@ -83,16 +83,40 @@ header{
   font-size:clamp(13px,3.6vw,19px);padding:2px 16px;
   text-shadow:0 2px 0 rgba(0,0,0,.14);
 }
-/* El color pedido va escrito EN ese color: el chico que no lee todavia
-   igual tiene de donde agarrarse. Va sobre una pastilla blanca y no suelto
-   sobre el cielo — el celeste se come al azul, y el amarillo no se lee
-   sobre ningun fondo claro. Con la pastilla, cualquier color de la paleta
-   entra sin revisar contraste uno por uno. */
-.prompt b{
-  display:inline-block;background:#fff;color:var(--c,#2B2140);
-  border-radius:999px;padding:0 12px 2px;margin-left:3px;
+/* Lo que la consigna pide —el numero, el color— va en pastillas blancas y
+   no suelto sobre el cielo. El color pedido ademas va escrito EN ese color,
+   asi el chico que todavia no lee tiene de donde agarrarse; sobre el celeste
+   del fondo eso no se puede hacer (el celeste se come al azul y el amarillo
+   no se lee sobre ningun fondo claro), y con la pastilla entra cualquier
+   color de la paleta sin revisar contraste uno por uno. El numero va en
+   tinta oscura y no en el color de la ronda, por lo mismo. */
+.prompt .pastilla{
+  display:inline-block;background:#fff;border-radius:999px;
+  padding:0 12px 2px;margin:0 3px;
   text-shadow:none;box-shadow:0 2px 0 rgba(0,0,0,.12);
 }
+.prompt .color{color:var(--c,#2B2140)}
+.prompt .num{color:#2B2140}
+
+/* ---------- la cuenta de la consigna ----------
+   Cuando la ronda pide un numero, ese numero va tambien dibujado: tantos
+   globos vacios como hay que reventar, que se van llenando de a uno con el
+   color del globo que acaba de explotar. Un chico de 4 anos no lee el "3"
+   con seguridad, pero ve tres huecos y ve cuantos le faltan.
+   No es un reloj ni un puntaje: no corre solo y no baja nunca. */
+.cuenta{display:inline-flex;gap:5px;vertical-align:-.38em;margin-left:6px}
+.cuenta .marca{height:1.6em;width:auto;display:block}
+/* en miniatura el hilo y el brillo son ruido: queda el cuerpo solo */
+.cuenta .marca .hilo,.cuenta .marca .nudo,.cuenta .marca .brillo{display:none}
+.cuenta .marca .cuerpo{
+  fill:rgba(255,255,255,.22);stroke:rgba(255,255,255,.9);stroke-width:10;
+  transform-box:fill-box;transform-origin:center;
+}
+.cuenta .marca.hecha .cuerpo{
+  fill:var(--m,#fff);stroke:#fff;
+  animation:marcar .4s cubic-bezier(.2,1.6,.5,1);
+}
+@keyframes marcar{from{transform:scale(.35)}to{transform:scale(1)}}
 
 /* ---------- escenario ----------
    El SVG lleva width y height explicitos, NO `position:absolute` con

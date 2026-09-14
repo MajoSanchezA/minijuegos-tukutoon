@@ -31,6 +31,15 @@
    juego de seguimiento y anticipacion (4-5 anos). Lo elige el adulto con
    el boton del header, no la ronda.
 
+   LO QUE CIERRA LA RONDA ES EL NUMERO, NO LA PANTALLA VACIA. Una ronda
+   puede pedir una cantidad (`pide` en globos.js) y entonces siempre sobran
+   globos que servian y hay que dejar sin tocar: contar y PARAR es el
+   ejercicio. Como la ronda se gana en el globo exacto, tampoco hay forma de
+   pasarse — el festejo llega con los que sobraron todavia en pantalla, y
+   eso es lo que le muestra al chico que se pedia una cantidad. El numero,
+   ademas de escrito, va dibujado como globos vacios que se van llenando
+   (ver `ponerConsigna`), porque a esta edad el "3" todavia no se lee.
+
    NO HAY FORMA DE PERDER. Un globo que se va por arriba no se pierde:
    vuelve a entrar por abajo (ver `subir`). No hay reloj, no hay puntaje
    que baje, y tocar el globo equivocado no saca nada — solo se bambolea.
@@ -214,7 +223,9 @@ var mainEl   = document.querySelector('main');
 var rIdx     = 0;      // ronda activa
 var vuelo    = !!cfg.vuelo;
 var globos   = [];
-var faltan   = 0;      // globos del color pedido que quedan sin reventar
+var pedidos  = 0;      // cuantos hay que reventar en esta ronda
+var faltan   = 0;      // cuantos de esos quedan
+var marcasEl = null;   // la fila de globos vacios de la consigna, si la hay
 var errores  = 0;      // toques errados seguidos
 var locked   = false;  // true mientras se festeja / hay tarjeta
 var reventados = [];   // colores reventados, en orden: se ven en la tarjeta
@@ -247,10 +258,41 @@ function indiceDeRonda(id){
   for(var i = 0; i < RONDAS.length; i++){ if(RONDAS[i].id === id) return i; }
   return -1;
 }
-/* El color con el que se pinta el chrome de la ronda. La ronda libre no
-   pide ningun color: ahi manda el amarillo de la marca. */
-function colorDeRonda(r){ return r.objetivo ? colorPorId(r.objetivo).color : '#FFD84D'; }
-function blancosDe(r){ return r.objetivo ? (r.blancos || 3) : r.cuantos; }
+/* El color que pide una ronda. Casi siempre es el que dice `objetivo`,
+   pero una ronda puede pedir 'al-azar' y entonces el color le toca en
+   suerte y cambia de partida en partida — el motor lo sortea y lo deja
+   anotado aca, para que la consigna, el confeti, la tarjeta y el boton del
+   selector hablen todos del mismo color. */
+var colorSorteado = {};
+function objetivoDe(r){
+  if(r.objetivo !== 'al-azar') return r.objetivo || null;
+  return colorSorteado[r.id] || null;
+}
+function sortearColor(r){
+  colorSorteado[r.id] = COLORES[(Math.random() * COLORES.length) | 0].id;
+}
+/* El color con el que se pinta el chrome de la ronda. La ronda que no pide
+   ningun color se pinta con el amarillo de la marca. */
+function colorDeRonda(r){
+  var o = objetivoDe(r);
+  return o ? colorPorId(o).color : '#FFD84D';
+}
+/* Cuantos globos sirven, de los que hay en pantalla. */
+function blancosDe(r){ return objetivoDe(r) ? (r.blancos || 3) : r.cuantos; }
+/* Cuantos hay que reventar para cerrar la ronda. Con `pide` sale un numero
+   al azar de ese rango; sin `pide`, son todos los que sirven.
+   El tope es `hay - 1` y no `hay`: tiene que sobrar por lo menos uno. Si el
+   numero pedido fuera igual a los que hay, el chico cierra la ronda
+   tocandolos todos sin contar nada, y el ejercicio desaparece sin que se
+   note — la ronda se sigue ganando igual. */
+function sortearPedidos(r){
+  var hay = blancosDe(r);
+  if(!r.pide) return hay;
+  var min = Math.max(1, r.pide[0]);
+  var max = Math.min(r.pide[1], hay - 1);
+  if(max < min) max = min;
+  return min + ((Math.random() * (max - min + 1)) | 0);
+}
 
 /* =====================================================================
    AUDIO (WebAudio, sin assets)
@@ -368,8 +410,12 @@ function buildStars(){
    son tres globos de colores distintos: un chico que todavia no lee ve de
    una si esa ronda pide un color o los acepta todos. */
 function iconoDeRonda(r){
-  if(r.objetivo){ return globoSuelto(colorPorId(r.objetivo).color, true); }
-  var tres = ['rojo', 'amarillo', 'azul'];
+  var o = objetivoDe(r);
+  // un color y nada mas: un globo de ese color
+  if(o && !r.pide){ return globoSuelto(colorPorId(o).color, true); }
+  // tres globos. Del mismo color si la ronda pide un color ademas del
+  // numero, de colores distintos si acepta cualquiera
+  var tres = o ? [o, o, o] : ['rojo', 'amarillo', 'azul'];
   var s = nodo('svg', { viewBox:'-320 -146 640 372', 'aria-hidden':'true' });
   [-186, 0, 186].forEach(function(dx, i){
     var g = globoNodo(colorPorId(tres[i]).color, false);
@@ -385,9 +431,10 @@ function buildPicker(){
     var b = document.createElement('button');
     b.className = 'rbtn' + (i === rIdx ? ' sel' : '') + (done.indexOf(r.id) >= 0 ? ' done' : '');
     b.appendChild(iconoDeRonda(r));
-    b.setAttribute('aria-label', r.objetivo
-      ? 'Globos ' + colorPorId(r.objetivo).plural
-      : 'Todos los globos');
+    var o = objetivoDe(r);
+    b.setAttribute('aria-label',
+      (r.pide ? 'Contar globos ' : 'Globos ') +
+      (o ? colorPorId(o).plural : 'de todos los colores'));
     // el selector nunca se bloquea: cambiar de ronda siempre es seguro,
     // incluso durante el festejo
     b.addEventListener('click', function(){ hideCard(); cargarRonda(i); });
@@ -404,12 +451,45 @@ function refreshChrome(){
   mb.className = 'icon-btn modo-btn' + (vuelo ? ' vuela' : '');
 }
 function ponerConsigna(r){
-  var c = colorDeRonda(r);
-  promptEl.style.setProperty('--c', r.objetivo ? c : '#FFD84D');
-  promptEl.innerHTML = r.consigna ? r.consigna
-    : (r.objetivo
-        ? 'Explotá solo los globos <b>' + colorPorId(r.objetivo).plural + '</b>'
-        : 'Explotá todos los globos');
+  var o = objetivoDe(r);
+  promptEl.style.setProperty('--c', colorDeRonda(r));
+
+  var num = '<b class="pastilla num">' + pedidos + '</b>';
+  var col = o ? '<b class="pastilla color">' + colorPorId(o).plural + '</b>' : '';
+  var texto;
+  if(r.consigna)       { texto = r.consigna; }
+  else if(r.pide && o) { texto = 'Explotá ' + num + ' globos ' + col; }
+  else if(r.pide)      { texto = 'Explotá ' + num + ' globos'; }
+  else if(o)           { texto = 'Explotá solo los globos ' + col; }
+  else                 { texto = 'Explotá todos los globos'; }
+  promptEl.innerHTML = texto;
+
+  // El numero, ademas de escrito, dibujado: tantos globos vacios como hay
+  // que reventar. Un chico de 4 anos no lee el "3" con seguridad, pero ve
+  // tres huecos y ve cuantos le faltan. Solo en las rondas que piden un
+  // numero — en las de color van todos los del color y no hay nada que
+  // contar.
+  marcasEl = null;
+  if(!r.pide) return;
+  var fila = document.createElement('span');
+  fila.className = 'cuenta';
+  for(var i = 0; i < pedidos; i++){
+    var m = globoSuelto('#FFFFFF', false);
+    m.setAttribute('class', 'marca');
+    m.setAttribute('viewBox', '-112 -130 224 268');   // sin hilo, el globo solo
+    fila.appendChild(m);
+  }
+  promptEl.appendChild(fila);
+  marcasEl = fila;
+}
+/* Llena el proximo globo vacio de la consigna con el color del que acaba de
+   reventar: la fila termina siendo el registro de lo que hizo. */
+function marcarUna(color){
+  if(!marcasEl) return;
+  var libre = marcasEl.querySelector('.marca:not(.hecha)');
+  if(!libre) return;
+  libre.style.setProperty('--m', color);
+  libre.setAttribute('class', 'marca hecha');
 }
 
 /* =====================================================================
@@ -420,8 +500,10 @@ function ponerConsigna(r){
    sobrantes y cinco distractores, sale uno de cada — asi el chico compara
    el color pedido contra varios, no contra uno solo repetido. */
 function reparto(r){
-  var lista = [], i;
-  if(!r.objetivo){
+  var lista = [], i, o = objetivoDe(r);
+  if(!o){
+    // sin color pedido sirven todos, asi que se reparten los colores de la
+    // paleta para que no salgan dos iguales antes de tiempo
     var paleta = barajar(COLORES.slice());
     for(i = 0; i < r.cuantos; i++){
       lista.push({ colorId: paleta[i % paleta.length].id, blanco: true });
@@ -429,8 +511,8 @@ function reparto(r){
     return barajar(lista);
   }
   var n = blancosDe(r);
-  for(i = 0; i < n; i++){ lista.push({ colorId: r.objetivo, blanco: true }); }
-  var otros = barajar(COLORES.filter(function(c){ return c.id !== r.objetivo; }));
+  for(i = 0; i < n; i++){ lista.push({ colorId: o, blanco: true }); }
+  var otros = barajar(COLORES.filter(function(c){ return c.id !== o; }));
   for(i = 0; i < r.cuantos - n; i++){
     lista.push({ colorId: otros[i % otros.length].id, blanco: false });
   }
@@ -481,6 +563,11 @@ function cargarRonda(i){
   globos = [];
   svg.innerHTML = '';
 
+  // el color y el numero se sortean de nuevo en cada partida, ANTES de
+  // repartir los globos y de escribir la consigna: todo lo demas los lee
+  if(r.objetivo === 'al-azar'){ sortearColor(r); }
+  pedidos = sortearPedidos(r);
+
   medir();
   reparto(r).forEach(function(item){
     var col = colorPorId(item.colorId);
@@ -508,7 +595,13 @@ function cargarRonda(i){
     });
   });
 
-  faltan = globos.filter(function(b){ return b.blanco; }).length;
+  // Lo que cierra la ronda es llegar al numero, no vaciar la pantalla: en
+  // las rondas que piden una cantidad siempre sobran globos que sirven y
+  // hay que dejar sin tocar. Como la ronda se gana justo al llegar, el
+  // chico tampoco puede pasarse — el festejo llega en el globo exacto, con
+  // los que sobraron todavia ahi, y eso es lo que le muestra que el juego
+  // pedia una cantidad y no todos.
+  faltan = pedidos;
   repartirPosiciones();
   ponerConsigna(r);
   refreshChrome();
@@ -654,6 +747,7 @@ function reventar(b){
   reventados.push(b.color);
   chispas(b.px, b.py, b.color);
   plop();
+  marcarUna(b.color);
   errores = 0;
   setTimeout(function(){
     if(b.el.parentNode){ b.el.parentNode.removeChild(b.el); }
@@ -786,7 +880,8 @@ function showCard(){
   fila.innerHTML = '';
   reventados.slice(0, 8).forEach(function(col){ fila.appendChild(globoSuelto(col, true)); });
 
-  var plural = r.objetivo ? ' ' + colorPorId(r.objetivo).plural : '';
+  var o = objetivoDe(r);
+  var plural = o ? ' ' + colorPorId(o).plural : '';
   document.getElementById('card-word').innerHTML =
     '¡<b>' + n + '</b> globos' + plural + '!';
   cardEl.classList.add('show');
@@ -835,6 +930,11 @@ document.addEventListener('gesturestart', function(e){ e.preventDefault(); });
 document.addEventListener('visibilitychange', function(){
   if(!document.hidden){ ultimoTs = 0; }
 });
+
+// Las rondas de color al azar necesitan un color desde el arranque, aunque
+// todavia no se hayan jugado: si no, su boton del selector no sabe de que
+// color dibujarse.
+RONDAS.forEach(function(r){ if(r.objetivo === 'al-azar'){ sortearColor(r); } });
 
 cargarRonda(unaSola ? indiceDeRonda(cfg.ronda) : 0);
 
