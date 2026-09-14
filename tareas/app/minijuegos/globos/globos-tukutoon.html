@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>TukuToon · Globos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Comfortaa:wght@400;700&family=Plus+Jakarta+Sans:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="motor/motor-globos.css">
+</head>
+<body>
+
+<script src="globos.js"></script>
+<script src="motor/motor-globos.js"></script>
+<script>
+  // Que ronda mostrar sale de la URL, igual que ?vocal= en el juego de
+  // trazos: con ?ronda=azul la app puede entrar derecho a una sola ronda y
+  // el selector de abajo desaparece. Sin el parametro estan las cinco.
+  var pedida = (location.search.match(/[?&]ronda=([a-z]+)/) || [])[1];
+  // ?vuelo=1 arranca con los globos volando. Es lo mismo que el boton del
+  // header: sirve para linkear directo al nivel de los mas grandes.
+  var vuela = /[?&]vuelo=1/.test(location.search);
+
+  TukuToonBalloonPage({
+    rondas: GLOBOS_RONDAS,
+    colores: GLOBOS_COLORES,
+    ronda: pedida || null,
+    vuelo: vuela,
+    titulo: 'TukuToon',
+    subtitulo: 'GLOBOS'
+    // menuHref: 'menu.html'   // cuando este el menu del juego
+  });
+</script>
+
+</body>
+</html>

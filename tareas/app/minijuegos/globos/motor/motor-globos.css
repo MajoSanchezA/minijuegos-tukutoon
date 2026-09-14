@@ -1,0 +1,219 @@
+/* =====================================================================
+   MOTOR DE GLOBOS — estilos.
+
+   El esqueleto es el MISMO que motor-trazos.css (header, estrellas,
+   consigna, escenario, selector de abajo, tarjeta final): los juegos de
+   TukuToon se tienen que ver hermanos. Lo propio de este archivo es el
+   cielo y el dibujo del globo.
+
+   El globo se dibuja en SVG, no es un PNG: asi cualquier color sale
+   gratis y no hay que pedirle un archivo al disenador por cada color.
+   Ver `dibujarGlobo()` en motor-globos.js.
+   ===================================================================== */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overscroll-behavior:none}
+body{
+  /* 100dvh, nunca 100vh: el chrome dinamico del navegador movil corta la pantalla */
+  height:100vh; height:100dvh;
+  font-family:'Comfortaa',system-ui,-apple-system,sans-serif;
+  color:#2B2140;
+  background:linear-gradient(180deg,#37B0EC 0%,#7FD0F5 46%,#DCF3FF 100%);
+  overflow:hidden;
+  touch-action:none;
+  display:flex; flex-direction:column;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* ---------- nubes de fondo ---------- */
+.sky{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+.cloud{position:absolute;background:rgba(255,255,255,.7);border-radius:100px}
+.cloud::before,.cloud::after{content:'';position:absolute;background:inherit;border-radius:100px}
+.cloud::before{width:55%;height:150%;left:12%;top:-70%}
+.cloud::after{width:40%;height:120%;right:14%;top:-50%}
+.c1{width:150px;height:52px;top:14%;left:-30%;animation:drift 46s linear infinite}
+.c2{width:105px;height:38px;top:38%;left:-30%;animation:drift 62s linear infinite 6s;opacity:.75}
+.c3{width:190px;height:64px;top:66%;left:-40%;animation:drift 78s linear infinite 14s;opacity:.5}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(170vw)}}
+
+/* ---------- header ---------- */
+header{
+  position:relative;z-index:2;flex:0 0 auto;
+  display:flex;align-items:center;gap:10px;
+  padding:10px clamp(10px,3vw,22px) 4px;
+}
+.brand{
+  font-family:'Fredoka',sans-serif;font-weight:600;
+  font-size:clamp(15px,4.2vw,22px);color:#fff;
+  text-shadow:0 2px 0 rgba(0,0,0,.14);
+  white-space:nowrap;line-height:1.1;
+}
+.brand small{display:block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;
+  font-size:.55em;opacity:.82;letter-spacing:.05em}
+.stars{display:flex;gap:4px;margin-left:auto}
+.star{width:clamp(20px,5.2vw,28px);height:clamp(20px,5.2vw,28px);display:block;
+  transition:transform .35s cubic-bezier(.2,1.6,.5,1)}
+.star path{fill:rgba(255,255,255,.28);stroke:rgba(255,255,255,.55);stroke-width:6;
+  transition:fill .3s}
+.star.on path{fill:#FFD84D;stroke:#fff}
+.star.on{transform:scale(1.15)}
+.icon-btn{
+  flex:0 0 auto;width:clamp(34px,8.6vw,42px);height:clamp(34px,8.6vw,42px);
+  border:none;border-radius:50%;background:rgba(255,255,255,.92);
+  color:#2C82C9;font-size:clamp(17px,4.6vw,21px);line-height:1;
+  box-shadow:0 3px 0 rgba(0,0,0,.14);cursor:pointer;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;text-decoration:none;
+}
+.icon-btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.14)}
+
+/* El interruptor quietos / volando. Es para el adulto que acomoda el juego a
+   la edad del chico, asi que dice con todas las letras en cual de los dos
+   esta — un icono solo se malinterpreta (el de pausa se lee como "tocame
+   para que empiece"). */
+.modo-btn{
+  width:auto;border-radius:21px;padding:0 clamp(10px,3vw,14px);
+  font-family:'Fredoka',sans-serif;font-weight:600;
+  font-size:clamp(11px,3vw,14px);letter-spacing:.04em;
+}
+.modo-btn.vuela{background:#FFD84D;color:#2B2140}
+
+/* ---------- consigna ---------- */
+.prompt{
+  position:relative;z-index:2;flex:0 0 auto;text-align:center;margin:0;
+  font-family:'Fredoka',sans-serif;font-weight:500;color:#fff;
+  font-size:clamp(13px,3.6vw,19px);padding:2px 16px;
+  text-shadow:0 2px 0 rgba(0,0,0,.14);
+}
+/* El color pedido va escrito EN ese color: el chico que no lee todavia
+   igual tiene de donde agarrarse. Va sobre una pastilla blanca y no suelto
+   sobre el cielo — el celeste se come al azul, y el amarillo no se lee
+   sobre ningun fondo claro. Con la pastilla, cualquier color de la paleta
+   entra sin revisar contraste uno por uno. */
+.prompt b{
+  display:inline-block;background:#fff;color:var(--c,#2B2140);
+  border-radius:999px;padding:0 12px 2px;margin-left:3px;
+  text-shadow:none;box-shadow:0 2px 0 rgba(0,0,0,.12);
+}
+
+/* ---------- escenario ----------
+   El SVG lleva width y height explicitos, NO `position:absolute` con
+   inset: sin medidas propias el navegador lo trata como imagen y lo
+   dimensiona por la proporcion de su viewBox — que es justamente lo que el
+   motor le escribe segun lo que el elemento mide. Se retroalimenta y el
+   escenario termina mas alto que la pantalla.
+
+   `overflow:hidden` en main para que el globo que sube se corte en el
+   borde del escenario en vez de pasar por encima del titulo y de los
+   botones de abajo. */
+main{position:relative;z-index:2;flex:1 1 auto;min-height:0;
+  padding:2px 6px 4px;overflow:hidden}
+#stage{display:block;width:100%;height:100%;touch-action:none}
+
+/* ---------- el globo ----------
+   Dos grupos anidados a proposito:
+     .globo  lleva el transform de POSICION, que pone el JS como atributo.
+     .anim   lleva el transform de las ANIMACIONES, que pone el CSS.
+   Si las dos cosas cayeran en el mismo elemento, la propiedad CSS pisaria
+   al atributo y el globo saltaria al origen apenas empieza cualquier
+   animacion.
+
+   Los transform-origin van en porcentaje del bounding box del grupo
+   (transform-box:fill-box). El dibujo va de y=-118 (la coronilla) a y=210
+   (la punta del hilo), 328 de alto: el centro del cuerpo (y=0) cae al 36%
+   y el nudo (y=126) al 74%. Por eso el globo revienta desde el centro pero
+   se bambolea colgando del nudo. */
+.globo{pointer-events:none}
+.globo .anim{transform-box:fill-box}
+.cuerpo{stroke:rgba(0,0,0,.13);stroke-width:3}
+.brillo{fill:rgba(255,255,255,.5)}
+.nudo{stroke:rgba(0,0,0,.13);stroke-width:2}
+.hilo{fill:none;stroke:rgba(255,255,255,.85);stroke-width:4;stroke-linecap:round}
+
+.face{pointer-events:none}
+.face .eyes ellipse{fill:#2B2140}
+.face .eyes{transform-box:fill-box;transform-origin:center;animation:blink 4.2s infinite}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.12)}}
+.face .mouth{fill:none;stroke:#2B2140;stroke-width:5;stroke-linecap:round}
+.face .cheek{fill:rgba(239,101,142,.4)}
+
+/* reventar: se infla un toque y se va */
+.globo.pop .anim{transform-origin:50% 36%;animation:reventar .26s ease-out forwards}
+@keyframes reventar{
+  0%{transform:scale(1);opacity:1}
+  45%{transform:scale(1.28);opacity:.9}
+  100%{transform:scale(.25);opacity:0}
+}
+/* ese no era: se bambolea colgando del nudo. Sin explotar y sin castigo */
+.globo.mal .anim{transform-origin:50% 74%;animation:pendulo .55s ease-in-out}
+@keyframes pendulo{
+  0%,100%{transform:rotate(0)}
+  20%{transform:rotate(-7deg)}
+  55%{transform:rotate(6deg)}
+  80%{transform:rotate(-3deg)}
+}
+/* la pista: despues de dos toques errados, los que SI van laten */
+.globo.pista .anim{transform-origin:50% 36%;animation:latido 1s ease-in-out 2}
+@keyframes latido{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+/* al ganar, los que sobraron se van volando */
+.globo.vuela .anim{transform-origin:50% 36%;animation:volar 1.3s ease-in forwards}
+@keyframes volar{
+  0%{transform:translateY(0);opacity:1}
+  100%{transform:translateY(-420%);opacity:0}
+}
+
+/* ---------- selector de rondas ---------- */
+footer{position:relative;z-index:2;flex:0 0 auto;display:flex;gap:clamp(6px,2.2vw,14px);
+  justify-content:center;padding:6px clamp(8px,3vw,20px) max(10px,env(safe-area-inset-bottom))}
+footer.oculto{display:none}
+.rbtn{
+  width:clamp(46px,13vw,68px);height:clamp(46px,13vw,68px);
+  border:none;border-radius:22px;cursor:pointer;touch-action:manipulation;
+  background:rgba(255,255,255,.92);box-shadow:0 4px 0 rgba(0,0,0,.16);
+  transition:transform .12s,box-shadow .12s;position:relative;
+  display:flex;align-items:center;justify-content:center;padding:7px;
+}
+.rbtn svg{width:100%;height:100%;display:block}
+.rbtn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.16)}
+.rbtn.sel{outline:4px solid #fff;outline-offset:2px}
+.rbtn.done::after{content:'\2B50';position:absolute;top:-9px;right:-7px;font-size:14px;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.25))}
+
+/* ---------- efectos y tarjeta ---------- */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:5}
+#card{
+  position:fixed;inset:0;z-index:6;display:none;
+  align-items:center;justify-content:center;padding:18px;
+  background:rgba(20,58,84,.5);
+}
+#card.show{display:flex;animation:fade .28s ease-out}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.card-box{
+  background:#FFFDF6;border-radius:28px;padding:clamp(16px,4.5vw,28px) clamp(20px,6vw,40px);
+  text-align:center;box-shadow:0 14px 0 rgba(0,0,0,.18);max-width:min(92vw,460px);
+  animation:pop .42s cubic-bezier(.2,1.5,.45,1);
+}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.card-globos{display:flex;gap:6px;justify-content:center;align-items:flex-end;
+  min-height:clamp(58px,17vw,96px)}
+.card-globos svg{height:clamp(58px,17vw,96px);width:auto;display:block}
+.card-word{font-family:'Fredoka',sans-serif;font-weight:700;
+  font-size:clamp(20px,6.4vw,34px);margin:8px 0 4px}
+.card-word b{color:var(--c);font-size:1.3em}
+.card-hint{font-size:clamp(11px,3.2vw,14px);opacity:.55;margin-bottom:14px}
+.card-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.card-actions button{
+  border:none;border-radius:18px;padding:11px 20px;cursor:pointer;touch-action:manipulation;
+  font-family:'Fredoka',sans-serif;font-weight:600;font-size:clamp(14px,4vw,18px);color:#fff;
+  box-shadow:0 4px 0 rgba(0,0,0,.18);
+}
+.card-actions button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.btn-again{background:#8D82A8}
+.btn-next{background:var(--c)}
+
+@media (prefers-reduced-motion:reduce){
+  .cloud{animation:none !important}
+  .face .eyes{animation:none}
+  .card-box{animation:none}
+  /* El vuelo NO se apaga: en la ronda volando es el juego en si. Lo que se
+     saca es el bamboleo lateral y se bajan las particulas — ver `reduced`
+     en motor-globos.js. */
+}
