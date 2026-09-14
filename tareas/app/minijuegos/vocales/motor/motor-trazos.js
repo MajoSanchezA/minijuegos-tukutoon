@@ -40,6 +40,14 @@
 (function(global){
 'use strict';
 
+// Carpeta iconos/ deducida del <script src> de este mismo archivo, igual
+// que ICONS_BASE en motor/motor.js de a-pintar: asi ninguna pagina tiene
+// que pasar una ruta a mano. Se calcula aca arriba, no adentro de
+// TukuToonTracePage, porque document.currentScript solo vale mientras
+// este script se esta ejecutando por primera vez.
+var SCRIPT_SRC  = (document.currentScript && document.currentScript.src) || '';
+var ICONS_BASE  = SCRIPT_SRC ? SCRIPT_SRC.replace(/\/[^/]*$/, '/../iconos/') : '';
+
 function TukuToonTracePage(cfg){
   cfg = cfg || {};
 
@@ -60,9 +68,12 @@ function buildDOM(cfg){
   var titulo    = cfg.titulo    || 'TukuToon';
   var subtitulo = cfg.subtitulo || 'TRAZA LAS VOCALES';
 
+  var iconsBase = cfg.iconsBase || ICONS_BASE;
+
   var volver = cfg.menuHref
-    ? '<a class="icon-btn" id="menu-btn" href="' + cfg.menuHref +
-      '" title="Volver al menu" aria-label="Volver al menu">&#8592;</a>'
+    ? '<a class="icon-btn icon-art" id="menu-btn" href="' + cfg.menuHref +
+      '" title="Volver al menu" aria-label="Volver al menu">' +
+      '<img src="' + iconsBase + 'volver.png" alt="" draggable="false"></a>'
     : '';
 
   document.body.innerHTML =
@@ -72,8 +83,9 @@ function buildDOM(cfg){
 
     '<header>' +
       volver +
-      '<button class="icon-btn" id="reset-btn" title="Empezar esta letra de nuevo" ' +
-        'aria-label="Empezar de nuevo">&#8634;</button>' +
+      '<button class="icon-btn icon-art" id="reset-btn" title="Empezar esta letra de nuevo" ' +
+        'aria-label="Empezar de nuevo">' +
+        '<img src="' + iconsBase + 'reiniciar.png" alt="" draggable="false"></button>' +
       '<button class="icon-btn caso-btn" id="caso-btn" ' +
         'title="Cambiar entre mayuscula y minuscula" ' +
         'aria-label="Cambiar mayuscula o minuscula">Aa</button>' +
