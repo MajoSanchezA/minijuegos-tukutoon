@@ -21,6 +21,9 @@
      menuHref   si viene, agrega boton de volver al menu
      storeKey   clave de localStorage del progreso (default abajo)
 
+   Cada ronda (ver globos.js) puede traer ademas `catarata:true` para que
+   sea un caudal sin fin en vez de una tanda fija — ver mas abajo.
+
    ---------------------------------------------------------------------
    COMO FUNCIONA
 
@@ -28,8 +31,12 @@
    `vuelo` esta apagado no hay loop de animacion y los globos son blancos
    fijos (tocar donde se ve: sirve desde los 2 anos); si esta prendido
    corre un requestAnimationFrame que los sube despacio, y pasa a ser un
-   juego de seguimiento y anticipacion (4-5 anos). Lo elige el adulto con
-   el boton del header, no la ronda.
+   juego de seguimiento y anticipacion (4-5 anos). Cada ronda trae su
+   propio modo por defecto (`r.vuelo` en globos.js: las de contar y
+   clasificar arrancan quietas, la combinada vuela) y se aplica solo al
+   ENTRAR a una ronda nueva — el adulto sigue pudiendo cambiarlo a mano
+   con el boton del header, y ese cambio no se deshace mientras se quede
+   en la misma ronda (ver el comentario de `cargarRonda`).
 
    LO QUE CIERRA LA RONDA ES EL NUMERO, NO LA PANTALLA VACIA. Una ronda
    puede pedir una cantidad (`pide` en globos.js) y entonces siempre sobran
@@ -45,6 +52,17 @@
    que baje, y tocar el globo equivocado no saca nada — solo se bambolea.
    A esta edad el fracaso no ensena nada, y el chico juega sin adulto al
    lado que le explique que paso.
+
+   CATARATA (`r.catarata`). Es la unica ronda sin una tanda fija de
+   globos: no hay `blancos` que reparte una vez y ya, hay un caudal que no
+   para. Cada globo que revienta —y cada globo que NO era del color pedido
+   y se escapa por arriba sin que lo toquen— vuelve a entrar por abajo con
+   un color nuevo sorteado al azar (`colorAlAzarCatarata`, ver `renacer` y
+   `subir`), en vez de quedarse con el mismo color para siempre como en
+   las demas rondas voladoras. `pide` sigue siendo cuanto hay que reventar
+   para ganar, pero ahi el tope de siempre (`hay - 1`, en `sortearPedidos`)
+   no aplica: como el caudal es infinito, no hace falta dejar nada sin
+   tocar.
 
    EL TOQUE NO SE RESUELVE CON pointer-events. Los globos tienen
    pointer-events:none y el toque lo escucha el SVG entero: se busca el
@@ -221,6 +239,7 @@ var promptEl = document.getElementById('prompt');
 var mainEl   = document.querySelector('main');
 
 var rIdx     = 0;      // ronda activa
+var primerCarga = true; // true hasta el primer cargarRonda(): ver ahi por que
 var vuelo    = !!cfg.vuelo;
 var globos   = [];
 var pedidos  = 0;      // cuantos hay que reventar en esta ronda
@@ -271,25 +290,85 @@ function objetivoDe(r){
 function sortearColor(r){
   colorSorteado[r.id] = COLORES[(Math.random() * COLORES.length) | 0].id;
 }
+/* El color de un globo nuevo en una ronda "catarata" — no reparte parejo
+   como `reparto()` (ahi hay una cantidad fija en pantalla y alcanza con
+   sortear una vez), aca cada globo se sortea solo, uno por uno, cada vez
+   que entra de nuevo al caudal. PESO_CATARATA es la probabilidad de que
+   toque el color pedido: con 8-9 en pantalla da unos 3 simultaneos en
+   promedio, parecido a las rondas de color de siempre, sin que haga falta
+   contarlos porque total van a seguir entrando mas. */
+var PESO_CATARATA = .35;
+function colorAlAzarCatarata(o){
+  if(o && Math.random() < PESO_CATARATA){ return { colorId:o, blanco:true }; }
+  var lista = o ? COLORES.filter(function(c){ return c.id !== o; }) : COLORES;
+  var c = lista[(Math.random() * lista.length) | 0];
+  return { colorId:c.id, blanco:(c.id === o) };
+}
+/* Repinta un globo ya armado con otro color, sin rehacer el SVG entero:
+   el color vive nada mas en el fill de `.cuerpo` y `.nudo` (ver
+   `globoNodo`), asi que alcanza con pisarlo. Lo usan `renacer` (un globo
+   que revento, en catarata) y `subir` (un distractor que se escapa por
+   arriba, en catarata). */
+function asignarColor(b, item){
+  var col = colorPorId(item.colorId);
+  b.colorId = col.id; b.color = col.color; b.blanco = item.blanco;
+  var cuerpo = b.anim.querySelector('.cuerpo'), nudoEl = b.anim.querySelector('.nudo');
+  if(cuerpo){ cuerpo.setAttribute('fill', col.color); }
+  if(nudoEl){ nudoEl.setAttribute('fill', col.color); }
+}
+/* Vuelve a poner en juego, desde abajo, un globo que acaba de reventar en
+   una ronda catarata — con un color nuevo sorteado, como si fuera otro
+   globo. Es lo que hace que el caudal no se corte nunca. */
+function renacer(b, r){
+  asignarColor(b, colorAlAzarCatarata(objetivoDe(r)));
+  b.reventado = false;
+  b.el.classList.remove('pop');
+  b.ny = 1.15 + Math.random() * .2;
+  b.nx = .08 + Math.random() * .84;
+  posicionar(b);
+}
 /* El color con el que se pinta el chrome de la ronda. La ronda que no pide
    ningun color se pinta con el amarillo de la marca. */
 function colorDeRonda(r){
   var o = objetivoDe(r);
   return o ? colorPorId(o).color : '#FFD84D';
 }
-/* Cuantos globos sirven, de los que hay en pantalla. */
-function blancosDe(r){ return objetivoDe(r) ? (r.blancos || 3) : r.cuantos; }
+/* Cuantos globos sirven, de los que hay en pantalla. `blancos` puede ser
+   un numero fijo o un rango [minimo, maximo]: con rango, sale un numero
+   al azar en cada partida (igual que `pide`), asi la cancha no se ve
+   siempre igual aunque sea la misma ronda. Se sortea una sola vez por
+   ronda y se guarda en `blancosSorteados`, porque `blancosDe` se llama
+   varias veces durante la misma carga (para `pedidos` y para repartir los
+   globos) y las dos tienen que ver el mismo numero. */
+var blancosSorteados = {};
+function sortearBlancos(r){
+  var b = r.blancos;
+  if(Array.isArray(b)){
+    var min = b[0], max = b[1];
+    blancosSorteados[r.id] = min + ((Math.random() * (max - min + 1)) | 0);
+  }else{
+    blancosSorteados[r.id] = b || 3;
+  }
+}
+function blancosDe(r){
+  if(!objetivoDe(r)) return r.cuantos;
+  return blancosSorteados[r.id] || (Array.isArray(r.blancos) ? r.blancos[0] : (r.blancos || 3));
+}
 /* Cuantos hay que reventar para cerrar la ronda. Con `pide` sale un numero
    al azar de ese rango; sin `pide`, son todos los que sirven.
    El tope es `hay - 1` y no `hay`: tiene que sobrar por lo menos uno. Si el
    numero pedido fuera igual a los que hay, el chico cierra la ronda
    tocandolos todos sin contar nada, y el ejercicio desaparece sin que se
-   note — la ronda se sigue ganando igual. */
+   note — la ronda se sigue ganando igual.
+   En una ronda "catarata" ese tope no corre: ahi `hay` no es cuantos
+   quedan sino cuantos estan en pantalla en este instante, y el caudal
+   repone solo — no hace falta dejar ninguno sin tocar porque van a seguir
+   entrando mas. */
 function sortearPedidos(r){
   var hay = blancosDe(r);
   if(!r.pide) return hay;
   var min = Math.max(1, r.pide[0]);
-  var max = Math.min(r.pide[1], hay - 1);
+  var max = r.catarata ? r.pide[1] : Math.min(r.pide[1], hay - 1);
   if(max < min) max = min;
   return min + ((Math.random() * (max - min + 1)) | 0);
 }
@@ -501,6 +580,12 @@ function marcarUna(color){
    el color pedido contra varios, no contra uno solo repetido. */
 function reparto(r){
   var lista = [], i, o = objetivoDe(r);
+  // catarata no reparte una cantidad exacta: cada globo se sortea solo,
+  // igual que cuando el caudal repone uno que revento (ver `renacer`).
+  if(r.catarata){
+    for(i = 0; i < r.cuantos; i++){ lista.push(colorAlAzarCatarata(o)); }
+    return lista;
+  }
   if(!o){
     // sin color pedido sirven todos, asi que se reparten los colores de la
     // paleta para que no salgan dos iguales antes de tiempo
@@ -548,8 +633,20 @@ function medir(){
 }
 
 function cargarRonda(i){
-  rIdx = ((i % RONDAS.length) + RONDAS.length) % RONDAS.length;
+  var nuevoIdx = ((i % RONDAS.length) + RONDAS.length) % RONDAS.length;
+  // Cada ronda tiene un modo por defecto (quieto o volando, `r.vuelo` en
+  // globos.js): al ENTRAR a una ronda nueva se aplica ese modo, aunque el
+  // adulto haya dejado otro elegido. Si lo que pasa es quedarse en la
+  // MISMA ronda —reset, o el boton de modo, que ya toco `vuelo` a mano
+  // antes de llamar aca— no se vuelve a forzar nada, para que ese cambio
+  // manual no se deshaga solo. `primerCarga` ademas deja que el arranque
+  // de la pagina respete `cfg.vuelo` (el link directo a un nivel volando)
+  // en vez de pisarlo con el default de la ronda.
+  var cambiaRonda = !primerCarga && nuevoIdx !== rIdx;
+  rIdx = nuevoIdx;
   var r = RONDAS[rIdx];
+  if(cambiaRonda && r.vuelo !== undefined){ vuelo = !!r.vuelo; }
+  primerCarga = false;
 
   detenerVuelo();
   // El selector de abajo funciona incluso durante el festejo, asi que puede
@@ -566,6 +663,7 @@ function cargarRonda(i){
   // el color y el numero se sortean de nuevo en cada partida, ANTES de
   // repartir los globos y de escribir la consigna: todo lo demas los lee
   if(r.objetivo === 'al-azar'){ sortearColor(r); }
+  sortearBlancos(r);
   pedidos = sortearPedidos(r);
 
   medir();
@@ -702,13 +800,20 @@ function subir(ts){
   var dt = ultimoTs ? Math.min((ts - ultimoTs) / 1000, .05) : .016;
   ultimoTs = ts;
   tSeg += dt;
+  var r = RONDAS[rIdx];
   for(var i = 0; i < globos.length; i++){
     var b = globos[i];
     if(b.reventado) continue;
     b.ny -= b.vy * dt;
     // el que se escapa por arriba vuelve a entrar por abajo, en otra
-    // columna: nunca se pierde un globo, no hay forma de quedarse trabado
-    if(b.ny < -.3){ b.ny = 1.3; b.nx = .08 + Math.random() * .84; }
+    // columna: nunca se pierde un globo, no hay forma de quedarse trabado.
+    // En catarata ademas cambia de color: si no, un distractor que se
+    // dejo pasar da toda la vuelta y vuelve exactamente igual, y el
+    // caudal deja de sentirse infinito.
+    if(b.ny < -.3){
+      b.ny = 1.3; b.nx = .08 + Math.random() * .84;
+      if(r.catarata){ asignarColor(b, colorAlAzarCatarata(objetivoDe(r))); }
+    }
     posicionar(b);
   }
 }
@@ -749,8 +854,13 @@ function reventar(b){
   plop();
   marcarUna(b.color);
   errores = 0;
+  var r = RONDAS[rIdx];
   setTimeout(function(){
-    if(b.el.parentNode){ b.el.parentNode.removeChild(b.el); }
+    // en catarata el globo no desaparece: vuelve a entrar por abajo hecho
+    // otro color, salvo que la ronda ya se haya ganado en el medio de
+    // estos 320ms (ahi se queda quieto, como el resto de los que sobraron)
+    if(r.catarata && !locked){ renacer(b, r); }
+    else if(b.el.parentNode){ b.el.parentNode.removeChild(b.el); }
   }, 320);
   faltan--;
   if(faltan <= 0){ ganar(); }
