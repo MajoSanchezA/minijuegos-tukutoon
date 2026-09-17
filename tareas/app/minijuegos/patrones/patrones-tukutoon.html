@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>TukuToon · Patrones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Comfortaa:wght@400;700&family=Plus+Jakarta+Sans:wght@600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="motor/motor-patrones.css">
+</head>
+<body>
+
+<script src="patrones.js"></script>
+<script src="motor/motor-patrones.js"></script>
+<script>
+  // Que ronda mostrar sale de la URL, igual que ?ronda= en el juego de
+  // globos: con ?ronda=abc la app entra derecho a esa ronda y el selector
+  // de abajo desaparece. Sin el parametro estan las tres.
+  var pedida = (location.search.match(/[?&]ronda=([a-z]+)/) || [])[1];
+
+  TukuToonPatternPage({
+    rondas: PATRONES_RONDAS,
+    bancos: PATRONES_BANCOS,
+    ronda: pedida || null,
+    titulo: 'TukuToon',
+    subtitulo: 'PATRONES'
+    // menuHref: 'menu.html'   // cuando este el menu del juego
+  });
+</script>
+
+</body>
+</html>
