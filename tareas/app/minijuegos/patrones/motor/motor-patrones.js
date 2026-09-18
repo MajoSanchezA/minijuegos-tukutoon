@@ -344,19 +344,25 @@ function tono(freq, dur, vol, tipo){
   }catch(e){}
 }
 function bien(){ tono(720 + Math.random() * 180, .16, .18); }
-/* Ese no era. Grave, corto y suave: avisa sin retar. */
+/* Ese no era. Dos notas cortas que bajan ("uh-uh"): se reconoce de una
+   como error, sin ser un buzzer que asuste — sigue sin retar, solo avisa
+   mas claro que antes (una sola nota grave se perdia entre los demas
+   sonidos del juego). */
 function noEra(){
   var a = audio(); if(!a) return;
   try{
-    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
-    o.type = 'sine';
-    o.frequency.setValueAtTime(300, t);
-    o.frequency.exponentialRampToValueAtTime(180, t + .18);
-    g.gain.setValueAtTime(.0001, t);
-    g.gain.exponentialRampToValueAtTime(.13, t + .02);
-    g.gain.exponentialRampToValueAtTime(.0001, t + .2);
-    o.connect(g); g.connect(a.destination);
-    o.start(t); o.stop(t + .24);
+    var t = a.currentTime;
+    [[220, 0, .09], [165, .11, .16]].forEach(function(nota){
+      var o = a.createOscillator(), g = a.createGain();
+      var ini = t + nota[1], dur = nota[2];
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(nota[0], ini);
+      g.gain.setValueAtTime(.0001, ini);
+      g.gain.exponentialRampToValueAtTime(.17, ini + .02);
+      g.gain.exponentialRampToValueAtTime(.0001, ini + dur);
+      o.connect(g); g.connect(a.destination);
+      o.start(ini); o.stop(ini + dur + .02);
+    });
   }catch(e){}
 }
 function fanfarria(){
@@ -670,6 +676,11 @@ document.getElementById('reset-btn').addEventListener('click', function(){
    ===================================================================== */
 pintarTuku();
 cargarRonda(unaSola ? indiceDeRonda(cfg.ronda) : 0);
+/* La bienvenida hablada, apenas entra al juego — antes de que el chico
+   toque nada, para que sea una instruccion y no un festejo. Si el
+   navegador no deja hablar sin que haya un toque previo (pasa en iOS),
+   se pierde esta linea nomas: el resto del juego no depende de ella. */
+speak('Ayudá a Tuku, la tambora, a armar la guirnalda');
 
 
 }
