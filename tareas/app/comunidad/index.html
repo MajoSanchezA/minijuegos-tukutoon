@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fff9ee">
+  <meta name="description" content="Dibuja, juega y comparte tus ideas con TukuToon y la comunidad de Carnavalia.">
+  <title>La Galería de Carnavalia — TukuToon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=references-variants-2">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="TukuToon, inicio">
+      <img class="brand-logo" src="assets/logo-tukutoon-horizontal.png" alt="TukuToon">
+    </a>
+    <nav class="desktop-nav" aria-label="Navegación principal">
+      <a href="#galeria">Galería</a><a href="#referencias">Referencias</a><a href="#actividades">Actividades</a><a href="#como">Cómo participar</a>
+    </nav>
+    <a class="button button-small button-coral" href="#subir"><span>＋</span> Comparte tu arte</a>
+  </header>
+
+  <main>
+    <section class="hero" id="inicio">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="sunburst">✳</span> UN RINCÓN HECHO ENTRE TODOS</div>
+        <h1>¡Carnavalia<br>se llena de <em>color!</em></h1>
+        <p>Un dibujo, una idea, un ritmo nuevo. Aquí celebramos todo lo que imaginas con Aída, Gabo y sus amigos.</p>
+        <div class="hero-actions"><a class="button button-dark" href="#actividades">¡Vamos a crear! <span>↗</span></a><a class="text-link" href="#galeria">Ver la galería <span>↓</span></a></div>
+        <div class="hero-note"><span class="note-icon">☀</span><span>Un espacio para jugar, imaginar<br>y crear en familia.</span></div>
+      </div>
+      <div class="hero-art" aria-label="Ilustración de fiesta en Carnavalia">
+        <div class="sun"></div><div class="cloud cloud-one"></div><div class="cloud cloud-two"></div>
+        <div class="confetti confetti-a">✦</div><div class="confetti confetti-b">✳</div><div class="confetti confetti-c">●</div><div class="confetti confetti-d">✦</div>
+        <div class="hill hill-back"></div><div class="hill hill-front"></div>
+        <div class="hero-characters">
+          <div class="hero-character character-aida"><span class="character-crown">✦</span><span class="character-face">☺</span><span class="character-label">Aída</span></div>
+          <div class="hero-character character-tuku"><span class="character-face">♫</span><span class="character-label">Tuku</span></div>
+          <div class="hero-character character-ana"><span class="character-face">✿</span><span class="character-label">Ana</span></div>
+        </div>
+        <div class="music-note note-one">♪</div><div class="music-note note-two">♫</div>
+        <div class="hero-sticker">¡TU IDEA<br>SUENA AQUÍ!</div>
+        <div class="hero-caption">Carnavalia, donde la imaginación toca primero</div>
+      </div>
+      <div class="hero-bottom-wave" aria-hidden="true"></div>
+    </section>
+
+    <section class="section featured" id="galeria">
+      <div class="section-heading">
+        <div><div class="eyebrow eyebrow-teal">PEQUEÑAS IDEAS, GRANDES MUNDOS</div><h2>Hecho por <span>manos pequeñas</span></h2></div>
+        <a class="text-link desktop-only" href="#galeria-completa">Explorar la galería <span>→</span></a>
+      </div>
+      <div class="featured-grid">
+        <article class="art-card art-large"><div class="art-meta"><span class="pill pill-yellow">✦ DESTACADO</span><span class="art-age">CREACIÓN DE LA SEMANA</span></div><div class="artwork artwork-one"><span class="art-sun"></span><span class="art-rainbow"></span><span class="art-flower flower-one">✿</span><span class="art-flower flower-two">✿</span><span class="art-house">⌂</span><span class="art-sign">¡A bailar!</span></div><div class="card-caption"><div><h3>Carnavalia de mil colores</h3><p>Una fiesta imaginada en familia</p></div><span class="heart" aria-label="Me encanta">♡</span></div></article>
+        <div class="featured-side">
+          <article class="art-card"><div class="artwork artwork-two"><span class="big-letter">A</span><span class="crayon crayon-one"></span><span class="crayon crayon-two"></span><span class="scribble">✿</span></div><div class="card-caption"><div><h3>Mi amiga Ana</h3><p>Un jardín musical</p></div><span class="heart">♡</span></div></article>
+          <article class="art-card"><div class="artwork artwork-three"><span class="wave-line">〰</span><span class="drum">♫</span><span class="star-shape">✦</span><span class="small-cloud">☁</span></div><div class="card-caption"><div><h3>Ritmos del mar</h3><p>Sonidos que pintan</p></div><span class="heart">♡</span></div></article>
+        </div>
+      </div>
+      <div class="gallery-bar" id="galeria-completa"><div><span class="gallery-dot"></span><strong>La galería de la comunidad</strong><span class="gallery-count">Ideas que nos inspiran</span></div><div class="filter-buttons" role="group" aria-label="Filtrar creaciones"><button class="filter active" data-filter="todos" aria-pressed="true">Todo</button><button class="filter" data-filter="personajes" aria-pressed="false">Personajes</button><button class="filter" data-filter="carnavalia" aria-pressed="false">Carnavalia</button><button class="filter" data-filter="ritmos" aria-pressed="false">Ritmos</button></div></div>
+      <div class="character-filter"><strong>Ver dibujos por personaje</strong><div class="character-options" role="group" aria-label="Elegir personaje"><button class="character-filter-button active" data-character-filter="todos" aria-pressed="true">Todos</button><button class="character-filter-button" data-character-filter="gabo" aria-pressed="false"><img src="assets/personajes/gabo.png?v=2" alt=""><span>Gabo</span></button><button class="character-filter-button" data-character-filter="ana" aria-pressed="false"><img src="assets/personajes/ana.png" alt=""><span>Ana</span></button><button class="character-filter-button" data-character-filter="tico" aria-pressed="false"><img src="assets/personajes/tico.png" alt=""><span>Tico</span></button><button class="character-filter-button" data-character-filter="tuku" aria-pressed="false"><img src="assets/personajes/tuku.png?v=3" alt=""><span>Tuku</span></button><button class="character-filter-button" data-character-filter="aida" aria-pressed="false"><img src="assets/personajes/aida.png" alt=""><span>Aída</span></button></div></div>
+      <div class="mini-gallery">
+        <article class="mini-card" data-category="personajes" data-character="aida"><div class="mini-art mini-aida"><span>☺</span><small>¡Hola!</small></div><p>Aída exploradora</p></article>
+        <article class="mini-card" data-category="ritmos" data-character="tuku"><div class="mini-art mini-tuku"><span>♫</span><i>✦</i><b>♪</b></div><p>Mi tambora feliz</p></article>
+        <article class="mini-card" data-category="carnavalia" data-character="gabo"><div class="mini-art mini-isla"><span>☀</span><i>⌂</i><b>✿</b></div><p>La isla de Gabo</p></article>
+        <article class="mini-card" data-category="personajes" data-character="ana"><div class="mini-art mini-ana"><span>✿</span><i>♡</i><b>✦</b></div><p>Ana y sus flores</p></article>
+        <article class="mini-card" data-category="personajes" data-character="tico"><div class="mini-art mini-tico"><span>♥</span><i>✦</i><b>♫</b></div><p>Tico de fiesta</p></article>
+      </div>
+      <p class="gallery-disclaimer">Estos dibujos son ejemplos de diseño. Las creaciones de la comunidad aparecerán aquí después de ser revisadas con sus familias.</p>
+    </section>
+
+    <section class="references-section" id="referencias">
+      <div class="section-heading references-heading"><div><div class="eyebrow eyebrow-coral">REFERENCIAS DE TUKUTOON</div><h2>Conoce a <span>los personajes</span></h2><p class="section-intro">Consulta sus imágenes para inspirarte mientras creas tu propio dibujo.</p></div><a class="text-link" href="#subir">¿Ya terminaste? Envía tu dibujo <span>→</span></a></div>
+      <div class="reference-toolbar"><div class="reference-category-filters" role="group" aria-label="Filtrar referencias"><button class="reference-filter active" data-reference-filter="personajes" aria-pressed="true">Personajes <span>5</span></button><button class="reference-filter" data-reference-filter="fondos" aria-pressed="false">Fondos <span>Pronto</span></button><button class="reference-filter" data-reference-filter="otros" aria-pressed="false">Otros <span>3</span></button></div><p>Toca una imagen para ampliarla o descargar la referencia.</p></div>
+      <div class="reference-grid">
+        <article class="reference-card" data-reference-category="personajes" data-reference-character="aida"><button class="reference-preview reference-avatar-preview" type="button" data-reference-preview="aida" aria-label="Ampliar referencia de Aída"><img src="assets/personajes/aida-referencia.png?v=2" alt="Imagen de referencia de cuerpo completo del personaje Aída"></button><div class="reference-card-copy"><span class="reference-kind">PERSONAJE</span><h3>Aída</h3><p>Consulta el diseño de Aída para guiar tu dibujo.</p><div class="reference-actions"><a class="reference-download" href="assets/personajes/aida-referencia.png?v=2" download="aida-referencia.png">↓ Descargar referencia</a><a class="reference-submit" href="#subir" data-reference-character="aida">Enviar dibujo <span>→</span></a></div></div></article>
+
+        <article class="reference-card" data-reference-category="personajes" data-reference-character="ana"><button class="reference-preview reference-avatar-preview" type="button" data-reference-preview="ana" aria-label="Ampliar referencia de Ana"><img src="assets/personajes/ana.png" alt="Imagen de referencia del personaje Ana"></button><div class="reference-card-copy"><span class="reference-kind">PERSONAJE</span><h3>Ana</h3><p>Consulta el diseño de Ana para guiar tu dibujo.</p><div class="reference-actions"><a class="reference-download" href="assets/personajes/ana.png" download>↓ Descargar referencia</a><a class="reference-submit" href="#subir" data-reference-character="ana">Enviar dibujo <span>→</span></a></div></div></article>
+        <article class="reference-card" data-reference-category="personajes" data-reference-character="tuku"><button class="reference-preview reference-avatar-preview" type="button" data-reference-preview="tuku" aria-label="Ampliar referencia de Tuku"><img src="assets/personajes/tuku.png?v=3" alt="Imagen de referencia del personaje Tuku"></button><div class="reference-card-copy"><span class="reference-kind">PERSONAJE</span><h3>Tuku</h3><p>Consulta el diseño de Tuku para guiar tu dibujo.</p><div class="reference-actions"><a class="reference-download" href="assets/personajes/tuku.png?v=3" download>↓ Descargar referencia</a><a class="reference-submit" href="#subir" data-reference-character="tuku">Enviar dibujo <span>→</span></a></div></div></article>
+        <article class="reference-card" data-reference-category="personajes" data-reference-character="gabo"><button class="reference-preview reference-avatar-preview" type="button" data-reference-preview="gabo" aria-label="Ampliar referencia de Gabo"><img src="assets/personajes/gabo.png?v=2" alt="Imagen de referencia del personaje Gabo"></button><div class="reference-card-copy"><span class="reference-kind">PERSONAJE</span><h3>Gabo</h3><p>Consulta el diseño de Gabo para guiar tu dibujo.</p><div class="reference-actions"><a class="reference-download" href="assets/personajes/gabo.png?v=2" download="gabo.png">↓ Descargar referencia</a><a class="reference-submit" href="#subir" data-reference-character="gabo">Enviar dibujo <span>→</span></a></div></div></article>
+        <article class="reference-card" data-reference-category="personajes" data-reference-character="tico"><button class="reference-preview reference-avatar-preview" type="button" data-reference-preview="tico" aria-label="Ampliar referencia de Tico"><img src="assets/personajes/tico.png" alt="Imagen de referencia del personaje Tico"></button><div class="reference-card-copy"><span class="reference-kind">PERSONAJE</span><h3>Tico</h3><p>Consulta el diseño de Tico para guiar tu dibujo.</p><div class="reference-actions"><a class="reference-download" href="assets/personajes/tico.png" download>↓ Descargar referencia</a><a class="reference-submit" href="#subir" data-reference-character="tico">Enviar dibujo <span>→</span></a></div></div></article>
+        <article class="reference-card" data-reference-category="otros" data-reference-character="otro"><button class="reference-preview" type="button" data-reference-preview="otro-aida-gabo" aria-label="Ampliar referencia de Aída y Gabo"><img src="assets/personajes/otro.png" alt="Aída y Gabo juntos, con fondo transparente"></button><div class="reference-card-copy"><span class="reference-kind">OTROS</span><h3>Aída y Gabo juntos</h3><p>Una referencia de ambos personajes compartiendo la escena.</p><div class="reference-actions"><a class="reference-download" href="assets/personajes/otro.png" download="aida-y-gabo.png">↓ Descargar referencia</a><a class="reference-submit" href="#subir" data-reference-character="otro">Enviar dibujo <span>→</span></a></div></div></article>
+        <article class="reference-card" data-reference-category="otros" data-reference-character="otro"><button class="reference-preview" type="button" data-reference-preview="otro-grupo" aria-label="Ampliar referencia del grupo de TukuToon"><img src="assets/personajes/otro-dos.png" alt="Los personajes de TukuToon celebrando juntos sobre un fondo azul"></button><div class="reference-card-copy"><span class="reference-kind">OTROS</span><h3>Celebración en Carnavalia</h3><p>El grupo de TukuToon celebra junto en Carnavalia.</p><div class="reference-actions"><a class="reference-download" href="assets/personajes/otro-dos.png" download="celebracion-carnavalia.png">↓ Descargar referencia</a><a class="reference-submit" href="#subir" data-reference-character="otro">Enviar dibujo <span>→</span></a></div></div></article>
+        <article class="reference-card" data-reference-category="otros" data-reference-character="otro"><button class="reference-preview" type="button" data-reference-preview="mama-y-aida" aria-label="Ampliar referencia de Mamá y Aída"><img src="assets/personajes/mama-y-aida.png" alt="Mamá abrazando a Aída en la cocina"></button><div class="reference-card-copy"><span class="reference-kind">OTROS</span><h3>Mamá y Aída</h3><p>Mamá y Aída comparten un momento en la cocina.</p><div class="reference-actions"><a class="reference-download" href="assets/personajes/mama-y-aida.png" download="mama-y-aida.png">↓ Descargar referencia</a><a class="reference-submit" href="#subir" data-reference-character="otro">Enviar dibujo <span>→</span></a></div></div></article>
+
+      </div>
+      <p class="reference-empty" hidden>Pronto añadiremos referencias en esta categoría. Mientras tanto, puedes inspirarte con los personajes.</p>
+    </section>
+
+    <dialog class="reference-dialog" id="reference-dialog" aria-labelledby="reference-dialog-title">
+      <button class="reference-dialog-close" type="button" aria-label="Cerrar vista previa">×</button>
+      <div class="reference-dialog-image-wrap">
+        <button class="reference-dialog-step reference-dialog-prev" type="button" aria-label="Ver referencia anterior">←</button>
+        <img class="reference-dialog-image" src="" alt="">
+        <button class="reference-dialog-step reference-dialog-next" type="button" aria-label="Ver referencia siguiente">→</button>
+      </div>
+      <div class="reference-dialog-details"><span class="reference-kind">REFERENCIA VISUAL</span><h2 id="reference-dialog-title"></h2><div class="reference-dialog-actions"><a class="reference-download" href="" download>↓ Descargar referencia</a><button class="button button-coral reference-dialog-submit" type="button">Elegir para mi dibujo <span>→</span></button></div></div>
+      <div class="reference-dialog-thumbnails" role="group" aria-label="Elegir referencia"></div>
+    </dialog>
+
+    <section class="activities" id="actividades">
+      <div class="section-heading"><div><div class="eyebrow eyebrow-coral">MANOS A LA OBRA</div><h2>¿Qué vamos a <span>crear hoy?</span></h2></div><p class="section-intro">Elige una idea, busca tus colores y deja que la imaginación haga lo suyo.</p></div>
+      <div class="activity-grid">
+        <a class="activity-card activity-color" href="#referencias"><div class="activity-icon"><img src="assets/personajes/ana.png" alt=""></div><span class="activity-tag">PARA DIBUJAR</span><h3>Inspírate en tus amigos</h3><p>Consulta las referencias de Aída, Ana, Tuku, Gabo y Tico para crear tu propia versión.</p><span class="activity-link">Ver referencias <b>↗</b></span><span class="sparkle">✳</span></a>
+        <a class="activity-card activity-imagine" href="#subir"><div class="activity-icon icon-imagine">✎</div><span class="activity-tag">PARA IMAGINAR</span><h3>Inventa Carnavalia</h3><p>¿Qué lugar mágico aparecería en tu isla?</p><span class="activity-link">Compartir mi idea <b>↗</b></span><span class="sparkle">✦</span></a>
+        <a class="activity-card activity-rhythm" href="#subir"><div class="activity-icon icon-rhythm">♫</div><span class="activity-tag">PARA HACER MÚSICA</span><h3>Dibuja cómo suena</h3><p>¿A qué se parece el ritmo de tu alegría?</p><span class="activity-link">Crear mi ritmo <b>↗</b></span><span class="sparkle">♪</span></a>
+      </div>
+    </section>
+
+    <section class="how-section" id="como"><div class="how-copy"><div class="eyebrow eyebrow-yellow">CREAR JUNTOS ES MÁS DIVERTIDO</div><h2>Tu arte tiene<br>un lugar aquí.</h2><p>Con ayuda de una persona adulta, comparte una foto de tu creación. Antes de aparecer en la galería, cada dibujo es revisado por nuestro equipo.</p><a href="#subir" class="button button-white">Ver cómo participar <span>→</span></a></div><div class="steps"><div class="step"><span class="step-number">01</span><div class="step-icon">🖍️</div><div><h3>Imagina y crea</h3><p>Dibuja, pinta o construye lo que quieras.</p></div></div><div class="step"><span class="step-number">02</span><div class="step-icon">📷</div><div><h3>Un adulto toma la foto</h3><p>Puede ser un dibujo en papel o digital.</p></div></div><div class="step"><span class="step-number">03</span><div class="step-icon">💛</div><div><h3>Lo revisamos juntos</h3><p>Con permiso de tu familia, lo sumamos a la galería.</p></div></div></div></section>
+
+    <section class="upload-section" id="subir"><div class="upload-card upload-card-wide"><div class="upload-stamp">✳</div><div class="eyebrow eyebrow-teal">¡QUEREMOS VER QUÉ IMAGINASTE!</div><h2>Comparte tu creación</h2><p>Con ayuda de una persona adulta, sigue estos pasos para preparar tu dibujo.</p><form id="art-form">
+      <fieldset class="form-step"><legend>1 · ¿Qué tipo de creación es?</legend><div class="art-type-options"><label class="art-type-option"><input type="radio" name="art-type" value="foto" checked><span>📷</span>Foto de un dibujo</label><label class="art-type-option"><input type="radio" name="art-type" value="digital"><span>🖍️</span>Arte digital</label><label class="art-type-option"><input type="radio" name="art-type" value="otra"><span>✂️</span>Otra creación</label></div></fieldset>
+      <fieldset class="form-step"><legend>2 · Tu creación</legend><label class="upload-drop" for="art-file"><span class="upload-cloud">＋</span><strong>Añade una foto de tu arte</strong><span>JPG, PNG o WEBP · máximo 10 MB</span><input id="art-file" type="file" accept="image/png,image/jpeg,image/webp"></label><div id="file-preview" class="file-preview" aria-live="polite"></div><div class="privacy-note"><span>♧</span><div><strong>Cuidamos tu privacidad</strong><p>Evita incluir tu nombre completo, dirección o colegio en la foto. Una persona adulta debe revisar el envío contigo.</p></div></div><details class="guidelines"><summary>Lee las pautas para compartir tu dibujo</summary><p>Comparte solo una creación propia y asegúrate de que la imagen no muestre datos personales. El equipo de TukuToon revisará cada aporte junto con tu familia antes de publicarlo.</p></details></fieldset>
+      <fieldset class="form-step"><legend>3 · ¿Qué personaje dibujaste?</legend><div class="upload-character-options" role="group" aria-label="Selecciona los personajes que aparecen en tu creación"><label><input type="checkbox" name="characters" value="gabo"><span><img src="assets/personajes/gabo.png?v=2" alt=""><b>Gabo</b></span></label><label><input type="checkbox" name="characters" value="ana"><span><img src="assets/personajes/ana.png" alt=""><b>Ana</b></span></label><label><input type="checkbox" name="characters" value="tico"><span><img src="assets/personajes/tico.png" alt=""><b>Tico</b></span></label><label><input type="checkbox" name="characters" value="tuku"><span><img src="assets/personajes/tuku.png?v=3" alt=""><b>Tuku</b></span></label><label><input type="checkbox" name="characters" value="aida"><span><img src="assets/personajes/aida.png" alt=""><b>Aída</b></span></label><label><input type="checkbox" name="characters" value="otro"><span class="other-character">✦<b>Otro tema</b></span></label></div><p class="field-hint">Puedes elegir más de uno o dejarlo en blanco si tu dibujo no tiene personajes.</p></fieldset>
+      <fieldset class="form-step"><legend>4 · Nombre del artista</legend><label class="field-label" for="artist-name">Nombre <span class="required-mark">*</span></label><input class="text-field" id="artist-name" name="artist-name" type="text" maxlength="40" autocomplete="given-name" placeholder="Por ejemplo, Sam" required><p class="field-hint">Tu nombre no se publicará; en el crédito de la galería aparecerá solo tu inicial.</p></fieldset>
+      <fieldset class="form-step"><legend>5 · ¿Desde dónde nos escribes? <span class="required-mark">*</span></legend><label class="field-label sr-only" for="artist-country">País o región</label><select class="text-field country-field" id="artist-country" name="artist-country" required><option value="">Elige tu país o región…</option><option>Argentina</option><option>Bolivia</option><option>Brasil</option><option>Chile</option><option>Colombia</option><option>Costa Rica</option><option>Ecuador</option><option>El Salvador</option><option>España</option><option>Estados Unidos</option><option>Guatemala</option><option>Honduras</option><option>México</option><option>Nicaragua</option><option>Panamá</option><option>Paraguay</option><option>Perú</option><option>Puerto Rico</option><option>República Dominicana</option><option>Uruguay</option><option>Venezuela</option><option>Otro país</option></select><p class="field-hint">Este lugar puede aparecer junto a las iniciales en el crédito de tu dibujo.</p></fieldset>
+      <fieldset class="form-step verification-step"><legend>6 · Responsable del envío</legend><p class="verification-intro">El envío debe prepararlo una persona mayor de 18 años o la madre, el padre o tutor legal del artista.</p><div class="adult-mode-options" role="group" aria-label="Quién prepara el envío"><label><input type="radio" name="adult-mode" value="adult" checked><span>Tengo 18 años o más</span></label><label><input type="radio" name="adult-mode" value="guardian"><span>Soy padre, madre o tutor legal</span></label></div><div class="guardian-fields" hidden><label class="field-label" for="guardian-name">Nombre del padre, madre o tutor <span class="required-mark">*</span></label><input class="text-field" id="guardian-name" name="guardian-name" type="text" autocomplete="name" placeholder="Nombre completo"><label class="field-label guardian-email-label" for="adult-email">Correo electrónico del padre, madre o tutor <span class="required-mark">*</span></label><input class="text-field" id="adult-email" name="adult-email" type="email" autocomplete="email" placeholder="adulto@ejemplo.com"><label class="adult-check verification-consent"><input type="checkbox" id="adult-consent"><span class="consent-copy">Soy madre, padre o tutor legal del artista, tengo 18 años o más y autorizo este envío.</span></label></div><div class="adult-fields"><label class="field-label" for="adult-email-self">Correo electrónico de la persona adulta <span class="required-mark">*</span></label><input class="text-field" id="adult-email-self" name="adult-email-self" type="email" autocomplete="email" placeholder="tú@ejemplo.com"><p class="field-hint">Usaremos este correo solo para comunicarnos sobre el envío; no aparecerá en la galería.</p></div></fieldset>
+      <button class="button button-coral submit-button" type="submit">Preparar envío <span>→</span></button><p class="form-note">Esta demostración no envía ni guarda fotos. La publicación requiere revisión y permiso familiar.</p></form></div></section>
+  </main>
+
+  <footer class="community-footer">
+    <a class="footer-marquee" href="https://www.youtube.com/@TukuToon" target="_blank" rel="noopener" aria-label="Suscríbete al canal oficial de TukuToon en YouTube"><div class="marquee-track" aria-hidden="true"><div class="marquee-group"><span>Suscríbete a nuestro canal</span><span>✦</span><span>Suscríbete a nuestro canal</span><span>✦</span><span>Suscríbete a nuestro canal</span><span>✦</span></div><div class="marquee-group"><span>Suscríbete a nuestro canal</span><span>✦</span><span>Suscríbete a nuestro canal</span><span>✦</span><span>Suscríbete a nuestro canal</span><span>✦</span></div></div></a>
+    <p class="sr-only">Descubre canciones, episodios y tutoriales de TukuToon en nuestro canal.</p>
+    <div class="footer-main">
+      <div class="footer-subscribe">
+        <img class="footer-tuku" src="assets/tuku-oficial.png" alt="Tuku, la tambora de TukuToon">
+        <a class="footer-subscribe-button" href="https://www.youtube.com/@TukuToon" target="_blank" rel="noopener">Suscríbete aquí</a>
+        <div class="footer-socials" aria-label="Redes sociales de TukuToon">
+          <a href="https://www.youtube.com/@TukuToon" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.8.5 9.4.5 9.4.5s7.6 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z"/></svg></a>
+          <a href="https://www.facebook.com/tukutoon" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 24V13.1H17l.5-4.2h-4V6.2c0-1.2.3-2 2-2H18V.4C17.1.3 15.9.2 14.5.2c-3.4 0-5.7 2.1-5.7 5.9v2.8H5v4.2h3.8V24h4.7Z"/></svg></a>
+          <a href="https://www.instagram.com/tukutoon/" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 0h10a7 7 0 0 1 7 7v10a7 7 0 0 1-7 7H7a7 7 0 0 1-7-7V7a7 7 0 0 1 7-7Zm0 2.2A4.8 4.8 0 0 0 2.2 7v10A4.8 4.8 0 0 0 7 21.8h10a4.8 4.8 0 0 0 4.8-4.8V7A4.8 4.8 0 0 0 17 2.2H7Zm5 3.4a6.4 6.4 0 1 1 0 12.8 6.4 6.4 0 0 1 0-12.8Zm0 2.2a4.2 4.2 0 1 0 0 8.4 4.2 4.2 0 0 0 0-8.4Zm6.7-3.9a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z"/></svg></a>
+        </div>
+        <img class="footer-cocrea" src="assets/cocrea-blanco.png" alt="Un proyecto CoCrea">
+      </div>
+      <img class="footer-friends" src="assets/footer-aida-tico.png" alt="Aída y su amigo Tico corren juntos">
+      <div class="footer-creator"><p>Creada por:</p><a href="https://teamtoonstudio.com/" target="_blank" rel="noopener" aria-label="Team Toon Animation Studio"><img src="assets/team-toon.png" alt="Team Toon Animation Studio"></a></div>
+    </div>
+  </footer>
+  <nav class="mobile-nav" aria-label="Navegación rápida"><a href="#inicio"><span>⌂</span>Inicio</a><a href="#galeria"><span>▧</span>Galería</a><a href="#referencias"><span>▤</span>Modelos</a><a href="#actividades"><span>✳</span>Crear</a><a href="#subir"><span>↑</span>Compartir</a></nav>
+  <script src="app.js?v=references-preview-5"></script>
+</body>
+</html>

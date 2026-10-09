@@ -30,3 +30,6 @@ var TORTUGAS_NUMEROS = [
 ];
 
 var TORTUGAS_ARTE = 'tortuga.png';
+
+// Animacion que se muestra cuando cada tortuguita llega al agua.
+var TORTUGAS_ARTE_NADANDO = 'tortuga-nadando.gif';

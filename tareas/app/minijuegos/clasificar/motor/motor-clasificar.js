@@ -107,8 +107,12 @@ function buildDOM(cfg){
     : '';
 
   document.body.innerHTML =
-    '<div class="sky" aria-hidden="true">' +
-      '<div class="cloud c1"></div><div class="cloud c2"></div>' +
+    '<div class="room-scene" aria-hidden="true">' +
+      '<div class="room-window"><i></i><i></i></div>' +
+      '<div class="room-shelf"></div>' +
+      '<div class="play-table"></div>' +
+      '<div class="play-rug"></div>' +
+      '<div class="room-floor"></div>' +
     '</div>' +
 
     '<header>' +
@@ -178,13 +182,55 @@ function bolaSuelta(color){
   s.appendChild(bolaVisual(color));
   return s;
 }
+function objetoVisual(src, clase){
+  var g = nodo('g', clase ? { 'class':clase } : {});
+  // Los balones PNG tienen mucho margen transparente alrededor del balón.
+  // Recortamos ese margen dentro de un SVG anidado para que ocupen el mismo
+  // espacio que las bolitas dibujadas por el motor.
+  if(/^balon-(rojo|amarillo|azul|verde)\.png$/.test(src)){
+    var recorte = nodo('svg', {
+      x:-100, y:-100, width:200, height:200,
+      viewBox:'300 75 424 424', preserveAspectRatio:'xMidYMid meet',
+      'class':'objeto-imagen'
+    });
+    recorte.appendChild(nodo('image', {
+      x:0, y:0, width:1024, height:572, href:src,
+      preserveAspectRatio:'none'
+    }));
+    g.appendChild(recorte);
+    return g;
+  }
+  g.appendChild(nodo('image', {
+    x:-170, y:-96, width:340, height:192, href:src,
+    preserveAspectRatio:'xMidYMid meet', 'class':'objeto-imagen'
+  }));
+  return g;
+}
+function objetoSuelto(obj){
+  var s = nodo('svg', { viewBox:'-170 -96 340 192', 'aria-hidden':'true' });
+  s.appendChild(objetoVisual(obj.src));
+  return s;
+}
 
 /* ---------- la cesta ----------
    Un balde simple: cuerpo redondeado + borde ovalado arriba sugiriendo la
    abertura. Mismas unidades locales (radio de referencia 100) que la
    bolita, para que el motor escale las dos cosas con la misma cuenta. */
-function cestaVisual(color, clase){
+function cestaVisual(color, clase, baulSrc){
   var g = nodo('g', clase ? { 'class':clase } : {});
+  if(baulSrc){
+    var marcoBaul = nodo('svg', {
+      x:-138, y:-140, width:276, height:240,
+      viewBox:'350 60 390 475', preserveAspectRatio:'xMidYMid meet',
+      'class':'baul-imagen'
+    });
+    marcoBaul.appendChild(nodo('image', {
+      x:0, y:0, width:1024, height:572, href:baulSrc,
+      preserveAspectRatio:'none'
+    }));
+    g.appendChild(marcoBaul);
+    return g;
+  }
   g.appendChild(nodo('rect', {
     'class':'cuerpo', x:-92, y:-58, width:184, height:150, rx:24,
     fill:color, 'fill-opacity':.16, stroke:color
@@ -443,15 +489,20 @@ function cargarRonda(i){
   var pasoX = W / (n + 1);
   r.colores.forEach(function(colorId, i){
     var col = colorPorId(colorId);
-    var el = cestaVisual(col.color, 'cesta');
+    var baulSrc = /^(rojo|amarillo|azul|verde)$/.test(colorId)
+      ? 'baul-' + colorId + '.png' : null;
+    var el = cestaVisual(col.color, 'cesta', baulSrc);
     svg.appendChild(el);
     var cx = pasoX * (i + 1);
 
     // la fila de marcas de esta cesta, dibujada arriba de ella
     var marcas = [];
-    var anchoMarcas = Math.min(r.porColor * rCesta * .62, rCesta * 2.6);
-    var pasoM = r.porColor > 1 ? anchoMarcas / (r.porColor - 1) : 0;
-    for(var m = 0; m < r.porColor; m++){
+    var totalColor = r.objetos
+      ? r.objetos.filter(function(obj){ return obj.colorId === colorId; }).length
+      : r.porColor;
+    var anchoMarcas = Math.min(totalColor * rCesta * .62, rCesta * 2.6);
+    var pasoM = totalColor > 1 ? anchoMarcas / (totalColor - 1) : 0;
+    for(var m = 0; !baulSrc && m < totalColor; m++){
       var mk = marcaVisual();
       var mx = cx - anchoMarcas / 2 + pasoM * m;
       var my = yCestas - rCesta * 1.55;
@@ -467,7 +518,7 @@ function cargarRonda(i){
     cestas.push({
       el:el, colorId:colorId, color:col.color,
       x:cx, y:yCestas, r:rCesta,
-      completados:0, total:r.porColor, marcas:marcas
+      completados:0, total:totalColor, marcas:marcas
     });
     el.setAttribute('transform',
       'translate(' + cx.toFixed(1) + ',' + yCestas.toFixed(1) + ') scale(' + (rCesta / 100).toFixed(4) + ')');
@@ -476,9 +527,13 @@ function cargarRonda(i){
   // las bolitas: una lista con `porColor` de cada color, barajada para que
   // el orden en pantalla no siga el orden de las cestas
   var lista = [];
-  r.colores.forEach(function(colorId){
-    for(var k = 0; k < r.porColor; k++){ lista.push(colorId); }
-  });
+  if(r.objetos){
+    lista = r.objetos.slice();
+  }else{
+    r.colores.forEach(function(colorId){
+      for(var k = 0; k < r.porColor; k++){ lista.push(colorId); }
+    });
+  }
   barajar(lista);
 
   // reparto en grilla, en el area arriba de la fila de marcas — mismo
@@ -501,14 +556,15 @@ function cargarRonda(i){
   for(var c = 0; c < cols; c++){ for(var f = 0; f < rows; f++){ celdas.push({ c:c, f:f }); } }
   barajar(celdas);
 
-  lista.forEach(function(colorId, k){
+  lista.forEach(function(item, k){
+    var colorId = typeof item === 'string' ? item : item.colorId;
     var col = colorPorId(colorId);
     var cel = celdas[k % celdas.length];
     var x = (cel.c + .5) * cw + (Math.random() - .5) * holguraX;
     var y = (cel.f + .5) * ch + (Math.random() - .5) * holguraY + 6;
 
     var el = nodo('g', { 'class':'bola' });
-    var anim = bolaVisual(col.color, 'anim');
+    var anim = item.src ? objetoVisual(item.src, 'anim') : bolaVisual(col.color, 'anim');
     el.appendChild(anim);
     svg.appendChild(el);
     anim.addEventListener('animationend', function(){
@@ -516,7 +572,7 @@ function cargarRonda(i){
     });
 
     var b = {
-      el:el, anim:anim, colorId:colorId, color:col.color,
+      el:el, anim:anim, item:item, colorId:colorId, color:col.color,
       x:x, y:y, ox:x, oy:y, r:rBola, ordenada:false
     };
     bolas.push(b);
@@ -701,7 +757,7 @@ function correcta(b, cesta){
     if(b.el.parentNode){ b.el.parentNode.removeChild(b.el); }
   }, 340);
 
-  ordenadas.push(b.color);
+  ordenadas.push(b.item && b.item.src ? b.item : b.color);
   faltan--;
   if(faltan <= 0){ ganar(); }
 }
@@ -796,13 +852,16 @@ function runFx(){
 function showCard(){
   var fila = document.getElementById('card-bolas');
   fila.innerHTML = '';
-  ordenadas.slice(0, 12).forEach(function(col){ fila.appendChild(bolaSuelta(col)); });
+  ordenadas.slice(0, 12).forEach(function(item){
+    fila.appendChild(item && item.src ? objetoSuelto(item) : bolaSuelta(item));
+  });
 
   var n = ordenadas.length;
+  var sustantivo = RONDAS[rIdx].objetos ? 'objetos' : 'bolitas';
   document.getElementById('card-word').innerHTML =
-    '¡Ordenaste <b>' + n + '</b> bolitas!';
+    '¡Ordenaste <b>' + n + '</b> ' + sustantivo + '!';
   cardEl.classList.add('show');
-  speak((NUMEROS[n] || n) + ' bolitas ordenadas');
+  speak((NUMEROS[n] || n) + ' ' + sustantivo + ' ordenados');
 }
 function hideCard(){ cardEl.classList.remove('show'); }
 

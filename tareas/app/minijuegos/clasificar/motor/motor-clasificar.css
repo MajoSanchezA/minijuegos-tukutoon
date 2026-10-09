@@ -1,0 +1,272 @@
+/* =====================================================================
+   MOTOR DE CLASIFICAR — estilos.
+
+   Mismo esqueleto que motor-globos.css y motor-trazos.css (header,
+   estrellas, consigna, escenario, selector de abajo, tarjeta final): los
+   juegos de TukuToon se tienen que ver hermanos. Lo propio de este
+   archivo son las bolitas que se arrastran y las cestas donde caen.
+
+   Cestas y bolitas se dibujan en SVG, no son PNG: asi cualquier color
+   sale gratis. Ver `bolaNodo()` y `cestaNodo()` en motor-clasificar.js.
+   ===================================================================== */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;overscroll-behavior:none}
+body{
+  height:100vh; height:100dvh;
+  font-family:'Comfortaa',system-ui,-apple-system,sans-serif;
+  color:#2B2140;
+  background:#FFE5C8;
+  overflow:hidden;
+  touch-action:none;
+  display:flex; flex-direction:column;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* ---------- cuarto infantil de la escena ---------- */
+.room-scene{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;
+  background:linear-gradient(180deg,#FFE8D0 0%,#FFF1D4 61%,#FFC5A5 61%,#F8AD91 100%)}
+.room-window{position:absolute;left:34%;top:2%;width:36%;height:43%;
+  border:clamp(8px,1.2vw,18px) solid #E8EE78;border-radius:4px;
+  background:linear-gradient(90deg,transparent 48%,#F8EEA0 48%,#F8EEA0 52%,transparent 52%),
+    linear-gradient(180deg,transparent 48%,#F8EEA0 48%,#F8EEA0 53%,transparent 53%),
+    linear-gradient(135deg,#BDE6F0,#D9F2E7 62%,#B5DFE9);
+  box-shadow:0 8px 0 rgba(200,150,107,.12)}
+.room-window:before,.room-window:after{content:"";position:absolute;top:-14%;width:12%;height:115%;
+  background:#D8DDF4;opacity:.8}
+.room-window:before{left:-24%}.room-window:after{right:-24%}
+.room-window i{position:absolute;left:-6%;right:-6%;height:5%;background:#F4EAA0;top:20%}
+.room-window i+i{top:auto;bottom:20%}
+.room-shelf{position:absolute;right:8%;top:47%;width:22%;height:15%;
+  border-top:clamp(10px,1.4vw,20px) solid #FFE5AA;
+  background:linear-gradient(90deg,transparent 8%,#F4DDAE 8%,#F4DDAE 13%,transparent 13%,transparent 83%,#F4DDAE 83%,#F4DDAE 88%,transparent 88%)}
+.play-table{position:absolute;left:29%;top:51%;width:49%;height:clamp(16px,2vw,27px);
+  border-radius:50%;background:#FFE9B4;box-shadow:0 8px 0 #F3D69A,0 13px 14px rgba(145,100,73,.12)}
+.play-table:after{content:"";position:absolute;top:100%;left:8%;right:8%;height:clamp(52px,10vh,105px);
+  background:linear-gradient(100deg,transparent 0 12%,#E9C58D 12% 16%,transparent 16% 82%,#E9C58D 82% 86%,transparent 86%)}
+.play-rug{position:absolute;left:26%;bottom:18%;width:48%;height:16%;border-radius:50%;
+  background:repeating-linear-gradient(160deg,#B8EEF0 0 14px,#D1F3E9 14px 28px,#E7D9F1 28px 42px);
+  box-shadow:0 5px 0 rgba(190,144,126,.12)}
+.room-floor{position:absolute;inset:63% 0 0;background:repeating-linear-gradient(0deg,
+  transparent 0 48px,rgba(202,127,99,.16) 49px 51px)}
+
+/* ---------- header ---------- */
+header{
+  position:relative;z-index:2;flex:0 0 auto;
+  display:flex;align-items:center;gap:10px;
+  padding:10px clamp(10px,3vw,22px) 4px;
+}
+.brand{
+  font-family:'Fredoka',sans-serif;font-weight:600;
+  font-size:clamp(15px,4.2vw,22px);color:#704638;
+  text-shadow:0 1px 0 rgba(255,255,255,.65);
+  white-space:nowrap;line-height:1.1;
+}
+.brand small{display:block;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;
+  font-size:.55em;opacity:.82;letter-spacing:.05em}
+.stars{display:flex;gap:4px;margin-left:auto}
+.star{width:clamp(20px,5.2vw,28px);height:clamp(20px,5.2vw,28px);display:block;
+  transition:transform .35s cubic-bezier(.2,1.6,.5,1)}
+.star path{fill:rgba(255,255,255,.28);stroke:rgba(255,255,255,.55);stroke-width:6;
+  transition:fill .3s}
+.star.on path{fill:#FFD84D;stroke:#fff}
+.star.on{transform:scale(1.15)}
+.icon-btn{
+  flex:0 0 auto;width:clamp(34px,8.6vw,42px);height:clamp(34px,8.6vw,42px);
+  border:none;border-radius:50%;background:rgba(255,255,255,.92);
+  color:#2E9B63;font-size:clamp(17px,4.6vw,21px);line-height:1;
+  box-shadow:0 3px 0 rgba(0,0,0,.14);cursor:pointer;touch-action:manipulation;
+  display:flex;align-items:center;justify-content:center;text-decoration:none;
+}
+.icon-btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.14)}
+/* Volver es un icono ilustrado del mismo set que a-pintar y vocales
+   (iconos/), no un glifo de texto: trae su propio circulo, sombra y
+   color, asi que el boton no le pone fondo ni caja encima. */
+.icon-btn.icon-art{background:none;box-shadow:none}
+.icon-btn.icon-art:active{box-shadow:none}
+.icon-btn img{
+  width:100%;height:100%;object-fit:contain;
+  pointer-events:none;user-select:none;-webkit-user-drag:none;
+}
+
+/* ---------- consigna ---------- */
+.prompt{
+  position:relative;z-index:2;flex:0 0 auto;text-align:center;margin:0;
+  font-family:'Fredoka',sans-serif;font-weight:600;color:#704638;
+  font-size:clamp(13px,3.6vw,19px);padding:2px 16px;
+  text-shadow:0 1px 0 rgba(255,255,255,.7);
+}
+
+/* ---------- escenario ----------
+   `main` reparte dos cosas en fila: el escenario (crece) y el rincon de
+   la mascota, si vino `cfg.mascota` (ancho fijo). El escenario NO sabe
+   que la mascota existe — sigue midiendose a si mismo con
+   `getBoundingClientRect()` en `medir()` — simplemente le queda menos
+   ancho disponible porque el flex se lo saco.
+
+   El SVG usa `flex:1 1 0%` y NO width:100%: con width:100% (o sin ninguna
+   medida propia) el navegador lo dimensiona por la proporcion de su
+   propio viewBox — que es justo lo que el motor le escribe segun lo que
+   mide. Se retroalimenta (bug real, encontrado primero en
+   motor-globos.js). La base 0% fuerza al layout a ignorar cualquier
+   tamano intrinseco del SVG y repartir el espacio solo por el flex.
+
+   `overflow:hidden` en main corta cualquier bolita que quede a mitad de
+   camino de salir del escenario durante un resize. */
+main{position:relative;z-index:2;flex:1 1 auto;min-height:0;
+  display:flex;flex-direction:row;align-items:stretch;
+  padding:2px 6px 4px;overflow:hidden}
+#stage{flex:1 1 0%;min-width:0;height:100%;display:block;touch-action:none;order:2}
+
+/* ---------- la mascota guia (Tuku) ----------
+   Queda quieta al costado, respirando despacio (`respirar`), y reacciona
+   un instante cuando pasa algo (ver `reaccionMascota()` en el motor). El
+   ancho es fijo en proporcion al viewport (`clamp`), no al escenario: si
+   dependiera del escenario, cuanto mas grande la mascota menos lugar le
+   queda al juego, y menos lugar al juego la achicaria — un lazo, el mismo
+   tipo de bug que el del SVG de arriba. */
+.mascota-dock{
+  order:1;flex:0 0 auto;width:clamp(200px,32vw,440px);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding-bottom:0;pointer-events:none;
+}
+.mascota{
+  width:100%;height:auto;max-height:94%;object-fit:contain;display:block;
+  filter:drop-shadow(0 6px 8px rgba(0,0,0,.2));
+  transform-origin:50% 100%;   /* se mece y salta parada sobre sus pies, no desde el centro */
+  animation:respirar 2.6s ease-in-out infinite;
+}
+@keyframes respirar{
+  0%,100%{transform:translateY(0) scale(1)}
+  50%{transform:translateY(-2%) scale(1.015)}
+}
+/* una bolita cayo bien: salto contento */
+.mascota.reac-bien{animation:saltoBien .5s cubic-bezier(.3,1.6,.4,1)}
+@keyframes saltoBien{
+  0%{transform:translateY(0) scale(1,1)}
+  35%{transform:translateY(-16%) scale(1.08,.93)}
+  62%{transform:translateY(3%) scale(.96,1.06)}
+  100%{transform:translateY(0) scale(1,1)}
+}
+/* cesta equivocada: duda, se tambalea un poco — no reta, no se pone triste */
+.mascota.reac-mal{animation:dudarMascota .5s ease-in-out}
+@keyframes dudarMascota{
+  0%,100%{transform:rotate(0)}
+  25%{transform:rotate(-4deg)}
+  60%{transform:rotate(3deg)}
+  85%{transform:rotate(-1.5deg)}
+}
+/* se gano la ronda: el salto grande, con vaiven */
+.mascota.reac-festejo{animation:festejoMascota 1s ease-in-out}
+@keyframes festejoMascota{
+  0%{transform:translateY(0) rotate(0)}
+  20%{transform:translateY(-20%) rotate(-7deg)}
+  45%{transform:translateY(0) rotate(6deg)}
+  68%{transform:translateY(-11%) rotate(-3deg)}
+  88%{transform:translateY(0) rotate(2deg)}
+  100%{transform:translateY(0) rotate(0)}
+}
+
+/* ---------- las bolitas -----------
+   Dos grupos anidados, mismo motivo que en motor-globos.css: `.bola`
+   lleva la POSICION (atributo transform, puesto por JS en cada frame de
+   arrastre); `.anim` lleva las animaciones de feedback (propiedad CSS).
+   Si la posicion y la animacion cayeran en el mismo elemento, el CSS
+   pisaria al atributo en cuanto arrancara cualquier animacion. */
+.bola{cursor:grab}
+.bola.arrastrando{cursor:grabbing}
+.bola .anim{transform-box:fill-box;transform-origin:center}
+.bola .cuerpo{stroke:rgba(0,0,0,.13);stroke-width:3}
+.bola .brillo{fill:rgba(255,255,255,.55)}
+.bola .face .eyes ellipse{fill:#2B2140}
+.bola .face .cheek{fill:rgba(239,101,142,.4)}
+.bola .face .mouth{fill:none;stroke:#2B2140;stroke-width:5;stroke-linecap:round}
+.bola .objeto-imagen{pointer-events:none;filter:drop-shadow(0 5px 4px rgba(0,0,0,.18))}
+/* mientras se arrastra, una sombra la despega del resto — no hay transform
+   CSS por la razon de arriba, asi que el "levantarse" se hace subiendo la
+   escala directamente en el transform que pone el JS (ver `posicionar`) */
+.bola.arrastrando .anim{filter:drop-shadow(0 10px 10px rgba(0,0,0,.22))}
+/* volviendo a su lugar (solto en espacio vacio, o en la cesta que no era):
+   una transicion suave en vez de saltar de golpe */
+.bola.suave{transition:transform .32s cubic-bezier(.3,1.4,.4,1)}
+/* cesta equivocada: se sacude un poco y ya, sin castigo */
+.bola.mal .anim{animation:sacudir .4s ease-in-out}
+@keyframes sacudir{
+  0%,100%{transform:rotate(0)}
+  25%{transform:rotate(-9deg)}
+  60%{transform:rotate(7deg)}
+  85%{transform:rotate(-3deg)}
+}
+/* cesta correcta: se encoge y se va, absorbida */
+.bola.entra .anim{animation:absorber .32s ease-in forwards}
+@keyframes absorber{
+  0%{transform:scale(1);opacity:1}
+  100%{transform:scale(.15);opacity:0}
+}
+
+/* ---------- las cestas ---------- */
+.cesta{pointer-events:none}
+.cesta .baul-imagen{pointer-events:none;filter:drop-shadow(0 5px 5px rgba(0,0,0,.18))}
+.cesta .cuerpo{stroke-width:7}
+.cesta .rim{stroke-width:5}
+/* la pista: si el chico se equivoca dos veces seguidas, la cesta que
+   corresponde late sola — sin que nadie tenga que pedirla */
+.cesta.pista{animation:latido 1s ease-in-out 2}
+@keyframes latido{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+
+/* fila de marcas arriba de cada cesta: cuantos objetos de ese color hay
+   que juntar, y cuantos ya cayeron. Mismo patron que la cuenta de la
+   consigna en globos, pero por cesta en vez de por ronda. */
+.marca{transform-box:fill-box;transform-origin:center}
+.marca .cuerpo{fill:rgba(255,255,255,.35);stroke:rgba(255,255,255,.9);stroke-width:9}
+.marca.hecha .cuerpo{fill:var(--m,#fff);stroke:#fff;animation:marcar .35s cubic-bezier(.2,1.6,.5,1)}
+@keyframes marcar{from{transform:scale(.3)}to{transform:scale(1)}}
+
+
+/* ---------- efectos y tarjeta ---------- */
+#fx{position:fixed;inset:0;pointer-events:none;z-index:5}
+#card{
+  position:fixed;inset:0;z-index:6;display:none;
+  align-items:center;justify-content:center;padding:18px;
+  background:rgba(20,58,44,.5);
+}
+#card.show{display:flex;animation:fade .28s ease-out}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.card-box{
+  background:#FFFDF6;border-radius:28px;padding:clamp(16px,4.5vw,28px) clamp(20px,6vw,40px);
+  text-align:center;box-shadow:0 14px 0 rgba(0,0,0,.18);max-width:min(92vw,460px);
+  animation:pop .42s cubic-bezier(.2,1.5,.45,1);
+}
+@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.card-bolas{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;
+  min-height:clamp(44px,13vw,72px)}
+.card-bolas svg{width:clamp(34px,10vw,54px);height:auto;display:block}
+.card-word{font-family:'Fredoka',sans-serif;font-weight:700;
+  font-size:clamp(20px,6.4vw,34px);margin:10px 0 4px}
+.card-word b{color:#2E9B63}
+.card-hint{font-size:clamp(11px,3.2vw,14px);opacity:.55;margin-bottom:14px}
+.card-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.card-actions button{
+  border:none;border-radius:18px;padding:11px 20px;cursor:pointer;touch-action:manipulation;
+  font-family:'Fredoka',sans-serif;font-weight:600;font-size:clamp(14px,4vw,18px);color:#fff;
+  box-shadow:0 4px 0 rgba(0,0,0,.18);
+}
+.card-actions button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+.btn-again{background:#8D82A8}
+.btn-next{background:#2E9B63}
+
+@media (max-width:700px){
+  .mascota-dock{width:clamp(92px,25vw,170px)}
+  .room-window{left:30%;width:43%;height:36%}
+  .room-shelf{right:3%;width:22%}
+  .play-rug{left:22%;width:56%;bottom:17%;height:13%}
+}
+@media (max-height:500px) and (orientation:landscape){
+  .mascota-dock{width:clamp(150px,24vw,280px)}
+  .room-window{height:39%}
+  .play-rug{bottom:15%;height:12%}
+}
+@media (prefers-reduced-motion:reduce){
+  .card-box{animation:none}
+  .cesta.pista{animation:none}
+  .mascota{animation:none !important}
+}

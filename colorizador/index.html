@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f7ff">
+  <title>Coloriza · Cambia el tono de una imagen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#inicio" aria-label="Coloriza, inicio"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>coloriza</a>
+      <span class="privacy-note"><span class="lock" aria-hidden="true">●</span> Tus imágenes no salen de tu dispositivo</span>
+    </header>
+
+    <section class="intro" id="inicio">
+      <div class="eyebrow"><span></span> EDITOR DE COLOR</div>
+      <h1>Tu imagen, <span>otro tono.</span></h1>
+      <p>Carga una imagen, elige un color y dale una nueva vida. Conserva sus sombras y su transparencia.</p>
+    </section>
+
+    <section class="workspace" aria-label="Editor de imagen">
+      <aside class="controls">
+        <div class="step-heading"><span class="step-number">1</span><div><h2>Sube tu imagen</h2><p>PNG, JPG, WEBP o GIF estático</p></div></div>
+        <label class="upload-zone" id="drop-zone" for="image-file" tabindex="0">
+          <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/bmp">
+          <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg></span>
+          <strong>Arrastra tu imagen aquí</strong><span>o <em>explora tus archivos</em></span>
+        </label>
+        <div class="divider"></div>
+        <div class="step-heading"><span class="step-number">2</span><div><h2>Elige el tono</h2><p>Los detalles y sombras se mantienen</p></div></div>
+        <div class="swatches" role="group" aria-label="Tonos sugeridos">
+          <button class="swatch active" data-hue="214" aria-label="Azul" title="Azul"><span style="--swatch:#4389f5"></span><small>Azul</small></button>
+          <button class="swatch" data-hue="153" aria-label="Verde" title="Verde"><span style="--swatch:#29b985"></span><small>Verde</small></button>
+          <button class="swatch" data-hue="0" aria-label="Rojo" title="Rojo"><span style="--swatch:#f05d62"></span><small>Rojo</small></button>
+          <button class="swatch" data-hue="284" aria-label="Morado" title="Morado"><span style="--swatch:#9c69ed"></span><small>Morado</small></button>
+          <button class="swatch" data-hue="42" aria-label="Naranja" title="Naranja"><span style="--swatch:#f5a623"></span><small>Naranja</small></button>
+          <button class="swatch" data-hue="331" aria-label="Rosa" title="Rosa"><span style="--swatch:#ed68a7"></span><small>Rosa</small></button>
+        </div>
+        <label class="custom-color-label" for="custom-color">O elige un color personalizado <input type="color" id="custom-color" value="#4389f5" aria-label="Elige un color personalizado"></label>
+        <div class="slider-heading"><label for="intensity">Intensidad</label><output id="intensity-value" for="intensity">85%</output></div>
+        <input class="intensity-slider" type="range" id="intensity" min="0" max="100" value="85">
+        <div class="slider-hints"><span>Suave</span><span>Intenso</span></div>
+        <div class="control-footer"><span class="transparency-icon" aria-hidden="true"></span><span>La transparencia original se conserva</span></div>
+      </aside>
+
+      <section class="preview-panel" aria-label="Vista previa">
+        <div class="preview-topline"><div class="preview-title"><span class="live-dot"></span><h2>Vista previa</h2></div><div class="image-meta" id="image-meta">Esperando tu imagen</div></div>
+        <div class="preview-stage" id="preview-stage">
+          <div class="empty-state" id="empty-state">
+            <div class="empty-art" aria-hidden="true"><div class="art-back"></div><div class="art-front"><span></span><span></span><span></span><span></span></div><div class="art-spark spark-one">✳</div><div class="art-spark spark-two">✦</div></div>
+            <h3>Tu lienzo te espera</h3><p>Sube una imagen para ver la magia<br>del color en acción.</p>
+          </div>
+          <div class="image-canvas-wrap" id="image-wrap" hidden><canvas id="image-canvas"></canvas></div>
+          <div class="checker-label" id="checker-label" hidden><span class="checker-mini"></span>Vista de transparencia</div>
+        </div>
+        <div class="preview-bottom"><span id="status-message" aria-live="polite">Los cambios aparecen al instante</span><button id="download-button" class="download-button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>Descargar PNG</button></div>
+      </section>
+    </section>
+    <footer class="page-footer"><span>Hecho para experimentar con color.</span><span>Procesamiento local · Sin subir archivos</span></footer>
+  </main>
+</body>
+</html>

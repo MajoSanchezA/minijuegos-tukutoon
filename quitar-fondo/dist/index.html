@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>Fondo Cero · Quita el fondo de tu imagen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="/assets/index-C9rT9997.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Da_2uu-k.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="#"><span class="brand-icon" aria-hidden="true"><span></span><span></span><span></span><span></span></span>fondo<span class="brand-light">cero</span></a>
+      <span class="privacy"><span class="privacy-dot"></span> Procesamiento privado en tu dispositivo</span>
+    </header>
+
+    <section class="intro">
+      <div class="eyebrow"><span></span> QUITAR FONDO</div>
+      <h1>Tu imagen, <span>sin fondo.</span></h1>
+      <p>Sube una imagen y deja que la herramienta separe el sujeto del fondo.</p>
+    </section>
+
+    <section class="editor">
+      <aside class="side-panel">
+        <div class="panel-heading"><span class="number">1</span><div><h2>Elige una imagen</h2><p>PNG, JPG o WEBP</p></div></div>
+        <label class="drop-area" id="drop-area" for="image-file" tabindex="0">
+          <input id="image-file" type="file" accept="image/png,image/jpeg,image/webp,image/bmp">
+          <span class="upload-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M4 15.5v3A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-3"/></svg></span>
+          <strong>Arrastra tu imagen aquí</strong><span>o <em>explora tus archivos</em></span>
+        </label>
+        <div class="source-info" id="source-info" hidden><span class="file-icon">▧</span><span id="file-name">Imagen seleccionada</span><button id="replace-button" type="button">Cambiar</button></div>
+        <div class="separator"></div>
+        <div class="panel-heading"><span class="number">2</span><div><h2>Quita el fondo</h2><p>La IA detecta el sujeto principal</p></div></div>
+        <button class="remove-button" id="remove-button" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 14.2 9l5.8.3-4.5 3.7 1.5 5.7-5-3.1-5 3.1 1.5-5.7L4 9.3 9.8 9z"/></svg><span>Quitar fondo</span></button>
+        <div class="progress-wrap" id="progress-wrap" hidden><div class="progress-label"><span id="progress-text">Preparando…</span><span id="progress-percent"></span></div><div class="progress-track"><span id="progress-bar"></span></div></div>
+        <div class="status-box" id="status-box" aria-live="polite"><span class="status-icon">i</span><p>La primera vez se descargará el modelo de IA. Después quedará guardado en el navegador.</p></div>
+        <div class="trust-note"><span class="shield">✓</span><span>Tu imagen se procesa localmente.<br>No se envía a ningún servidor.</span></div>
+      </aside>
+
+      <section class="preview-panel" aria-label="Vista previa del resultado">
+        <div class="preview-header"><div class="preview-title"><span class="live-dot"></span><h2>Vista previa</h2></div><div class="preview-actions"><button class="view-tab active" id="result-tab" type="button">Resultado</button><button class="view-tab" id="original-tab" type="button">Original</button></div></div>
+        <div class="preview-area" id="preview-area">
+          <div class="empty-state" id="empty-state"><div class="empty-illustration" aria-hidden="true"><div class="ill-shadow"></div><div class="ill-subject"><span class="head"></span><span class="body"></span><span class="leg left"></span><span class="leg right"></span></div><span class="ill-spark one">✦</span><span class="ill-spark two">✳</span><div class="ill-checker"></div></div><h3>El lienzo está listo</h3><p>Tu imagen aparecerá aquí<br>con el fondo transparente.</p></div>
+          <img class="preview-image" id="preview-image" alt="Vista previa de la imagen" hidden>
+          <span class="transparent-tag" id="transparent-tag" hidden><span class="checker-chip"></span> Fondo transparente</span>
+        </div>
+        <div class="preview-footer"><span id="preview-caption">El sujeto se conservará en PNG transparente</span><button class="download-button" id="download-button" type="button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4.5-4.5M12 15l-4.5-4.5M4 16.5v2A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5v-2"/></svg>Descargar PNG</button></div>
+      </section>
+    </section>
+    <footer class="footer"><span>Recorte automático con IA</span><span>La transparencia se guarda en PNG</span></footer>
+  </main>
+</body>
+</html>

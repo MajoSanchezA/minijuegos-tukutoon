@@ -25,8 +25,10 @@
    arriba de la linea de la orilla, no hay que embocar nada exacto — a los
    2-5 anos lo que importa es la accion de "llevarla", no la precision.
 
-   Al soltarla en el agua: chapoteo (visual + un sonido sintetizado, sin
-   ningun asset de audio), la tortuga nada a su lugar en el mar, el
+   En la arena, las tortugas muestran el GIF de nado como animacion de
+   espera. Al arrastrarlas se quedan estaticas. Al soltarlas en el agua:
+   chapoteo (visual + un sonido sintetizado, sin ningun asset de audio),
+   la tortuga queda quieta en su lugar, el
    contador crece de a uno Y SE ESCUCHA ESE NUMERO — pero no con una voz
    sintetizada aparte, sino con un recorte de la propia cancion (`numero-
    1.mp3` a `numero-5.mp3`, ver `entregar()`): el chico escucha siempre la
@@ -63,6 +65,7 @@ function TukuToonTurtlesPage(cfg){
   var CANTIDAD = cfg.cantidad || global.TORTUGAS_CANTIDAD || 5;
   var NUMEROS  = cfg.numeros  || global.TORTUGAS_NUMEROS  || [];
   var ARTE     = cfg.arte     || global.TORTUGAS_ARTE;
+  var ARTE_NADANDO = cfg.arteNadando || global.TORTUGAS_ARTE_NADANDO || ARTE;
 
   buildDOM(cfg);
 
@@ -286,10 +289,10 @@ function esMar(fx, fy){
 // puede pasarse de ahi — si no, invade la celda vecina. Esa cuenta da
 // tamano <= 2*PAD*celda, que es de donde sale el factor de abajo en
 // `tamanoEnZona()`. Subir PAD sin bajar ese factor (o al reves) vuelve a
-// abrir la puerta a que se pisen. En .4 el bamboleo queda mas discreto
-// (el punto solo se mueve dentro del 20% central de la celda) pero deja
+// abrir la puerta a que se pisen. En .45 el bamboleo queda mas discreto
+// (el punto solo se mueve dentro del 10% central de la celda) pero deja
 // usar tortugas bastante mas grandes que con .2-.3 sin arriesgar nada.
-var PAD = 0.4;
+var PAD = 0.45;
 var arenaLayout = null, marLayout = null;
 
 function sortearLayout(n, cols){
@@ -369,11 +372,11 @@ function tamanoEnZona(layout, zona){
   return Math.min(celdaH, celdaW / ART_ASPECT) * MARGEN;
 }
 function actualizarTamano(){
-  var tam = Math.min(
-    tamanoEnZona(arenaLayout, zonaVisible(ZONA_ARENA)),
-    tamanoEnZona(marLayout, zonaVisible(ZONA_MAR))
-  );
-  escena.style.setProperty('--tam-tortuga', Math.max(24, Math.min(84, tam)) + 'px');
+  var tam = tamanoEnZona(arenaLayout, zonaVisible(ZONA_ARENA));
+  tam = Math.max(24, Math.min(84, tam));
+  escena.style.setProperty('--tam-tortuga', tam + 'px');
+  // Compensa el margen transparente que tiene el cuadro del GIF.
+  escena.style.setProperty('--tam-tortuga-recorrido', (tam * 1.32) + 'px');
 }
 
 /* =====================================================================
@@ -389,6 +392,10 @@ function crearTortugas(){
     var el = document.createElement('div');
     el.className = 'tortuga';
     el.innerHTML = '<img class="cuerpo" src="' + ARTE + '" alt="" draggable="false">';
+    if(!reduced){
+      el.classList.add('en-tierra');
+      el.querySelector('.cuerpo').src = ARTE_NADANDO;
+    }
     el.setAttribute('role', 'button');
     el.setAttribute('aria-label', 'Tortuguita, arrastrala al mar');
     escena.appendChild(el);
@@ -416,6 +423,9 @@ function engancharDrag(t){
   var el = t.el;
   el.addEventListener('pointerdown', function(e){
     if(t.entregada || locked) return;
+    clearTimeout(t.idleTimer);
+    el.classList.remove('en-tierra');
+    el.querySelector('.cuerpo').src = ARTE;
     t.arrastrando = true;
     el.classList.add('arrastrando');
     try{ el.setPointerCapture(e.pointerId); }catch(err){}
@@ -457,6 +467,14 @@ function engancharDrag(t){
       entregar(t);
     }else{
       ubicar(t, t.slotArena);   // vuelve sola: sin castigo, solo intentar de nuevo
+      if(!reduced){
+        t.idleTimer = setTimeout(function(){
+          if(!t.arrastrando && !t.entregada){
+            el.querySelector('.cuerpo').src = ARTE_NADANDO;
+            el.classList.add('en-tierra');
+          }
+        }, 400);
+      }
     }
   }
 }
@@ -465,12 +483,17 @@ var locked = false;
 
 function entregar(t){
   t.entregada = true;
+  clearTimeout(t.idleTimer);
   el_chapoteo(t);
   splashSound();
 
   var i = entregadas;               // indice ANTES de sumar: es su lugar en la fila del mar
   entregadas++;
-  ubicar(t, slotsMar()[i]);
+  var destino = slotsMar()[i];
+  var cuerpo = t.el.querySelector('.cuerpo');
+  t.el.classList.remove('en-tierra', 'arrastrando');
+  cuerpo.src = ARTE;
+  ubicar(t, destino);
   t.el.classList.add('en-mar');
 
   actualizarContador(entregadas);

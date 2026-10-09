@@ -87,11 +87,6 @@ header{
 main{position:relative;z-index:1;flex:1 1 auto;min-height:0;overflow:hidden}
 #escena{position:absolute;inset:0}
 
-/* ---------- la tortuga ----------
-   Dos elementos anidados a proposito, igual que .globo/.anim en el otro
-   juego: el de afuera lleva la POSICION (left/top, que pone el JS) y el
-   de adentro lleva la animacion de nadar. Si las dos cosas cayeran en el
-   mismo elemento, la animacion pisaria la posicion en cada frame. */
 .tortuga{
   position:absolute;
   transform:translate(-50%,-50%);
@@ -101,13 +96,14 @@ main{position:relative;z-index:1;flex:1 1 auto;min-height:0;overflow:hidden}
 .tortuga .cuerpo{
   display:block;height:var(--tam-tortuga, clamp(38px,11vw,72px));width:auto;
   filter:drop-shadow(0 3px 2px rgba(0,0,0,.2));
+  transition:height .25s ease-out;
 }
-/* mientras el dedo la mueve, nada de transicion: tiene que seguir al dedo
-   1 a 1, no ir tramando detras */
+.tortuga.en-tierra .cuerpo {
+  height: var(--tam-tortuga-recorrido, 110px);
+  transform: rotate(45deg);
+}
 .tortuga.arrastrando{transition:none;cursor:grabbing;z-index:9}
 .tortuga.en-mar{cursor:default}
-.tortuga.en-mar .cuerpo{animation:nadar 2.6s ease-in-out infinite}
-@keyframes nadar{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-8%) rotate(-4deg)}}
 
 /* el chapoteo al entrar al agua: un emoji de splash que aparece y se va */
 .chapoteo{
@@ -152,6 +148,6 @@ main{position:relative;z-index:1;flex:1 1 auto;min-height:0;overflow:hidden}
 .card-actions button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
 
 @media (prefers-reduced-motion:reduce){
-  .tortuga.en-mar .cuerpo{animation:none}
+  .tortuga .cuerpo{transition:none}
   .card-box{animation:none}
 }
