@@ -51,26 +51,89 @@ var CLASIFICAR_COLORES = [
    ultima ronda no suma un color mas: suma MAS objetos de los mismos
    cuatro colores, que es la otra manija de dificultad que tiene esta
    mecanica sin salirse del rango de edad. */
-var CLASIFICAR_RONDAS = [
-  { id:'dos',    colores:['azul', 'rojo'],                     porColor:2 },
-  { id:'tres',   colores:['azul', 'rojo', 'amarillo'],         porColor:2 },
-  { id:'cuatro', colores:['azul', 'rojo', 'amarillo', 'verde'], porColor:2 },
-  { id:'mas',    colores:['azul', 'rojo', 'amarillo', 'verde'], porColor:3 },
-  {
-    id:'prueba-objetos', colores:['violeta', 'amarillo'], porColor:1,
-    objetos:[
-      { id:'carrito', colorId:'violeta', src:'carrito.webp' },
-      { id:'dinosaurio-dos', colorId:'amarillo', src:'dinosaurio-dos.webp' },
-      { id:'osito', colorId:'amarillo', src:'osito.webp' }
-    ]
-  },
-  {
-    id:'prueba-balones', colores:['rojo', 'amarillo', 'azul', 'verde'], porColor:1,
-    objetos:[
-      { id:'balon-rojo', colorId:'rojo', src:'balon-rojo.png' },
-      { id:'balon-amarillo', colorId:'amarillo', src:'balon-amarillo.png' },
-      { id:'balon-azul', colorId:'azul', src:'balon-azul.png' },
-      { id:'balon-verde', colorId:'verde', src:'balon-verde.png' }
-    ]
+// ---------------------------------------------------------------------------
+// Generación dinámica de rondas
+// ---------------------------------------------------------------------------
+// Definimos una lista de objetos base por color que usamos para poblar cada ronda.
+var OBJETOS_POR_COLOR = {
+  azul: [
+    { id: 'carro-azul', src: 'carro-azul.png' },
+    { id: 'crayones-azules', src: 'crayones-azules.png' },
+    { id: 'balon-azul', src: 'balon-azul.png' }
+  ],
+  rojo: [
+    { id: 'dino-rojo', src: 'dino-rojo.png' },
+    { id: 'crayones-rojos', src: 'crayones-rojos.png' },
+    { id: 'balon-rojo', src: 'balon-rojo.png' }
+  ],
+  amarillo: [
+    { id: 'carro-amarillo', src: 'carro-amarillo.png' },
+    { id: 'cubos-amarillos', src: 'cubos-amarillos.png' },
+    { id: 'osito-amarillo', src: 'osito-amarillo.png' }
+  ],
+  verde: [
+    { id: 'balon-verde', src: 'balon-verde.png' },
+    { id: 'balon-verde-2', src: 'balon-verde.png' },
+    { id: 'balon-verde-3', src: 'balon-verde.png' }
+  ]
+};
+
+/**
+ * Escoge dos colores distintos al azar.
+ */
+function coloresAleatorios() {
+  // Sólo usar colores que tienen objetos definidos en OBJETOS_POR_COLOR
+  var ids = Object.keys(OBJETOS_POR_COLOR);
+  var a = ids[Math.floor(Math.random() * ids.length)];
+  var b;
+  do { b = ids[Math.floor(Math.random() * ids.length)]; } while (b === a);
+  return [a, b];
+}
+
+/**
+ * Genera la lista de objetos para una ronda dada un par de colores y la cantidad por color.
+ */
+function generarObjetos(colores, porColor) {
+  var objetos = [];
+  colores.forEach(function(colorId) {
+    var pool = OBJETOS_POR_COLOR[colorId];
+    for (var i = 0; i < porColor; i++) {
+      // Elegir aleatoriamente un objeto del pool (puede repetirse)
+      var tmpl = pool[Math.floor(Math.random() * pool.length)];
+      // Creamos un id único añadiendo un sufijo
+      var uniqId = tmpl.id + '_' + colorId + '_' + i;
+      objetos.push({ id: uniqId, colorId: colorId, src: tmpl.src });
+    }
+  });
+  return objetos;
+}
+
+/**
+ * Genera una ronda con la lógica solicitada.
+ *   - Las primeras 4 rondas usan porColor = 2,3,4,5 respectivamente.
+ *   - Después, porColor se elige aleatoriamente entre 4 y 5.
+ */
+function crearRonda(indice) {
+  var colores = coloresAleatorios();
+  var porColor;
+  if (indice < 4) {
+    porColor = indice + 2; // 2,3,4,5
+  } else {
+    // después de la ronda 5, escoger 4 o 5 al azar
+    porColor = Math.random() < 0.5 ? 4 : 5;
   }
-];
+  return {
+    id: 'ronda_' + indice,
+    colores: colores,
+    porColor: porColor,
+    objetos: generarObjetos(colores, porColor)
+  };
+}
+
+// Generamos un número razonable de rondas (por ejemplo 20).
+var CLASIFICAR_RONDAS = [];
+for (var i = 0; i < 20; i++) {
+  CLASIFICAR_RONDAS.push(crearRonda(i));
+}
+// ---------------------------------------------------------------------------
+

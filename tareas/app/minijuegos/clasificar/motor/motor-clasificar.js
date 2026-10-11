@@ -483,17 +483,20 @@ function cargarRonda(i){
   // no por una fraccion fija de H — con una fraccion fija la cesta quedaba
   // cortada por `overflow:hidden` en pantallas mas bajas que anchas.
   var n = r.colores.length;
-  var rCesta = clamp(Math.min((W / n) * .30, H * .16), 30, 100);
-  var margenAbajo = 12;
+  var rCesta = clamp(Math.min((W / n) * .35, H * .22), 30, 50);
+  var margenAbajo = -10;
   var yCestas = H - margenAbajo - rCesta * .92;
-  var pasoX = W / (n + 1);
+  // Agrupar un poco las cajitas al centro
+  var anchoTotalCestas = W * 0.7; // Usar el 70% del ancho
+  var offsetX = (W - anchoTotalCestas) / 2;
+  var pasoX = anchoTotalCestas / n;
   r.colores.forEach(function(colorId, i){
     var col = colorPorId(colorId);
     var baulSrc = /^(rojo|amarillo|azul|verde)$/.test(colorId)
       ? 'baul-' + colorId + '.png' : null;
     var el = cestaVisual(col.color, 'cesta', baulSrc);
     svg.appendChild(el);
-    var cx = pasoX * (i + 1);
+    var cx = offsetX + pasoX * (i + 0.5);
 
     // la fila de marcas de esta cesta, dibujada arriba de ella
     var marcas = [];
@@ -506,8 +509,6 @@ function cargarRonda(i){
       var mk = marcaVisual();
       var mx = cx - anchoMarcas / 2 + pasoM * m;
       var my = yCestas - rCesta * 1.55;
-      // el circulo base tiene radio 48: esta escala lo deja en, mas o
-      // menos, un cuarto del radio de la cesta — chico pero legible
       var esc = rCesta * .0028;
       mk.setAttribute('transform', 'translate(' + mx + ',' + my + ') scale(' + esc + ')');
       mk.style.setProperty('--m', col.color);
@@ -536,21 +537,22 @@ function cargarRonda(i){
   }
   barajar(lista);
 
-  // reparto en grilla, en el area arriba de la fila de marcas — mismo
-  // criterio de holgura real que en motor-globos.js para que dos bolitas
-  // nunca se toquen. El limite de abajo es la fila de marcas (no las
-  // cestas: las marcas estan mas arriba), asi ninguna bolita nace tapando
-  // el progreso de una cesta.
-  var techoMarcas = yCestas - rCesta * 1.55 - rCesta * .3;
-  var playH = Math.max(60, techoMarcas - 6);
-  var aspecto = 1; // celda cuadrada: la bolita mide lo mismo en los dos ejes
+  // Zona de aparición (sobre la mesa central)
+  // Restringimos el ancho para que no se vayan a las esquinas y se queden cerca de la mesa
+  var playW = W * 0.55; 
+  var playX = (W - playW) / 2;
+  // Ajustamos la altura para que coincida con la superficie de la mesa
+  var playY = H * 0.52;
+  var playH = Math.max(40, H * 0.15);
+  
+  var aspecto = 1;
   var cols = Math.max(1, Math.min(lista.length,
-    Math.round(Math.sqrt(lista.length * (W / playH) / aspecto))));
+    Math.round(Math.sqrt(lista.length * (playW / playH) / aspecto))));
   var rows = Math.ceil(lista.length / cols);
-  var cw = W / cols, ch = playH / rows;
-  var rBola = clamp(Math.min(cw, ch) / CELDA, R_MIN, R_MAX);
-  var holguraX = Math.max(0, cw - rBola * CELDA);
-  var holguraY = Math.max(0, ch - rBola * CELDA);
+  var cw = playW / cols, ch = playH / rows;
+  var rBola = clamp(Math.min(cw, ch) / 1.5, 30, 60); 
+  var holguraX = Math.max(0, cw - rBola * 2);
+  var holguraY = Math.max(0, ch - rBola * 2);
 
   var celdas = [];
   for(var c = 0; c < cols; c++){ for(var f = 0; f < rows; f++){ celdas.push({ c:c, f:f }); } }
@@ -560,10 +562,10 @@ function cargarRonda(i){
     var colorId = typeof item === 'string' ? item : item.colorId;
     var col = colorPorId(colorId);
     var cel = celdas[k % celdas.length];
-    var x = (cel.c + .5) * cw + (Math.random() - .5) * holguraX;
-    var y = (cel.f + .5) * ch + (Math.random() - .5) * holguraY + 6;
+    var x = playX + (cel.c + .5) * cw + (Math.random() - .5) * holguraX;
+    var y = playY + (cel.f + .5) * ch + (Math.random() - .5) * holguraY;
 
-    var el = nodo('g', { 'class':'bola' });
+    var el = nodo('g', { 'class':'bola caida' });
     var anim = item.src ? objetoVisual(item.src, 'anim') : bolaVisual(col.color, 'anim');
     el.appendChild(anim);
     svg.appendChild(el);

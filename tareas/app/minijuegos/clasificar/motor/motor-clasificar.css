@@ -24,36 +24,14 @@ body{
 
 /* ---------- cuarto infantil de la escena ---------- */
 .room-scene{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;
-  background:linear-gradient(180deg,#FFE8D0 0%,#FFF1D4 61%,#FFC5A5 61%,#F8AD91 100%)}
-.room-window{position:absolute;left:34%;top:2%;width:36%;height:43%;
-  border:clamp(8px,1.2vw,18px) solid #E8EE78;border-radius:4px;
-  background:linear-gradient(90deg,transparent 48%,#F8EEA0 48%,#F8EEA0 52%,transparent 52%),
-    linear-gradient(180deg,transparent 48%,#F8EEA0 48%,#F8EEA0 53%,transparent 53%),
-    linear-gradient(135deg,#BDE6F0,#D9F2E7 62%,#B5DFE9);
-  box-shadow:0 8px 0 rgba(200,150,107,.12)}
-.room-window:before,.room-window:after{content:"";position:absolute;top:-14%;width:12%;height:115%;
-  background:#D8DDF4;opacity:.8}
-.room-window:before{left:-24%}.room-window:after{right:-24%}
-.room-window i{position:absolute;left:-6%;right:-6%;height:5%;background:#F4EAA0;top:20%}
-.room-window i+i{top:auto;bottom:20%}
-.room-shelf{position:absolute;right:8%;top:47%;width:22%;height:15%;
-  border-top:clamp(10px,1.4vw,20px) solid #FFE5AA;
-  background:linear-gradient(90deg,transparent 8%,#F4DDAE 8%,#F4DDAE 13%,transparent 13%,transparent 83%,#F4DDAE 83%,#F4DDAE 88%,transparent 88%)}
-.play-table{position:absolute;left:29%;top:51%;width:49%;height:clamp(16px,2vw,27px);
-  border-radius:50%;background:#FFE9B4;box-shadow:0 8px 0 #F3D69A,0 13px 14px rgba(145,100,73,.12)}
-.play-table:after{content:"";position:absolute;top:100%;left:8%;right:8%;height:clamp(52px,10vh,105px);
-  background:linear-gradient(100deg,transparent 0 12%,#E9C58D 12% 16%,transparent 16% 82%,#E9C58D 82% 86%,transparent 86%)}
-.play-rug{position:absolute;left:26%;bottom:18%;width:48%;height:16%;border-radius:50%;
-  background:repeating-linear-gradient(160deg,#B8EEF0 0 14px,#D1F3E9 14px 28px,#E7D9F1 28px 42px);
-  box-shadow:0 5px 0 rgba(190,144,126,.12)}
-.room-floor{position:absolute;inset:63% 0 0;background:repeating-linear-gradient(0deg,
-  transparent 0 48px,rgba(202,127,99,.16) 49px 51px)}
+  background:url('../fondo.png') no-repeat center bottom;
+  background-size:cover;
+}
+.room-window, .room-shelf, .play-table, .play-rug, .room-floor{display:none;}
 
 /* ---------- header ---------- */
 header{
-  position:relative;z-index:2;flex:0 0 auto;
-  display:flex;align-items:center;gap:10px;
-  padding:10px clamp(10px,3vw,22px) 4px;
+  display: none;
 }
 .brand{
   font-family:'Fredoka',sans-serif;font-weight:600;
@@ -90,10 +68,7 @@ header{
 
 /* ---------- consigna ---------- */
 .prompt{
-  position:relative;z-index:2;flex:0 0 auto;text-align:center;margin:0;
-  font-family:'Fredoka',sans-serif;font-weight:600;color:#704638;
-  font-size:clamp(13px,3.6vw,19px);padding:2px 16px;
-  text-shadow:0 1px 0 rgba(255,255,255,.7);
+  display: none;
 }
 
 /* ---------- escenario ----------
@@ -114,8 +89,8 @@ header{
    camino de salir del escenario durante un resize. */
 main{position:relative;z-index:2;flex:1 1 auto;min-height:0;
   display:flex;flex-direction:row;align-items:stretch;
-  padding:2px 6px 4px;overflow:hidden}
-#stage{flex:1 1 0%;min-width:0;height:100%;display:block;touch-action:none;order:2}
+  padding:0;overflow:hidden}
+#stage{flex:1 1 0%;min-width:0;height:100%;display:block;touch-action:none;order:2;overflow:visible}
 
 /* ---------- la mascota guia (Tuku) ----------
    Queda quieta al costado, respirando despacio (`respirar`), y reacciona
@@ -125,9 +100,7 @@ main{position:relative;z-index:2;flex:1 1 auto;min-height:0;
    queda al juego, y menos lugar al juego la achicaria — un lazo, el mismo
    tipo de bug que el del SVG de arriba. */
 .mascota-dock{
-  order:1;flex:0 0 auto;width:clamp(200px,32vw,440px);
-  display:flex;align-items:flex-end;justify-content:center;
-  padding-bottom:0;pointer-events:none;
+  display: none;
 }
 .mascota{
   width:100%;height:auto;max-height:94%;object-fit:contain;display:block;
@@ -180,11 +153,12 @@ main{position:relative;z-index:2;flex:1 1 auto;min-height:0;
 .bola .face .eyes ellipse{fill:#2B2140}
 .bola .face .cheek{fill:rgba(239,101,142,.4)}
 .bola .face .mouth{fill:none;stroke:#2B2140;stroke-width:5;stroke-linecap:round}
-.bola .objeto-imagen{pointer-events:none;filter:drop-shadow(0 5px 4px rgba(0,0,0,.18))}
+.bola .objeto-imagen{pointer-events:none;}
 /* mientras se arrastra, una sombra la despega del resto — no hay transform
    CSS por la razon de arriba, asi que el "levantarse" se hace subiendo la
    escala directamente en el transform que pone el JS (ver `posicionar`) */
-.bola.arrastrando .anim{filter:drop-shadow(0 10px 10px rgba(0,0,0,.22))}
+.bola.caida{transition:transform .5s ease-out;}
+
 /* volviendo a su lugar (solto en espacio vacio, o en la cesta que no era):
    una transicion suave en vez de saltar de golpe */
 .bola.suave{transition:transform .32s cubic-bezier(.3,1.4,.4,1)}
