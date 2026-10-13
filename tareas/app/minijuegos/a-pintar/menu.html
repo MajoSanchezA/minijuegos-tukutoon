@@ -1,46 +1,35 @@
-<!--
-  MENÚ — molde vacío del grid de miniaturas para "Colorea con TukuToon".
-  =========================================================
-  Este archivo no lleva contenido de dibujos adentro: js/script.js lee
-  la lista PAGINAS (definida en paginas.js) y arma las tarjetas
-  automáticamente. Para agregar un dibujo nuevo, no toques este
-  archivo — sumá una línea en paginas.js (ver
-  plantillas/plantilla-horizontal.html).
--->
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Colorea con TukuToon — Elegí un dibujo</title>
+<meta name="theme-color" content="#ff87a4">
+<title>Colorea con TukuToon</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Comfortaa:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Sniglet:wght@400;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Comfortaa:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-
 <img class="bg-photo" src="fondo-menu.png" alt="" aria-hidden="true">
 
-<div class="floaty" style="top:6%;left:4%;"><svg width="34" height="34" viewBox="0 0 34 34"><polygon points="17,2 32,30 2,30" fill="#FFC94A"/></svg></div>
-<div class="floaty" style="top:70%;left:2%;"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="11" fill="#2EC4B6"/></svg></div>
-<div class="floaty" style="top:10%;right:4%;"><svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="13" r="13" fill="#FF6F59"/></svg></div>
-<div class="floaty" style="top:80%;right:6%;"><svg width="24" height="24" viewBox="0 0 24 24"><polygon points="12,1 23,22 1,22" fill="#B388EB"/></svg></div>
+<button class="back-button" type="button" aria-label="Volver" title="Volver" onclick="history.back()">
+  <svg viewBox="0 0 80 58" aria-hidden="true">
+    <path d="M32 5 10 22c-7 5-7 10 0 15l22 16c6 5 12 1 12-6v-5h18c7 0 11-4 11-10V27c0-6-4-10-11-10H44v-6c0-7-6-11-12-6Z" fill="#08b8bd" stroke="#07565b" stroke-width="5" stroke-linejoin="round"/>
+    <path d="m16 27 15-12" stroke="#76e1df" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+  </svg>
+</button>
 
-<header>
-  <h1>Colorea con TukuToon</h1>
-  <p>Elegí un dibujo para empezar a pintar</p>
-</header>
+<main class="menu-scene">
+  <header class="brand">
+    <h1>Colorea con</h1>
+    <span class="brand-logo-crop">
+      <img src="../../comunidad/assets/logo-tukutoon-horizontal.png" alt="TukuToon" class="brand-logo">
+    </span>
+  </header>
 
-<div class="grid-wrap">
-  <button class="grid-arrow left" id="grid-arrow-left" aria-label="Ver dibujos anteriores">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-  </button>
-  <div class="grid" id="grid"></div>
-  <button class="grid-arrow right" id="grid-arrow-right" aria-label="Ver más dibujos">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-  </button>
-</div>
-<div class="empty" id="empty" style="display:none;"></div>
+  <nav class="gallery" id="gallery" aria-label="Elige un dibujo para colorear"></nav>
+  <p class="empty" id="empty" hidden>Todavía no hay dibujos para colorear.</p>
+</main>
 
 <script src="paginas.js"></script>
 <script src="js/script.js"></script>
