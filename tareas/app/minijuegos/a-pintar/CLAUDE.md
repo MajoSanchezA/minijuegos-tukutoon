@@ -25,8 +25,7 @@ a-pintar/
 ├── menu.html               # molde vacío del grid de miniaturas (sin contenido de dibujos)
 ├── paginas.js              # fuente de verdad del menú: const PAGINAS = [...]
 ├── fondo-menu.png          # imagen de fondo (playa) usada SOLO en el menú
-├── fondo-dibujo.png        # EL fondo del juego: mesa + hoja + decoración ya
-│                             # compuestos en una sola imagen, 1748x804. Es lo único
+├── fondo-dibujo.svg        # Fondo lila con hoja integrada, 1748x804. Es lo único
 │                             # que carga el motor (ver por qué más abajo)
 ├── fondo-mesa.png           # la mesa sola (03_CENITAL_MESA del arte). FUENTE, no se
 │                             # usa en el juego
@@ -87,8 +86,8 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
 
 - Cada página de dibujo llama a `TukuToonColorPage({ title, subtitle, imgSrc, menuHref, bgSrc,
   ... })`, que arma todo el DOM (header, barras, lienzo, modal) por JS — la página HTML en sí es
-  mínima. `bgSrc` es la ruta a `fondo-dibujo.png` vista desde esa página (default `'fondo-dibujo.png'`,
-  pero las páginas dentro de `paginas/<nombre>/` pasan `'../../fondo-dibujo.png'`, dos niveles
+  mínima. `bgSrc` es la ruta a `fondo-dibujo.svg` vista desde esa página (default `'fondo-dibujo.svg'`,
+  pero las páginas dentro de `paginas/<nombre>/` pasan `'../../fondo-dibujo.svg'`, dos niveles
   arriba — mismo criterio que `menuHref`).
 - `imgSrc` es un PNG de línea (trazos negros/oscuros sobre fondo blanco opaco). Al cargar, el
   motor umbraliza (luminancia < 175 = línea), etiqueta las regiones cerradas por flood fill y
@@ -103,30 +102,26 @@ depender de `fetch()` (que el navegador bloquea para archivos locales).
   normal, no un canvas, así que ahí sí es seguro usar el archivo externo). Si `init()` ve
   algo raro al procesar la imagen, ahora lo muestra en el marcador de posición en vez de
   fallar en silencio (`try/catch` en `motor.js`).
-- **El fondo es UNA sola imagen con la hoja ya dibujada adentro** (`fondo-dibujo.png`,
+- **El fondo es UNA sola imagen con la hoja ya dibujada adentro** (`fondo-dibujo.svg`,
   1748x804 = el doble del frame del prototipo). Es un **`<img class="bg-photo">`** real con
   `object-fit:cover`, no un `background-image` de CSS — ver más abajo, en "Horizontal forzado
   en celular", por qué.
 
-  **Por qué compuesta y no en capas:** en el diseño la decoración va ENCIMA de la hoja — mirá
-  el lápiz oscuro de abajo a la izquierda, que le pasa por arriba. Con la hoja como elemento
-  aparte eso es imposible: o la hoja queda arriba de la decoración (mal), o la decoración
-  queda arriba de todo y tapa los rails. Además así la hoja cae exactamente donde la puso
-  diseño, sin que la ubique el layout.
+  **Por qué es una sola imagen:** el marco ya incluye el papel y los detalles de fondo. El
+  lienzo transparente se alinea encima del papel para conservar el borde y la composición.
 
-  **Cómo se recompone** (con las tres fuentes que quedaron en la carpeta): lienzo de 1748x804,
-  `fondo-mesa.png` y `decoracion-dibujo.png` escaladas con `cover` centrado, y
-  `hoja-dibujo.png` en **x=516, y=92, 806x899** — medido sobre el frame del prototipo, donde
-  la hoja va de x 258 a 661 y su borde de arriba cae en y=46 (por 2, porque componemos al
-  doble). Orden: mesa, hoja, decoración. Si se recompone, hay que actualizar la constante
-  `FONDO` en `motor.js`.
+  **Fondo actual:** `fondo-dibujo.svg` es el marco proporcionado para el juego (viewBox 874x402),
+  escalado al doble lógico de 1748x804. El papel está en x=212, y=22, 456x508 en el viewBox,
+  equivalente a **x=424, y=44, 912x1016** en las coordenadas de `FONDO` de `motor.js`.
+  Si se sustituye el marco o se mueve su papel, hay que actualizar esa constante para alinear el
+  lienzo pintable con la hoja integrada. Los círculos flotantes ya no se agregan desde `motor.js`.
 - **Los tamaños de la interfaz son proporcionales al alto del juego, no px fijos.**
   `fitStage()` los recalcula en cada resize y los publica como variables CSS en `<html>`
   (`--ico`, `--rail-gap`, `--grosor`, `--lapiz`, `--lapiz-sel`); `motor.css` solo las consume,
   con valores de arranque en `:root` para la primera pintada. Las proporciones (objeto `P` en
   motor.js) están medidas sobre el frame del prototipo, 874x402: **icono 11,9% del alto**,
-  aire entre iconos 2,5%, **grosor del lápiz 9,5%**, hoja 112% de alto con el borde de arriba
-  al 11,4%.
+  aire entre iconos 2,5%, **grosor del lápiz 9,5%**, hoja 126,4% de alto con el borde de arriba
+  al 5,5%.
   Con px fijos esto se veía bien en un celular horizontal y demasiado chico en una pantalla más
   alta, porque el `@media` de pantallas bajas dejaba de aplicar justo cuando había más lugar.
   Por eso `.app` tampoco lleva `margin` vertical ni `max-width`: en el diseño la columna de

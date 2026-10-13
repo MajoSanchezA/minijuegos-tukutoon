@@ -29,6 +29,16 @@
   const ICONS_BASE = RAIZ + 'iconos/';
 
   const DEFAULT_PALETTE = ['#FF6F59','#FFC94A','#2EC4B6','#5AA9E6','#B388EB','#FFB4C6','#8BC34A','#E8735A','#2B2140','#FFFFFF'];
+  const COLORES_PRINCIPALES = [
+    '#F44336', // rojo
+    '#FFEB3B', // amarillo
+    '#2196F3', // azul
+    '#4CAF50', // verde
+    '#FF9800', // naranja
+    '#9C27B0', // morado
+    '#000000', // negro
+    '#FFFFFF'  // blanco
+  ];
 
 
   // Herramientas de trazo libre (todas menos balde/borrador comparten
@@ -228,33 +238,23 @@
   function buildDOM(cfg) {
     document.title = cfg.pageTitle || ('Colorea con TukuToon — ' + (cfg.title || ''));
     document.body.innerHTML = `
-      <img class="bg-photo" src="${cfg.bgSrc || 'fondo-dibujo.png'}" alt="" aria-hidden="true">
-
-      <div class="floaty" style="top:10%;left:5%;"><svg width="36" height="36" viewBox="0 0 36 36"><polygon points="18,2 34,32 2,32" fill="#FFC94A"/></svg></div>
-      <div class="floaty" style="top:65%;left:3%;"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#2EC4B6"/></svg></div>
-      <div class="floaty" style="top:18%;right:5%;"><svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#FF6F59"/></svg></div>
+      <img class="bg-photo" src="${cfg.bgSrc || 'fondo-dibujo.svg'}" alt="" aria-hidden="true">
 
       <div class="app">
         <div class="rail rail-left">
-          ${cfg.showBackButton === false ? '' : `<a class="salir-btn" href="${cfg.menuHref || 'menu.html'}" title="Volver al menú" aria-label="Volver al menú"><img src="${cfg.iconsBase || ICONS_BASE}salir.png" alt="" draggable="false"></a>`}
           <div class="tools" id="tools"></div>
         </div>
 
-        <!-- Guardar NO pertenece a la columna de la izquierda: en el
-             prototipo cae en x 15,5% mientras los otros seis están en
-             12,6%. Es un botón suelto, igual que reiniciar del otro lado.
-             Verlo así fue lo que hizo cerrar la cuenta: con seis iconos
-             en la columna, la separación del diseño (15,3% del alto) sí
-             entra; con siete no, y por eso en el mockup el último queda
-             cortado. -->
+        <!-- Guardar queda en la parte superior derecha, encima de los lápices. -->
         <button class="nav-arrow descargar" id="done-btn" title="Guardar el dibujo" aria-label="Guardar el dibujo"><img src="${cfg.iconsBase || ICONS_BASE}descargar.png" alt="" draggable="false"></button>
 
         <div class="stage-wrap">
           <div class="paper">
-            <div class="canvas-wrap placeholder" id="canvas-wrap">
+            <div class="download-notice" id="download-notice" role="status" aria-live="polite">¡Imagen descargada!</div>
+          <div class="canvas-wrap ${cfg.imgSrc ? 'is-loading' : 'placeholder'}" id="canvas-wrap">
               <canvas id="paint-canvas"></canvas>
               <canvas id="ink-canvas"></canvas>
-              <div class="placeholder-msg" id="placeholder-msg">
+              <div class="placeholder-msg" id="placeholder-msg"${cfg.imgSrc ? ' hidden' : ''}>
                 <div class="ico">🖼️</div>
                 <h4 id="placeholder-title">Aquí va tu dibujo</h4>
                 <p id="placeholder-text">Todavía no hay una imagen configurada para esta página.</p>
@@ -273,20 +273,27 @@
         <button class="nav-arrow restart" id="clear-btn" title="Empezar de nuevo" aria-label="Empezar de nuevo"><img src="${cfg.iconsBase || ICONS_BASE}reiniciar.png" alt="" draggable="false"></button>
       </div>
 
-      <div class="modal-overlay" id="modal-overlay">
-        <div class="modal">
-          <div class="badge">🌟</div>
-          <h3>¡Muy bien hecho!</h3>
-          <p>Le diste vida a tu dibujo de TukuToon. ¡Sigue coloreando más dibujos!</p>
-          <button id="modal-close">Genial, seguir jugando</button>
-        </div>
-      </div>
     `;
   }
 
   window.TukuToonColorPage = function (config) {
     const cfg = config || {};
-    const PALETTE = cfg.palette || DEFAULT_PALETTE;
+    // Intercala los tonos del personaje con los colores básicos para que
+    // ambos grupos se vean juntos desde el inicio de la columna.
+    const coloresPersonaje = cfg.palette || DEFAULT_PALETTE;
+    const PALETTE = [];
+    const paletteSet = new Set();
+    const agregarColor = (color) => {
+      if (!paletteSet.has(color.toUpperCase())) {
+        paletteSet.add(color.toUpperCase());
+        PALETTE.push(color);
+      }
+    };
+    const filasPaleta = Math.max(coloresPersonaje.length, COLORES_PRINCIPALES.length);
+    for (let i = 0; i < filasPaleta; i++) {
+      if (coloresPersonaje[i]) agregarColor(coloresPersonaje[i]);
+      if (COLORES_PRINCIPALES[i]) agregarColor(COLORES_PRINCIPALES[i]);
+    }
     const ICONS_DIR = cfg.iconsBase || ICONS_BASE;
     buildDOM(cfg);
 
@@ -337,9 +344,9 @@
     // pasó a ser la hoja entera. La contra es que en pantallas mucho más
     // anchas que un celular acostado (donde se ve menos hoja) el dibujo
     // puede quedar rozando el borde de abajo.
-    const DIBUJO_ANCHO = 0.76;   // del ancho de la hoja
-    const DIBUJO_ALTO  = 0.68;   // del alto de la hoja
-    const DIBUJO_CY    = 0.396;  // centro, en fracción del alto de la hoja
+    const DIBUJO_ANCHO = cfg.dibujoAncho || 1.62; // cada lámina puede ajustar su encuadre
+    const DIBUJO_ALTO  = cfg.dibujoAlto || 1.38;
+    const DIBUJO_CY    = cfg.dibujoCentroY || 0.384;
 
     const paperEl = document.querySelector('.paper');
     const railIzqEl = document.querySelector('.rail-left');
@@ -383,7 +390,9 @@
         octx.fillRect(0, 0, outW, outH);
         octx.drawImage(paintCanvas, 0, 0, outW, outH);
         octx.drawImage(inkCanvas, 0, 0, outW, outH);
-        localStorage.setItem(progressKey(), out.toDataURL('image/png'));
+        const key = progressKey();
+        localStorage.setItem(key, out.toDataURL('image/png'));
+        localStorage.setItem('tukutoon:progreso-centro:' + key.split(':').pop(), String(DIBUJO_CY));
       } catch (e) {
         // Sin espacio o sin localStorage disponible: seguimos con la miniatura original.
       }
@@ -426,24 +435,21 @@
     // ninguna otra posición hardcodeada.
     const FONDO = {
       w: 1748, h: 804,
-      hoja:      { x: 516, y: 92, w: 806, h: 899 },
-      // Columna de la izquierda: 7 iconos (salir, 5 herramientas,
-      // guardar). En el prototipo el primero cae en y=82 y la
-      // separación entre centros es 123, pero con esa separación el
-      // séptimo se saldría por abajo — en el mockup queda cortado. Acá
-      // se aprieta lo necesario para que entren los siete enteros.
-      // Seis: salir y las cinco herramientas.
-      iconos:    { cx: 220, lado: 96, cy0: 82, paso: 123 },
-      // Guardar va AL LADO de la estrella, a la misma altura, no debajo:
-      // en el prototipo las dos ocupan y 328..369. Al principio las medí
-      // juntas — mi detección de color agarraba las dos como una sola
-      // mancha — y lo puse abajo. Puesto al costado, la columna entra
-      // con la separación del diseño (123) sin que nada se pise.
-      descargar: { cx: 351, cy: 697, lado: 96 },
+      // Coordenadas del papel central del nuevo fondo (Frame 1.svg),
+      // escaladas al doble de su viewBox 874x402.
+      hoja:      { x: 424, y: 44, w: 912, h: 1016 },
+      // Columna izquierda: las cinco herramientas, sin botón de salida.
+      iconos:    { cx: 280, lado: 96, cy0: 124, paso: 142 },
+      // Guardar va arriba de la columna de lápices, en el lado derecho.
+      descargar: { cx: 1446, cy: 105, lado: 96 },
       // Lápices: 6, pegados al borde derecho.
-      lapices:   { der: 1748, largo: 178, grosor: 76, cy0: 229, paso: 96 },
-      reiniciar: { cx: 1446, cy: 700, lado: 92 }
+      lapices:   { der: 1748, largo: 178, grosor: 60, cy0: 229, paso: 96 },
+      reiniciar: { cx: 1580, cy: 105, lado: 92 }
     };
+    const TAMANO_CONTROLES = 1.4;
+    const TAMANO_ACCIONES = 1.0;
+    const TAMANO_LARGO_LAPIZ = 1.0;
+    const TAMANO_GROSOR_LAPIZ = 1.6;
 
     // Proporciones medidas sobre el frame del prototipo (874x402). Van
     // como fracción del alto del juego y NO como px fijos: con px fijos
@@ -451,8 +457,8 @@
     // pantalla más alta, porque el @media de pantallas bajas dejaba de
     // aplicar. Estas se recalculan en cada fitStage().
     const P = {
-      hojaAlto:  1.12,    // la hoja es MÁS ALTA que la pantalla y se corta abajo
-      hojaTop:   0.114,   // dónde apoya su borde de arriba
+      hojaAlto:  1.264,   // la hoja del fondo se extiende y se corta abajo
+      hojaTop:   0.055,   // borde superior de la hoja en Frame 1.svg
       icono:     0.119,   // caja del icono (48px sobre 402)
       aire:      0.025,   // separación entre iconos
       grosor:    0.095,   // grosor del lápiz (38px sobre 402)
@@ -512,48 +518,46 @@
       const raiz = document.documentElement;
 
       // --- columna de la izquierda ---
-      const ico = Math.max(Math.round(FONDO.iconos.lado * esc), 30);
+      const ico = Math.max(Math.round(FONDO.iconos.lado * esc * TAMANO_CONTROLES), 30);
       raiz.style.setProperty('--ico', ico + 'px');
       raiz.style.setProperty('--rail-gap',
-        Math.max(Math.round((FONDO.iconos.paso - FONDO.iconos.lado) * esc), 2) + 'px');
+        Math.max(Math.round(FONDO.iconos.paso * esc - ico), 2) + 'px');
       // reiniciar se alinea con la estrella y con guardar, misma cuenta
       railIzqEl.style.left = Math.round(desdeIzq(FONDO.iconos.cx) - ico / 2) + 'px';
       railIzqEl.style.top = Math.round(Y(FONDO.iconos.cy0) - ico / 2) + 'px';
       railIzqEl.style.width = ico + 'px';
 
       // --- lápices ---
-      const grosor = Math.max(Math.round(FONDO.lapices.grosor * esc), 12);
+      const grosor = Math.max(Math.round(FONDO.lapices.grosor * esc * TAMANO_GROSOR_LAPIZ), 12);
       const pasoLapiz = Math.round(FONDO.lapices.paso * esc);
       raiz.style.setProperty('--grosor', grosor + 'px');
       raiz.style.setProperty('--lapiz-gap', Math.max(pasoLapiz - grosor, 0) + 'px');
-      raiz.style.setProperty('--lapiz', Math.round(FONDO.lapices.largo * esc) + 'px');
-      raiz.style.setProperty('--lapiz-sel', Math.round(FONDO.lapices.largo * 1.33 * esc) + 'px');
+      raiz.style.setProperty('--lapiz', Math.round(FONDO.lapices.largo * esc * TAMANO_LARGO_LAPIZ) + 'px');
+      raiz.style.setProperty('--lapiz-sel', Math.round(FONDO.lapices.largo * 1.28 * esc * TAMANO_LARGO_LAPIZ) + 'px');
       // Alto de seis lápices: los demás se deslizan.
       raiz.style.setProperty('--colores-alto',
         (P.lapicesVisibles * grosor + (P.lapicesVisibles - 1) * Math.max(pasoLapiz - grosor, 0)) + 'px');
       coloresEl.style.top = Math.round(Y(FONDO.lapices.cy0) - grosor / 2) + 'px';
       coloresEl.style.left = Math.round(desdeDer(FONDO.lapices.der)) + 'px';
 
-      // --- guardar: suelto, al lado de la estrella ---
-      // El top NO se calcula desde FONDO sino con la misma cuenta que usa
-      // el rail para su último icono. Calculándolo aparte quedaba 2px más
-      // arriba que la estrella: el rail acumula el redondeo del gap seis
-      // veces y el resultado no coincide al píxel.
-      const gapPx = Math.max(Math.round((FONDO.iconos.paso - FONDO.iconos.lado) * esc), 2);
-      const topRail = Math.round(Y(FONDO.iconos.cy0) - ico / 2);
-      descargarEl.style.width = ico + 'px';
-      descargarEl.style.height = ico + 'px';
-      descargarEl.style.left = Math.round(desdeIzq(FONDO.descargar.cx) - ico / 2) + 'px';
-      descargarEl.style.top = (topRail + 5 * (ico + gapPx)) + 'px';
+      // --- guardar: parte superior derecha, antes de los lápices ---
+      const icoAccion = Math.max(Math.round(FONDO.descargar.lado * esc * TAMANO_ACCIONES), 30);
+      descargarEl.style.width = icoAccion + 'px';
+      descargarEl.style.height = icoAccion + 'px';
+      descargarEl.querySelector('img').style.width = icoAccion + 'px';
+      descargarEl.querySelector('img').style.height = icoAccion + 'px';
+      descargarEl.style.left = Math.round(desdeDer(FONDO.descargar.cx) - icoAccion / 2) + 'px';
+      descargarEl.style.top = Math.round(Y(FONDO.descargar.cy) - icoAccion / 2) + 'px';
 
-      // --- reiniciar: en el prototipo va al COSTADO de los lápices, no
-      // debajo ---
+      // --- reiniciar: junto a descargar, por encima de los lápices ---
       // Mismo tamaño que el resto de los iconos: en el prototipo reiniciar
       // mide 46x47 contra los 48 de la columna, o sea lo mismo.
-      reiniciarEl.style.width = ico + 'px';
-      reiniciarEl.style.height = ico + 'px';
-      reiniciarEl.style.left = Math.round(desdeDer(FONDO.reiniciar.cx) - ico / 2) + 'px';
-      reiniciarEl.style.top = (topRail + 5 * (ico + gapPx)) + 'px';
+      reiniciarEl.style.width = icoAccion + 'px';
+      reiniciarEl.style.height = icoAccion + 'px';
+      reiniciarEl.querySelector('img').style.width = icoAccion + 'px';
+      reiniciarEl.querySelector('img').style.height = icoAccion + 'px';
+      reiniciarEl.style.left = Math.round(desdeDer(FONDO.reiniciar.cx) - icoAccion / 2) + 'px';
+      reiniciarEl.style.top = Math.round(Y(FONDO.reiniciar.cy) - icoAccion / 2) + 'px';
 
       // --- la hoja ---
       const hojaX = X(FONDO.hoja.x);
@@ -598,7 +602,9 @@
           // El lienzo ya no es el dibujo: es LA HOJA. El dibujo se pega
           // adentro. Así, al pintar el afuera del personaje, la pintura
           // llega hasta el borde del papel y no queda un marco.
-          W = img.naturalWidth;
+          // Mantener una resolución razonable hace que el análisis de áreas
+          // (que recorre cada píxel) no congele la pantalla al abrir dibujos grandes.
+          W = Math.min(img.naturalWidth, 1800);
           H = Math.round(W * FONDO.hoja.h / FONDO.hoja.w);
           ratioW = W; ratioH = H;
           fitStage();
@@ -644,7 +650,11 @@
             const lum = 0.299 * r + 0.587 * g + 0.114 * b;
             const isWall = lum < THRESH;
             wallMask[p] = isWall ? 1 : 0;
-            const alpha = isWall ? Math.round(255 - lum) : 0;
+            // El personaje puede tener líneas por fuera de la silueta
+            // irregular de la hoja. No las guardamos en el lienzo para
+            // que tampoco aparezcan al exportar el dibujo.
+            const alpha = isWall && !(fueraHoja && fueraHoja[p])
+              ? Math.round(255 - lum) : 0;
             inkData.data[i] = 30; inkData.data[i + 1] = 22; inkData.data[i + 2] = 40;
             inkData.data[i + 3] = alpha;
           }
@@ -653,8 +663,6 @@
           if (fueraHoja) {
             for (let q = 0; q < wallMask.length; q++) if (fueraHoja[q]) wallMask[q] = 1;
           }
-          buildRegions(fueraHoja);
-
           paintData = pctx.createImageData(W, H);
           pctx.putImageData(paintData, 0, 0);
           acuaMask = new Float32Array(W * H);
@@ -664,6 +672,19 @@
           state.brushSize = Math.max(6, Math.round(W * TRAZO));
           wrap.classList.remove('placeholder');
           loadingEl.style.display = 'none';
+          // Primero dejamos que el navegador pinte la ilustración; luego se
+          // calculan las zonas del balde en el siguiente turno del event loop.
+          setTimeout(() => {
+            try {
+              buildRegions(fueraHoja);
+              regionsReady = true;
+            } catch (err) {
+              document.getElementById('placeholder-title').textContent = 'Error al preparar el dibujo';
+              document.getElementById('placeholder-text').textContent = String(err && err.message || err);
+              wrap.classList.add('placeholder');
+              placeholderEl.hidden = false;
+            }
+          }, 0);
         } catch (err) {
           // Si esto tira "SecurityError: tainted canvas", es que imgSrc apunta a un
           // archivo externo (no a un data:) y la página se abrió con file:// —
@@ -671,6 +692,9 @@
           // usar imgSrc: "data:image/png;base64,..." en vez de un nombre de archivo.
           document.getElementById('placeholder-title').textContent = 'Error al procesar el dibujo';
           document.getElementById('placeholder-text').textContent = String(err && err.message || err);
+          wrap.classList.remove('is-loading');
+          wrap.classList.add('placeholder');
+          placeholderEl.hidden = false;
           loadingEl.style.display = 'none';
         }
       };
@@ -681,6 +705,9 @@
       img.onerror = () => {
         document.getElementById('placeholder-title').textContent = 'No se encontró el archivo';
         document.getElementById('placeholder-text').innerHTML = `No se pudo cargar la imagen configurada en <code>imgSrc</code>. Verifica el nombre del archivo y que esté en esta misma carpeta.`;
+        wrap.classList.remove('is-loading');
+        wrap.classList.add('placeholder');
+        placeholderEl.hidden = false;
         loadingEl.style.display = 'none';
       };
       img.src = cfg.imgSrc;
@@ -1138,38 +1165,43 @@
       else if (tool === 'glitter') stampGlitter(x, y, rgba, radius);
     }
 
+    let zoom = 1, zoomX = 0, zoomY = 0, pinch = null;
+    let regionsReady = false;
+    const ZOOM_MAX = 2.5;
+    function clampZoomPan() {
+      const r = offsetRect(paintCanvas);
+      const maxX = (zoom - 1) * r.width / 2;
+      const maxY = (zoom - 1) * r.height / 2;
+      zoomX = Math.max(-maxX, Math.min(maxX, zoomX));
+      zoomY = Math.max(-maxY, Math.min(maxY, zoomY));
+      const transform = `translate(${zoomX}px, ${zoomY}px) scale(${zoom})`;
+      paintCanvas.style.transform = transform;
+      inkCanvas.style.transform = transform;
+    }
+    function layoutPoint(point) {
+      return isRotatedForLandscape()
+        ? { x: point.clientY, y: window.innerWidth - point.clientX }
+        : { x: point.clientX, y: point.clientY };
+    }
     function getCanvasPixel(evt) {
       const point = evt.touches ? evt.touches[0] : evt;
-      let left, top, width, height, clientX, clientY;
-      if (isRotatedForLandscape()) {
-        // getBoundingClientRect() del canvas, a través del <html>
-        // rotado, dio desalineado en algunos celulares (el toque no
-        // coincidía con dónde pintaba). En vez de confiar en eso,
-        // pasamos el punto del toque al sistema de coordenadas SIN
-        // rotar de <html> con la fórmula cerrada de una rotación de
-        // 90° centrada en el viewport (así es como está armado el
-        // truco de horizontal forzado en motor.css: <html> con
-        // width:100vh/height:100vw centrado y rotate(90deg)), y
-        // ubicamos el canvas con offsetRect() (transform-invariant) en
-        // vez de getBoundingClientRect().
-        clientX = point.clientY;
-        clientY = window.innerWidth - point.clientX;
-        const r = offsetRect(paintCanvas);
-        left = r.left; top = r.top; width = r.width; height = r.height;
-      } else {
-        const rect = paintCanvas.getBoundingClientRect();
-        clientX = point.clientX; clientY = point.clientY;
-        left = rect.left; top = rect.top; width = rect.width; height = rect.height;
-      }
-      const x = Math.floor((clientX - left) / width * W);
-      const y = Math.floor((clientY - top) / height * H);
+      const p = layoutPoint(point);
+      // offsetRect ignora los CSS transforms. Reaplicamos acá el zoom y
+      // desplazamiento para que el toque siga coincidiendo con el trazo,
+      // también en teléfonos donde <html> rota para forzar horizontal.
+      const r = offsetRect(paintCanvas);
+      const left = r.left + zoomX - (zoom - 1) * r.width / 2;
+      const top = r.top + zoomY - (zoom - 1) * r.height / 2;
+      const width = r.width * zoom, height = r.height * zoom;
+      const x = Math.floor((p.x - left) / width * W);
+      const y = Math.floor((p.y - top) / height * H);
       return [Math.max(0, Math.min(W - 1, x)), Math.max(0, Math.min(H - 1, y))];
     }
 
     let drawing = false;
     let lastX = 0, lastY = 0;
     function pointerDown(evt) {
-      if (!paintData) return;
+      if (!paintData || !regionsReady) return;
       const [x, y] = getCanvasPixel(evt);
       if (state.tool === 'bucket') {
         fillRegionAt(x, y, [...hexToRgb(state.color), 255]);
@@ -1216,9 +1248,84 @@
     paintCanvas.addEventListener('mousedown', (e) => { pointerDown(e); });
     paintCanvas.addEventListener('mousemove', pointerMove);
     window.addEventListener('mouseup', pointerUp);
-    paintCanvas.addEventListener('touchstart', (e) => { pointerDown(e); e.preventDefault(); }, { passive: false });
-    paintCanvas.addEventListener('touchmove', (e) => { pointerMove(e); e.preventDefault(); }, { passive: false });
-    paintCanvas.addEventListener('touchend', pointerUp);
+    const distanciaToques = (touches) => {
+      const a = layoutPoint(touches[0]), b = layoutPoint(touches[1]);
+      return { a, b, distancia: Math.hypot(b.x - a.x, b.y - a.y),
+        medio: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 } };
+    };
+    // Espera un instante antes de pintar el primer dedo: así un segundo
+    // dedo puede iniciar el zoom sin dejar un punto accidental en la hoja.
+    let toquePendiente = null, temporizadorToque = null;
+    function cancelarToquePendiente() {
+      if (temporizadorToque) clearTimeout(temporizadorToque);
+      temporizadorToque = null;
+      toquePendiente = null;
+    }
+    function iniciarToquePendiente() {
+      if (!toquePendiente) return;
+      const punto = toquePendiente;
+      cancelarToquePendiente();
+      pointerDown(punto);
+    }
+    paintCanvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (e.touches.length >= 2) {
+        cancelarToquePendiente();
+        drawing = false;
+        const t = distanciaToques(e.touches), r = offsetRect(paintCanvas);
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        pinch = { distancia: t.distancia, zoom, cx, cy,
+          focalX: (t.medio.x - cx - zoomX) / zoom,
+          focalY: (t.medio.y - cy - zoomY) / zoom };
+        return;
+      }
+      if (!pinch && e.touches.length === 1) {
+        const touch = e.touches[0];
+        toquePendiente = { clientX: touch.clientX, clientY: touch.clientY };
+        temporizadorToque = setTimeout(iniciarToquePendiente, 90);
+      }
+    }, { passive: false });
+    paintCanvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (e.touches.length >= 2) {
+        if (!pinch) {
+          const t = distanciaToques(e.touches), r = offsetRect(paintCanvas);
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          pinch = { distancia: t.distancia, zoom, cx, cy,
+            focalX: (t.medio.x - cx - zoomX) / zoom,
+            focalY: (t.medio.y - cy - zoomY) / zoom };
+        }
+        const t = distanciaToques(e.touches);
+        zoom = Math.max(1, Math.min(ZOOM_MAX, pinch.zoom * t.distancia / Math.max(pinch.distancia, 1)));
+        zoomX = t.medio.x - pinch.cx - pinch.focalX * zoom;
+        zoomY = t.medio.y - pinch.cy - pinch.focalY * zoom;
+        clampZoomPan();
+        return;
+      }
+      if (!pinch) {
+        if (toquePendiente) iniciarToquePendiente();
+        pointerMove(e);
+      }
+    }, { passive: false });
+    paintCanvas.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2 && pinch) { pinch = null; drawing = false; }
+      if (e.touches.length === 0) {
+        if (toquePendiente) iniciarToquePendiente();
+        pointerUp();
+      }
+    });
+    paintCanvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const p = layoutPoint(e), r = offsetRect(paintCanvas);
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const focalX = (p.x - cx - zoomX) / zoom;
+      const focalY = (p.y - cy - zoomY) / zoom;
+      zoom = Math.max(1, Math.min(ZOOM_MAX, zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+      zoomX = p.x - cx - focalX * zoom;
+      zoomY = p.y - cy - focalY * zoom;
+      clampZoomPan();
+    }, { passive: false });
+    window.addEventListener('resize', clampZoomPan);
 
     // paleta de colores
     const swatchWrap = document.getElementById('swatches');
@@ -1259,21 +1366,16 @@
 
     // borrar todo
     document.getElementById('clear-btn').addEventListener('click', () => {
-      if (!paintData) return;
+      if (!paintData || !regionsReady) return;
       paintData.data.fill(0);
       pctx.putImageData(paintData, 0, 0);
     });
 
-    // Guardar: baja el dibujo como PNG, deja la miniatura para el menú
-    // y celebra. La descarga es lo que promete el icono naranja del
-    // diseño; el confeti y la miniatura ya estaban y se conservan.
-    const overlay = document.getElementById('modal-overlay');
+    // Guardar: baja el dibujo como PNG y deja la miniatura para el menú.
     document.getElementById('done-btn').addEventListener('click', () => {
-      if (!paintData) return;
+      if (!paintData || !regionsReady) return;
       saveProgressSnapshot();
       descargarDibujo();
-      overlay.classList.add('show');
-      spawnConfetti();
     });
 
     // El PNG se arma aparte, sobre fondo blanco: los dos lienzos del
@@ -1297,6 +1399,10 @@
           document.body.appendChild(a);
           a.click();
           a.remove();
+          const aviso = document.getElementById('download-notice');
+          aviso.classList.add('show');
+          clearTimeout(aviso._hideTimer);
+          aviso._hideTimer = setTimeout(() => aviso.classList.remove('show'), 2200);
           setTimeout(() => URL.revokeObjectURL(url), 3000);
         }, 'image/png');
       } catch (e) {
@@ -1304,24 +1410,6 @@
         // confeti) tiene que seguir funcionando igual.
       }
     }
-    document.getElementById('modal-close').addEventListener('click', () => {
-      overlay.classList.remove('show');
-    });
-
-    function spawnConfetti() {
-      const colors = PALETTE.slice(0, 7);
-      for (let i = 0; i < 24; i++) {
-        const el = document.createElement('div');
-        el.className = 'confetti';
-        el.style.left = Math.random() * 100 + '%';
-        el.style.width = el.style.height = (6 + Math.random() * 6) + 'px';
-        el.style.background = colors[Math.floor(Math.random() * colors.length)];
-        el.style.animationDuration = (1.2 + Math.random() * 1) + 's';
-        document.querySelector('.modal').appendChild(el);
-        setTimeout(() => el.remove(), 2400);
-      }
-    }
-
     init();
   };
 })();

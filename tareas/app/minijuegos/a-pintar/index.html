@@ -2,23 +2,35 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=menu.html">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ff87a4">
 <title>Colorea con TukuToon</title>
-<style>
-  body{
-    margin:0;
-    min-height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-family:sans-serif;
-    background:#F6DFA9;
-    color:#3D2C4E;
-  }
-  a{color:#3D2C4E;}
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Comfortaa:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <p>Cargando… si no avanza, <a href="menu.html">tocá acá</a>.</p>
+<img class="bg-photo" src="fondo-menu.png" alt="" aria-hidden="true">
+
+<main class="menu-scene">
+  <header class="brand">
+    <h1 class="brand-title">
+      <svg viewBox="0 0 500 110" role="img" aria-labelledby="brand-title-text">
+        <title id="brand-title-text">Colorea con</title>
+        <defs><path id="brand-title-arc" d="M 28 94 Q 250 -14 472 94" /></defs>
+        <text><textPath href="#brand-title-arc" startOffset="50%" text-anchor="middle">COLOREA CON</textPath></text>
+      </svg>
+    </h1>
+    <span class="brand-logo-crop">
+      <img src="logo-tukutoon-horizontal.png" alt="TukuToon" class="brand-logo">
+    </span>
+  </header>
+
+  <nav class="gallery" id="gallery" aria-label="Elige un dibujo para colorear"></nav>
+  <p class="empty" id="empty" hidden>Todavía no hay dibujos para colorear.</p>
+</main>
+
+<script src="paginas.js"></script>
+<script src="js/script.js"></script>
 </body>
 </html>
