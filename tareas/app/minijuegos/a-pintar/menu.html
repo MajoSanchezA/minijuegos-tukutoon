@@ -12,18 +12,17 @@
 <body>
 <img class="bg-photo" src="fondo-menu.png" alt="" aria-hidden="true">
 
-<button class="back-button" type="button" aria-label="Volver" title="Volver" onclick="history.back()">
-  <svg viewBox="0 0 80 58" aria-hidden="true">
-    <path d="M32 5 10 22c-7 5-7 10 0 15l22 16c6 5 12 1 12-6v-5h18c7 0 11-4 11-10V27c0-6-4-10-11-10H44v-6c0-7-6-11-12-6Z" fill="#08b8bd" stroke="#07565b" stroke-width="5" stroke-linejoin="round"/>
-    <path d="m16 27 15-12" stroke="#76e1df" stroke-width="5" stroke-linecap="round" opacity=".8"/>
-  </svg>
-</button>
-
 <main class="menu-scene">
   <header class="brand">
-    <h1>Colorea con</h1>
+    <h1 class="brand-title">
+      <svg viewBox="0 0 500 110" role="img" aria-labelledby="brand-title-text">
+        <title id="brand-title-text">Colorea con</title>
+        <defs><path id="brand-title-arc" d="M 28 94 Q 250 -14 472 94" /></defs>
+        <text><textPath href="#brand-title-arc" startOffset="50%" text-anchor="middle">COLOREA CON</textPath></text>
+      </svg>
+    </h1>
     <span class="brand-logo-crop">
-      <img src="../../comunidad/assets/logo-tukutoon-horizontal.png" alt="TukuToon" class="brand-logo">
+      <img src="logo-tukutoon-horizontal.png" alt="TukuToon" class="brand-logo">
     </span>
   </header>
 

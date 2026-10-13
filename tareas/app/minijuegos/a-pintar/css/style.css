@@ -1,250 +1,51 @@
-/* ============================================================
-   css/style.css — estilos del menú/index de "Colorea con TukuToon".
-   Esto NO es el motor de dibujo (eso vive en motor/motor.css).
-   ============================================================ */
-:root{
-  --mint:#EAF7F0; --wood:#F6DFA9; --wood-deep:#E9C27F; --cream:#FFFDF6;
-  --coral:#FF6F59; --sun:#FFC94A; --teal:#2EC4B6; --plum:#3D2C4E; --plum-soft:#7A6A8A;
+:root{font-family:'Comfortaa',sans-serif;color:#192039;background:#ff91a6;font-synthesis:none}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;min-height:100%;margin:0}
+body{position:relative;overflow:hidden;background:#ff91a6}
+.bg-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none}
+.menu-scene{position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate}
+.brand{position:absolute;z-index:3;top:7.5vh;left:50%;transform:translateX(-50%);width:min(34vw,47vh,450px);text-align:center;pointer-events:none}
+.brand h1{width:100%;height:auto;margin:0 0 2px;filter:drop-shadow(0 2px 0 rgba(206,91,130,.14));transform:rotate(-2deg)}
+.brand-title svg{display:block;width:100%;height:auto;overflow:visible}
+.brand-title text{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;letter-spacing:1px;fill:#fff}
+.brand-logo-crop{position:relative;display:block;width:100%;aspect-ratio:2604/813;margin-top:clamp(4px,.6vw,10px);overflow:hidden;filter:drop-shadow(0 3px 0 rgba(194,99,123,.12))}
+.brand-logo{position:absolute;top:-48.08%;left:-13.36%;display:block;width:126.73%;max-width:none;height:auto}
+.gallery{position:absolute;inset:0;z-index:1}
+.card{--tilt:0deg;position:absolute;display:flex;align-items:center;justify-content:center;width:min(22vw,46vh,425px);aspect-ratio:1.28/1;padding:clamp(7px,.65vw,14px);background:#fffbed;border:clamp(2px,.24vw,5px) solid #c9bda0;border-radius:5px;box-shadow:0 9px 22px rgba(99,91,63,.13);text-decoration:none;transform:translate(-50%,-50%) rotate(var(--tilt));transition:transform .18s ease,box-shadow .18s ease;overflow:hidden}
+.card:nth-child(1){left:15.2%;top:46.5%;--tilt:-3deg}
+.card:nth-child(2){left:30%;top:75%;width:min(23vw,48vh,450px);--tilt:6deg}
+.card:nth-child(3){left:50%;top:59%;width:min(23vw,48vh,450px);--tilt:-.5deg;z-index:2}
+.card:nth-child(4){left:84.5%;top:48%;--tilt:8deg}
+.card:nth-child(5){left:68.5%;top:76%;width:min(23vw,48vh,450px);--tilt:-2deg}
+.card:hover,.card:focus-visible{z-index:4;transform:translate(-50%,-52%) rotate(0deg) scale(1.025);box-shadow:0 15px 30px rgba(99,91,63,.24);outline:none}
+.card img{display:block;width:100%;height:100%;object-fit:contain;transform:scale(1.22);mix-blend-mode:multiply;user-select:none;-webkit-user-drag:none}
+.empty{position:absolute;z-index:3;left:50%;top:68%;transform:translate(-50%,-50%);padding:16px 22px;border-radius:12px;background:#fffbed;color:#57475c;font-weight:700}
+.empty[hidden]{display:none}
+
+/* En pantallas apaisadas bajas, dimensiona todo por ancho y alto para que
+   las tarjetas no conserven mínimos grandes que las hagan chocar. */
+@media (orientation:landscape) and (max-height:520px){
+  .brand{top:5.5vh;width:min(30vw,44vh,360px)}
+  .card{width:min(22vw,44vh,425px)}
+  .card:nth-child(2),.card:nth-child(3),.card:nth-child(5){width:min(23vw,46vh,440px)}
 }
 
-/* ============================================================
-   GRID TUKUTOON — de la guía "TukuToon App UI Style Guideline".
-     Mobile   918x413 : 4 columnas de 200px + medianil 24px = 872px
-     Tablet  1024x768 : 6 columnas de 140px + medianil 24px = 960px
-   Los dos son "tipo Centro": el bloque de grilla va centrado y el resto
-   del ancho queda repartido como margen a los costados.
-
-   El breakpoint mira el LADO LARGO de la pantalla, no el ancho: con el
-   truco de horizontal forzado (más abajo) el teléfono en vertical se
-   renderiza como 100vh de ancho, pero las media queries siguen viendo el
-   viewport real — por eso "tablet" se detecta como landscape+min-width o
-   portrait+min-height.
-   ============================================================ */
-:root{
-  --medianil:24px;
-  --col:200px;
-  --grid-max:872px;                                  /* 4*200 + 3*24 */
-  /* Una tarjeta NO es una columna: es cuántas columnas abarca. En mobile
-     abarca 1 (200px, entran 4); en tablet abarca 2, que con el medianil
-     del medio da 304px y entran 3 — círculos grandes, sin salirse de la
-     grilla. */
-  --card:var(--col);
-
-  /* Escala de spacing de la guía */
-  --sp-8:8px;   --sp-16:16px; --sp-24:24px; --sp-32:32px; --sp-40:40px;
-  --sp-64:64px; --sp-80:80px; --sp-96:96px; --sp-120:120px;
+/* En vertical, organiza la galería en una cuadrícula que se pueda recorrer. */
+@media (orientation:portrait){
+  html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
+  .menu-scene{height:auto;min-height:100vh;min-height:100svh;overflow:hidden}
+  .brand{position:relative;top:auto;left:auto;transform:none;width:min(88vw,380px);margin:32px auto 12px}
+  .brand h1{margin-bottom:0}
+  .brand-logo-crop{aspect-ratio:auto;overflow:visible;margin-top:4px;filter:none}
+  .brand-logo{position:relative;top:auto;left:auto;width:100%}
+  .gallery{position:relative;inset:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:center;gap:clamp(10px,3vw,24px);padding:10px clamp(12px,4vw,30px) 36px}
+  .card,.card:nth-child(n){position:relative;left:auto;top:auto;width:100%;max-width:none;aspect-ratio:1.18/1;padding:8px;transform:rotate(var(--tilt));}
+  .card:nth-child(1){--tilt:-2deg}
+  .card:nth-child(2){--tilt:3deg}
+  .card:nth-child(3){grid-column:1/-1;width:min(72%,360px);justify-self:center;--tilt:-.5deg}
+  .card:nth-child(4){--tilt:2deg}
+  .card:nth-child(5){--tilt:-2deg}
+  .card:hover,.card:focus-visible{transform:rotate(0deg) scale(1.02)}
+  .empty{position:relative;left:auto;top:auto;transform:none;margin:12px auto 28px;width:max-content;max-width:90%}
 }
-@media (orientation:landscape) and (min-width:1024px),
-       (orientation:portrait) and (min-height:1024px){
-  :root{
-    --col:140px;
-    --grid-max:960px;                                /* 6*140 + 5*24 */
-    --card:calc(var(--col) * 2 + var(--medianil));   /* 2 columnas = 304px */
-  }
-}
-
-*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-body{
-  margin:0;
-  min-height:100vh;
-  font-family:'Comfortaa',sans-serif;
-  color:var(--plum);
-  background:var(--wood);
-  padding:var(--sp-32) var(--sp-24) var(--sp-32);
-  position:relative;
-  overflow-x:hidden;
-  /* En una tablet la pantalla es mucho más alta que el contenido: sin esto
-     el título y los círculos quedan colgados arriba y sobra media pantalla
-     de fondo. "safe" = si el contenido llegara a no entrar, se comporta
-     como flex-start y no se come el borde de arriba. */
-  display:flex;
-  flex-direction:column;
-  justify-content:safe center;
-}
-
-/* Foto de fondo como <img> real (no background-image de CSS): en el
-   celular, cuando la foto era un background-image de un elemento cuyo
-   ANCESTRO tenía el transform:rotate() del truco de horizontal forzado
-   más abajo, la imagen no rotaba junto con el resto (quedaba pintada
-   "derecha" mientras todo lo demás sí giraba) — un bug de rendering
-   real en esa combinación en algunos navegadores. Un <img> normal, al
-   ser contenido (no "pintura de fondo"), sí hereda la rotación del
-   ancestro de forma confiable en todos los navegadores. */
-.bg-photo{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  object-position:center bottom;
-  z-index:0;
-  pointer-events:none;
-}
-
-/* Fuerza horizontal en celular: si el teléfono está parado (vertical),
-   rotamos <html> 90° por CSS en vez de usar la API nativa de
-   orientación (screen.orientation.lock), que en Safari/iOS no funciona
-   fuera de una app instalada y en Chrome solo funciona en pantalla
-   completa — este truco funciona en cualquier navegador sin pedir
-   permisos. <body> (con la foto de fondo y todo el contenido) ocupa el
-   100% de <html> por flujo normal, sin transform propio. */
-@media screen and (orientation:portrait){
-  html{
-    width:100vh;
-    width:100dvh;
-    height:100vw;
-    position:absolute;
-    top:50%;
-    left:50%;
-    margin-top:-50vw;
-    margin-left:-50vh;
-    margin-left:-50dvh;
-    transform-origin:center center;
-    transform:rotate(90deg);
-    overflow:hidden;
-  }
-  body{
-    width:100%;
-    height:100%;
-    min-height:0;
-    overflow-y:auto;
-  }
-}
-
-.floaty{position:absolute; opacity:.5; pointer-events:none;}
-.floaty svg{display:block;}
-
-header{text-align:center; margin-bottom:var(--sp-32); position:relative; z-index:2;}
-header h1{
-  font-family:'Sniglet',sans-serif;
-  font-weight:800;
-  font-size:clamp(30px,6vw,52px);
-  letter-spacing:.5px;
-  margin:0;
-  color:#fff;
-  -webkit-text-stroke:3px var(--plum);
-  text-shadow:0 5px 0 var(--plum);
-  text-transform:uppercase;
-}
-header p{
-  margin:var(--sp-16) 0 0;
-  color:var(--plum-soft);
-  font-weight:700;
-  font-size:14px;
-}
-
-.grid-wrap{
-  position:relative;
-  /* +16px = los 8px de padding lateral de .grid, asi el ancho útil de la
-     grilla es exactamente --grid-max */
-  max-width:calc(var(--grid-max) + 16px);
-  margin:0 auto;
-  display:flex;
-  align-items:center;
-}
-/* Las flechas van SUPERPUESTAS sobre los bordes de la grilla, no al lado:
-   en mobile la grilla (872px) ya ocupa el canvas entero de 918px y no
-   queda lugar para ponerlas afuera. Caen justo sobre el fundido de 36px
-   del mask-image de .grid, que existe para eso. */
-.grid-arrow{
-  position:absolute;
-  top:50%;
-  width:44px;
-  height:44px;
-  border-radius:50%;
-  border:none;
-  background:#fff;
-  color:var(--plum);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-  box-shadow:0 4px 0 rgba(61,44,78,.16), 0 10px 16px -8px rgba(61,44,78,.4);
-  transition:opacity .15s ease, transform .15s ease;
-  transform:translateY(-50%);
-  z-index:3;
-}
-.grid-arrow.left{left:0;}
-.grid-arrow.right{right:0;}
-.grid-arrow svg{width:20px; height:20px;}
-.grid-arrow:hover{transform:translateY(-50%) scale(1.08);}
-.grid-arrow:active{transform:translateY(-50%) scale(.96);}
-.grid-arrow[hidden]{display:none;}
-.grid{
-  flex:1;
-  min-width:0;
-  /* +16px = los 8px de padding lateral de cada lado, para que el ancho
-     útil sea exactamente el de la grilla (4 col de 200 / 6 col de 140) */
-  max-width:calc(var(--grid-max) + 16px);
-  display:flex;
-  flex-wrap:nowrap;
-  align-items:flex-start;
-  gap:var(--medianil);
-  overflow-x:auto;
-  overflow-y:visible;
-  padding:var(--sp-8) 8px var(--sp-24);
-  scroll-snap-type:x proximity;
-  -webkit-overflow-scrolling:touch;
-  position:relative;
-  z-index:2;
-  justify-content:safe center;
-  scrollbar-width:none;
-  -webkit-mask-image:linear-gradient(to right, transparent 0, black 36px, black calc(100% - 36px), transparent 100%);
-  mask-image:linear-gradient(to right, transparent 0, black 36px, black calc(100% - 36px), transparent 100%);
-}
-.grid::-webkit-scrollbar{display:none;}
-.card{
-  flex:0 0 var(--card);
-  scroll-snap-align:center;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  text-decoration:none;
-  color:var(--plum);
-  transition:transform .15s ease;
-}
-.card:hover, .card:focus-visible{transform:translateY(-5px) scale(1.03);}
-.card-thumb{
-  position:relative;
-  width:var(--card);
-  aspect-ratio:1/1;
-  border-radius:50%;
-  border:7px solid var(--card-color, var(--teal));
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  overflow:hidden;
-  box-shadow:0 6px 0 rgba(61,44,78,.16), 0 14px 20px -10px rgba(61,44,78,.45);
-}
-.card-thumb img{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-  padding:16px;
-}
-.card-thumb .emoji-only{font-size:44px;}
-.empty{
-  max-width:420px;
-  margin:40px auto 0;
-  text-align:center;
-  background:var(--cream);
-  border-radius:20px;
-  padding:24px;
-  color:var(--plum-soft);
-  font-weight:600;
-  font-size:13px;
-  line-height:1.6;
-  position:relative;
-  z-index:2;
-}
-.empty code{background:rgba(61,44,78,.08); padding:1px 5px; border-radius:5px;}
-
-/* Pantalla física chica (teléfono en vertical, ya rotado por el truco de
-   arriba): solo ajustes cosméticos. El tamaño de la tarjeta NO se toca acá
-   — lo define --col, que es el ancho de columna de la grilla. */
-@media (max-width:480px){
-  header h1{-webkit-text-stroke:2px var(--plum); text-shadow:0 4px 0 var(--plum);}
-  .grid{padding:var(--sp-8) 8px var(--sp-16);}
-  .card-thumb{border-width:5px;}
-}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
