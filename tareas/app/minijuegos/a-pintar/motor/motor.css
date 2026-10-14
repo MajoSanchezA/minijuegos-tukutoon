@@ -452,10 +452,16 @@ canvas{
   pointer-events:none;  /* el toque siempre lo recibe el botón */
   user-select:none;
   -webkit-user-drag:none;
-  transition:width .14s ease, height .14s ease;
+  filter:drop-shadow(0 2px 3px rgba(61,44,78,.32));
+  transition:width .14s ease, height .14s ease, filter .14s ease;
 }
 .tool-btn:hover{--tool-ico:var(--tool-ico-hover);}
-.tool-btn.active{--tool-ico:var(--tool-ico-sel);}
+.tool-btn.active{
+  --tool-ico:var(--tool-ico-sel);
+}
+.tool-btn.active img{
+  filter:drop-shadow(0 0 3px #fff) drop-shadow(0 0 7px rgba(61,44,78,.78));
+}
 
 .nav-arrow{
   width:var(--ico);height:var(--ico);

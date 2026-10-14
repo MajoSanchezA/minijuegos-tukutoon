@@ -462,11 +462,6 @@
       largoSel:   3.65,   // ídem, para el elegido
       lapicesVisibles: 6  // cuántos entran sin deslizar, como en el prototipo
     };
-    // Fracción de la hoja que queda libre entre las herramientas y los lápices.
-    // Se usa luego de medir el contorno real de cada PNG; medir el bitmap entero
-    // reduce demasiado los dibujos que traen márgenes transparentes.
-    let dibujoZonaAnchoRatio = 1;
-    let dibujoZonaCentroX = 0.5;
     function fitStage() {
       // Fijamos la altura de .app "a mano" en vez de confiar en que
       // flex:1 reparta bien el alto en algunos navegadores/entornos —
@@ -499,8 +494,8 @@
         ? window.innerHeight
         : (window.innerWidth || document.documentElement.clientWidth);
       const aspectoViewport = vw / Math.max(1, vh);
-      const esCuadrada = aspectoViewport <= 1.6;
-      FONDO = esCuadrada ? FONDO_CUADRADO : FONDO_RECTANGULAR;
+      const usaDisenoNuevo = aspectoViewport <= 2;
+      FONDO = usaDisenoNuevo ? FONDO_CUADRADO : FONDO_RECTANGULAR;
       const esc = Math.max(vw / FONDO.w, vh / FONDO.h);
       const sobraX = (FONDO.w * esc - vw) / 2;
       const sobraY = (FONDO.h * esc - vh) / 2;
@@ -510,11 +505,11 @@
       const desdeDer = (v) => vw - (FONDO.w - v) * esc;
       const bgMesa = cfg.bgSrc || 'fondo-mesa.png';
       const bgRectangular = bgMesa.replace(/fondo-mesa\.png(?=([?#]|$))/, 'fondo-dibujo.svg');
-      const bgDeseado = esCuadrada ? bgMesa : bgRectangular;
+      const bgDeseado = usaDisenoNuevo ? bgMesa : bgRectangular;
       if (bgPhotoEl.getAttribute('src') !== bgDeseado) bgPhotoEl.setAttribute('src', bgDeseado);
-      paperEl.classList.toggle('separate-sheet', esCuadrada);
+      paperEl.classList.toggle('separate-sheet', usaDisenoNuevo);
       // Solo la nueva composición cuadrada reduce la hoja.
-      const escalaHoja = !esCuadrada ? 1 : aspectoViewport <= 1.1 ? 0.80
+      const escalaHoja = !usaDisenoNuevo ? 1 : aspectoViewport <= 1.1 ? 0.80
         : aspectoViewport <= 1.35 ? 0.88
         : aspectoViewport <= 1.6 ? 0.96
         : aspectoViewport <= (FONDO.w / FONDO.h) ? 0.98 : 1;
@@ -533,7 +528,7 @@
       raiz.style.setProperty('--rail-gap',
         Math.max(Math.round(FONDO.iconos.paso * esc - ico), 2) + 'px');
       // reiniciar se alinea con la estrella y con guardar, misma cuenta
-      const railCenterX = esCuadrada
+      const railCenterX = usaDisenoNuevo
         ? Math.max(ico / 2, Math.min(desdeIzq(FONDO.iconos.cx), X(hoja.x) - ico / 2 - 10 * esc))
         : desdeIzq(FONDO.iconos.cx);
       railIzqEl.style.left = Math.round(railCenterX - ico / 2) + 'px';
@@ -553,31 +548,14 @@
       coloresEl.style.top = Math.round(Y(FONDO.lapices.cy0) - grosor / 2) + 'px';
       coloresEl.style.left = Math.round(desdeDer(FONDO.lapices.der)) + 'px';
 
-      // Calcula el espacio visible entre herramientas y lápices para
-      // centrar el personaje allí si su tamaño requiere reducirlo.
       const hojaVistaX = X(hoja.x);
       const hojaVistaW = hoja.w * esc;
-      if (esCuadrada) {
-        const herramientasDer = railCenterX + ico / 2;
-        const coloresIzq = desdeDer(FONDO.lapices.der)
-          - FONDO.lapices.largo * 1.28 * esc * TAMANO_LARGO_LAPIZ;
-        const zonaIzq = Math.max(hojaVistaX, herramientasDer + 10 * esc);
-        const zonaDer = Math.min(hojaVistaX + hojaVistaW, coloresIzq - 10 * esc);
-        const zonaAncho = Math.max(0, zonaDer - zonaIzq);
-        dibujoZonaAnchoRatio = hojaVistaW > 0 ? zonaAncho / hojaVistaW : 1;
-        dibujoZonaCentroX = hojaVistaW > 0
-          ? Math.max(0, Math.min(1, ((zonaIzq + zonaDer) / 2 - hojaVistaX) / hojaVistaW))
-          : 0.5;
-      } else {
-        dibujoZonaAnchoRatio = 1;
-        dibujoZonaCentroX = 0.5;
-      }
 
       // --- guardar: parte superior derecha, antes de los lápices ---
       const hojaVistaDer = hojaVistaX + hojaVistaW;
       const espacioAcciones = Math.max(0, vw - hojaVistaDer);
       const icoAccionBase = Math.round(FONDO.descargar.lado * esc * TAMANO_ACCIONES);
-      const icoAccion = esCuadrada
+      const icoAccion = usaDisenoNuevo
         ? Math.max(30, Math.min(icoAccionBase,
           espacioAcciones > 0 ? Math.floor((espacioAcciones - 18 * esc) / 2) : icoAccionBase))
         : Math.max(icoAccionBase, 30);
@@ -585,7 +563,7 @@
       descargarEl.style.height = icoAccion + 'px';
       descargarEl.querySelector('img').style.width = icoAccion + 'px';
       descargarEl.querySelector('img').style.height = icoAccion + 'px';
-      const descargarX = esCuadrada
+      const descargarX = usaDisenoNuevo
         ? Math.min(vw - icoAccion / 2 - 4 * esc, hojaVistaDer + icoAccion / 2 + 6 * esc)
         : desdeDer(FONDO.descargar.cx);
       descargarEl.style.left = Math.round(descargarX - icoAccion / 2) + 'px';
@@ -598,7 +576,7 @@
       reiniciarEl.style.height = icoAccion + 'px';
       reiniciarEl.querySelector('img').style.width = icoAccion + 'px';
       reiniciarEl.querySelector('img').style.height = icoAccion + 'px';
-      const reiniciarX = esCuadrada
+      const reiniciarX = usaDisenoNuevo
         ? Math.min(vw - icoAccion / 2 - 4 * esc, descargarX + icoAccion + 6 * esc)
         : desdeDer(FONDO.reiniciar.cx);
       reiniciarEl.style.left = Math.round(reiniciarX - icoAccion / 2) + 'px';
@@ -689,43 +667,16 @@
                 top: minY / medida.height, bottom: (maxY + 1) / medida.height }
             : { left: 0, right: 1, top: 0, bottom: 1 };
 
-          // Caja de composición propia del personaje; se escala uniforme y
-          // solo cuando el contorno visible no cabe en la zona de esta pantalla.
+          // La escala base es propia del dibujo y del lienzo. La hoja puede
+          // reducirse en CSS por proporción, y así el personaje se reduce
+          // exactamente junto con ella sin recibir un segundo encogimiento.
           const cajaW = W * DIBUJO_ANCHO, cajaH = H * DIBUJO_ALTO;
           const escBase = Math.min(cajaW / img.naturalWidth, cajaH / img.naturalHeight);
-          const baseW = img.naturalWidth * escBase;
-          const baseH = img.naturalHeight * escBase;
-          const visibleW = baseW * (ink.right - ink.left);
-          const visibleH = baseH * (ink.bottom - ink.top);
-          const zonaW = Math.max(W * 0.08, W * dibujoZonaAnchoRatio);
-          const zonaH = H * 0.92;
-          // Al pasar del formato ancho del diseño a uno más cuadrado, la
-          // hoja gana altura visible y el personaje debe acompañarla sin
-          // quedarse ocupando casi toda la página. Usa la proporción real
-          // del área de juego (incluye el modo horizontal forzado en móvil).
-          const vistaW = isRotatedForLandscape() ? window.innerHeight : window.innerWidth;
-          const vistaH = isRotatedForLandscape() ? window.innerWidth : window.innerHeight;
-          const aspectoVista = vistaW / Math.max(1, vistaH);
-          const aspectoDiseno = FONDO.w / FONDO.h;
-          const esCuadrada = aspectoVista <= 1.6;
-          const escalaPorAspecto = Math.max(0.42, Math.min(1, aspectoVista / aspectoDiseno));
-          const escalaResponsive = esCuadrada ? Math.min(1,
-            escalaPorAspecto,
-            zonaW / Math.max(1, visibleW),
-            zonaH / Math.max(1, visibleH)) : 1;
-          const escD = escBase * escalaResponsive;
+          const escD = escBase;
           const dw = Math.round(img.naturalWidth * escD);
           const dh = Math.round(img.naturalHeight * escD);
-          const centerInkX = esCuadrada && escalaResponsive < 0.999 ? dibujoZonaCentroX : 0.5;
-          const visibleHRatio = (ink.bottom - ink.top) * dh / H;
-          const centerInkY = Math.max(visibleHRatio / 2 + 0.04,
-            Math.min(1 - visibleHRatio / 2 - 0.04, DIBUJO_CY));
-          const drawX = esCuadrada
-            ? W * centerInkX - dw * (ink.left + ink.right) / 2
-            : (W - dw) / 2;
-          const drawY = esCuadrada
-            ? H * centerInkY - dh * (ink.top + ink.bottom) / 2
-            : H * DIBUJO_CY - dh / 2;
+          const drawX = W / 2 - dw * (ink.left + ink.right) / 2;
+          const drawY = H / 2 - dh * (ink.top + ink.bottom) / 2;
           octx.drawImage(img, Math.round(drawX), Math.round(drawY), dw, dh);
           const src = octx.getImageData(0, 0, W, H);
 
