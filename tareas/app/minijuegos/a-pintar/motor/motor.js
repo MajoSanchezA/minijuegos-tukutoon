@@ -238,7 +238,7 @@
   function buildDOM(cfg) {
     document.title = cfg.pageTitle || ('Colorea con TukuToon — ' + (cfg.title || ''));
     document.body.innerHTML = `
-      <img class="bg-photo" src="${cfg.bgSrc || 'fondo-dibujo.svg'}" alt="" aria-hidden="true">
+      <img class="bg-photo" src="${cfg.bgSrc || 'fondo-mesa.png'}" alt="" aria-hidden="true">
 
       <div class="app">
         <div class="rail rail-left">
@@ -349,6 +349,7 @@
     const DIBUJO_CY    = cfg.dibujoCentroY || 0.384;
 
     const paperEl = document.querySelector('.paper');
+    const bgPhotoEl = document.querySelector('.bg-photo');
     const railIzqEl = document.querySelector('.rail-left');
     const coloresEl = document.querySelector('.swatches');
     const reiniciarEl = document.getElementById('clear-btn');
@@ -425,37 +426,32 @@
     // (encabezado + barras + dibujo) entre en pantalla sin scroll,
     // respetando la proporción real del dibujo (o 3:2 antes de cargar).
     let ratioW = 3, ratioH = 2;
-    // El fondo trae la hoja dibujada adentro. Estos son sus números,
-    // medidos sobre el archivo compuesto (1748x804, el doble del frame
-    // del prototipo): dónde cae la hoja y cuánto mide. Si se recompone
-    // el fondo, hay que actualizarlos.
-    // Todo medido sobre el frame del prototipo (874x402) y llevado al
-    // doble, que es el tamaño del fondo compuesto. Si se recompone el
-    // fondo o se rehace el prototipo, se actualiza acá y listo: no hay
-    // ninguna otra posición hardcodeada.
-    const FONDO = {
+    // La proporción rectangular conserva la composición original. En la
+    // cuadrada se separaron mesa y hoja para poder reducir solo el papel.
+    const FONDO_RECTANGULAR = {
       w: 1748, h: 804,
-      // Coordenadas del papel central del nuevo fondo (Frame 1.svg),
-      // escaladas al doble de su viewBox 874x402.
       hoja:      { x: 424, y: 44, w: 912, h: 1016 },
-      // Columna izquierda: las cinco herramientas, sin botón de salida.
       iconos:    { cx: 280, lado: 96, cy0: 124, paso: 142 },
-      // Guardar va arriba de la columna de lápices, en el lado derecho.
       descargar: { cx: 1446, cy: 105, lado: 96 },
-      // Lápices: 6, pegados al borde derecho.
       lapices:   { der: 1748, largo: 178, grosor: 60, cy0: 229, paso: 96 },
       reiniciar: { cx: 1580, cy: 105, lado: 92 }
     };
+    const FONDO_CUADRADO = {
+      w: 1920, h: 1080,
+      hoja:      { x: 466, y: 59, w: 1002, h: 1117 },
+      iconos:    { cx: 308, lado: 105, cy0: 167, paso: 191 },
+      descargar: { cx: 1588, cy: 141, lado: 105 },
+      lapices:   { der: 1920, largo: 195, grosor: 81, cy0: 307, paso: 129 },
+      reiniciar: { cx: 1735, cy: 141, lado: 101 }
+    };
+    let FONDO = FONDO_RECTANGULAR;
     const TAMANO_CONTROLES = 1.4;
     const TAMANO_ACCIONES = 1.0;
     const TAMANO_LARGO_LAPIZ = 1.0;
     const TAMANO_GROSOR_LAPIZ = 1.6;
 
-    // Proporciones medidas sobre el frame del prototipo (874x402). Van
-    // como fracción del alto del juego y NO como px fijos: con px fijos
-    // se veían bien en un celular horizontal y demasiado chicos en una
-    // pantalla más alta, porque el @media de pantallas bajas dejaba de
-    // aplicar. Estas se recalculan en cada fitStage().
+    // Proporciones base para los controles; se escalan respecto del
+    // fondo-mesa.png y se recalculan en cada fitStage().
     const P = {
       hojaAlto:  1.264,   // la hoja del fondo se extiende y se corta abajo
       hojaTop:   0.055,   // borde superior de la hoja en Frame 1.svg
@@ -466,6 +462,11 @@
       largoSel:   3.65,   // ídem, para el elegido
       lapicesVisibles: 6  // cuántos entran sin deslizar, como en el prototipo
     };
+    // Fracción de la hoja que queda libre entre las herramientas y los lápices.
+    // Se usa luego de medir el contorno real de cada PNG; medir el bitmap entero
+    // reduce demasiado los dibujos que traen márgenes transparentes.
+    let dibujoZonaAnchoRatio = 1;
+    let dibujoZonaCentroX = 0.5;
     function fitStage() {
       // Fijamos la altura de .app "a mano" en vez de confiar en que
       // flex:1 reparta bien el alto en algunos navegadores/entornos —
@@ -491,29 +492,38 @@
       const availH = stageWrapEl.clientHeight;
       if (availW <= 0 || availH <= 0) return;
 
-      // El fondo va con object-fit:cover. Para poner cada cosa donde la
-      // puso diseño hay que replicar esa transformación a mano: se
-      // escala para CUBRIR la pantalla y lo que sobra se recorta por
-      // partes iguales de los dos lados. Con eso, X() e Y() pasan
-      // cualquier coordenada del fondo a coordenada de pantalla.
+      // El fondo conserva su encuadre original a pantalla completa. Solo
+      // se reduce la hoja en proporciones cuadradas; la misma escala se
+      // aplica al SVG de fondo para que la textura y el lienzo coincidan.
       const vw = isRotatedForLandscape()
         ? window.innerHeight
         : (window.innerWidth || document.documentElement.clientWidth);
+      const aspectoViewport = vw / Math.max(1, vh);
+      const esCuadrada = aspectoViewport <= 1.6;
+      FONDO = esCuadrada ? FONDO_CUADRADO : FONDO_RECTANGULAR;
       const esc = Math.max(vw / FONDO.w, vh / FONDO.h);
       const sobraX = (FONDO.w * esc - vw) / 2;
       const sobraY = (FONDO.h * esc - vh) / 2;
       const X = (v) => v * esc - sobraX;
       const Y = (v) => v * esc - sobraY;
-      // Para lo que va PEGADO A UN BORDE hay que medir desde ese borde,
-      // no desde el fondo. Si la pantalla es más angosta que el diseño
-      // (un celular real da 1.45 contra el 2.17 del prototipo), el fondo
-      // se recorta a lo ancho — y con X() la interfaz se iba recortada
-      // junto con él: la columna de iconos quedaba en x -66 y los
-      // lápices en 827 con la pantalla de 663. Medido desde el borde,
-      // cuando no hay recorte da exactamente lo mismo que X(), y cuando
-      // lo hay se queda donde se ve.
       const desdeIzq = (v) => v * esc;
       const desdeDer = (v) => vw - (FONDO.w - v) * esc;
+      const bgMesa = cfg.bgSrc || 'fondo-mesa.png';
+      const bgRectangular = bgMesa.replace(/fondo-mesa\.png(?=([?#]|$))/, 'fondo-dibujo.svg');
+      const bgDeseado = esCuadrada ? bgMesa : bgRectangular;
+      if (bgPhotoEl.getAttribute('src') !== bgDeseado) bgPhotoEl.setAttribute('src', bgDeseado);
+      paperEl.classList.toggle('separate-sheet', esCuadrada);
+      // Solo la nueva composición cuadrada reduce la hoja.
+      const escalaHoja = !esCuadrada ? 1 : aspectoViewport <= 1.1 ? 0.80
+        : aspectoViewport <= 1.35 ? 0.88
+        : aspectoViewport <= 1.6 ? 0.96
+        : aspectoViewport <= (FONDO.w / FONDO.h) ? 0.98 : 1;
+      const hoja = {
+        x: FONDO.hoja.x + FONDO.hoja.w * (1 - escalaHoja) / 2,
+        y: FONDO.hoja.y + FONDO.hoja.h * (1 - escalaHoja) / 2,
+        w: FONDO.hoja.w * escalaHoja,
+        h: FONDO.hoja.h * escalaHoja
+      };
 
       const raiz = document.documentElement;
 
@@ -523,7 +533,10 @@
       raiz.style.setProperty('--rail-gap',
         Math.max(Math.round(FONDO.iconos.paso * esc - ico), 2) + 'px');
       // reiniciar se alinea con la estrella y con guardar, misma cuenta
-      railIzqEl.style.left = Math.round(desdeIzq(FONDO.iconos.cx) - ico / 2) + 'px';
+      const railCenterX = esCuadrada
+        ? Math.max(ico / 2, Math.min(desdeIzq(FONDO.iconos.cx), X(hoja.x) - ico / 2 - 10 * esc))
+        : desdeIzq(FONDO.iconos.cx);
+      railIzqEl.style.left = Math.round(railCenterX - ico / 2) + 'px';
       railIzqEl.style.top = Math.round(Y(FONDO.iconos.cy0) - ico / 2) + 'px';
       railIzqEl.style.width = ico + 'px';
 
@@ -540,13 +553,42 @@
       coloresEl.style.top = Math.round(Y(FONDO.lapices.cy0) - grosor / 2) + 'px';
       coloresEl.style.left = Math.round(desdeDer(FONDO.lapices.der)) + 'px';
 
+      // Calcula el espacio visible entre herramientas y lápices para
+      // centrar el personaje allí si su tamaño requiere reducirlo.
+      const hojaVistaX = X(hoja.x);
+      const hojaVistaW = hoja.w * esc;
+      if (esCuadrada) {
+        const herramientasDer = railCenterX + ico / 2;
+        const coloresIzq = desdeDer(FONDO.lapices.der)
+          - FONDO.lapices.largo * 1.28 * esc * TAMANO_LARGO_LAPIZ;
+        const zonaIzq = Math.max(hojaVistaX, herramientasDer + 10 * esc);
+        const zonaDer = Math.min(hojaVistaX + hojaVistaW, coloresIzq - 10 * esc);
+        const zonaAncho = Math.max(0, zonaDer - zonaIzq);
+        dibujoZonaAnchoRatio = hojaVistaW > 0 ? zonaAncho / hojaVistaW : 1;
+        dibujoZonaCentroX = hojaVistaW > 0
+          ? Math.max(0, Math.min(1, ((zonaIzq + zonaDer) / 2 - hojaVistaX) / hojaVistaW))
+          : 0.5;
+      } else {
+        dibujoZonaAnchoRatio = 1;
+        dibujoZonaCentroX = 0.5;
+      }
+
       // --- guardar: parte superior derecha, antes de los lápices ---
-      const icoAccion = Math.max(Math.round(FONDO.descargar.lado * esc * TAMANO_ACCIONES), 30);
+      const hojaVistaDer = hojaVistaX + hojaVistaW;
+      const espacioAcciones = Math.max(0, vw - hojaVistaDer);
+      const icoAccionBase = Math.round(FONDO.descargar.lado * esc * TAMANO_ACCIONES);
+      const icoAccion = esCuadrada
+        ? Math.max(30, Math.min(icoAccionBase,
+          espacioAcciones > 0 ? Math.floor((espacioAcciones - 18 * esc) / 2) : icoAccionBase))
+        : Math.max(icoAccionBase, 30);
       descargarEl.style.width = icoAccion + 'px';
       descargarEl.style.height = icoAccion + 'px';
       descargarEl.querySelector('img').style.width = icoAccion + 'px';
       descargarEl.querySelector('img').style.height = icoAccion + 'px';
-      descargarEl.style.left = Math.round(desdeDer(FONDO.descargar.cx) - icoAccion / 2) + 'px';
+      const descargarX = esCuadrada
+        ? Math.min(vw - icoAccion / 2 - 4 * esc, hojaVistaDer + icoAccion / 2 + 6 * esc)
+        : desdeDer(FONDO.descargar.cx);
+      descargarEl.style.left = Math.round(descargarX - icoAccion / 2) + 'px';
       descargarEl.style.top = Math.round(Y(FONDO.descargar.cy) - icoAccion / 2) + 'px';
 
       // --- reiniciar: junto a descargar, por encima de los lápices ---
@@ -556,14 +598,17 @@
       reiniciarEl.style.height = icoAccion + 'px';
       reiniciarEl.querySelector('img').style.width = icoAccion + 'px';
       reiniciarEl.querySelector('img').style.height = icoAccion + 'px';
-      reiniciarEl.style.left = Math.round(desdeDer(FONDO.reiniciar.cx) - icoAccion / 2) + 'px';
+      const reiniciarX = esCuadrada
+        ? Math.min(vw - icoAccion / 2 - 4 * esc, descargarX + icoAccion + 6 * esc)
+        : desdeDer(FONDO.reiniciar.cx);
+      reiniciarEl.style.left = Math.round(reiniciarX - icoAccion / 2) + 'px';
       reiniciarEl.style.top = Math.round(Y(FONDO.reiniciar.cy) - icoAccion / 2) + 'px';
 
       // --- la hoja ---
-      const hojaX = X(FONDO.hoja.x);
-      const hojaTop = Y(FONDO.hoja.y);
-      const anchoReal = FONDO.hoja.w * esc;
-      const hojaH = FONDO.hoja.h * esc;
+      const hojaX = X(hoja.x);
+      const hojaTop = Y(hoja.y);
+      const anchoReal = hoja.w * esc;
+      const hojaH = hoja.h * esc;
       paperEl.style.left = Math.round(hojaX) + 'px';
       paperEl.style.top = Math.round(hojaTop) + 'px';
       paperEl.style.width = Math.round(anchoReal) + 'px';
@@ -618,12 +663,70 @@
           // pintable, y las "paredes" se deducen de la luminancia.
           octx.fillStyle = '#ffffff';
           octx.fillRect(0, 0, W, H);
+          // Mide los píxeles oscuros de la línea sobre una miniatura. Las
+          // dimensiones naturales incluyen márgenes vacíos distintos en cada
+          // ilustración, así que el ajuste responsive debe usar el trazo visible.
+          const medida = document.createElement('canvas');
+          medida.width = 256;
+          medida.height = Math.max(1, Math.round(256 * img.naturalHeight / img.naturalWidth));
+          const mctx = medida.getContext('2d', { willReadFrequently: true });
+          mctx.drawImage(img, 0, 0, medida.width, medida.height);
+          const pix = mctx.getImageData(0, 0, medida.width, medida.height).data;
+          let minX = medida.width, maxX = -1, minY = medida.height, maxY = -1;
+          for (let y = 0; y < medida.height; y++) {
+            for (let x = 0; x < medida.width; x++) {
+              const i = (y * medida.width + x) * 4;
+              if (pix[i + 3] > 24 && pix[i] * 0.299 + pix[i + 1] * 0.587 + pix[i + 2] * 0.114 < 150) {
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+              }
+            }
+          }
+          const ink = maxX >= minX
+            ? { left: minX / medida.width, right: (maxX + 1) / medida.width,
+                top: minY / medida.height, bottom: (maxY + 1) / medida.height }
+            : { left: 0, right: 1, top: 0, bottom: 1 };
+
+          // Caja de composición propia del personaje; se escala uniforme y
+          // solo cuando el contorno visible no cabe en la zona de esta pantalla.
           const cajaW = W * DIBUJO_ANCHO, cajaH = H * DIBUJO_ALTO;
-          const escD = Math.min(cajaW / img.naturalWidth, cajaH / img.naturalHeight);
+          const escBase = Math.min(cajaW / img.naturalWidth, cajaH / img.naturalHeight);
+          const baseW = img.naturalWidth * escBase;
+          const baseH = img.naturalHeight * escBase;
+          const visibleW = baseW * (ink.right - ink.left);
+          const visibleH = baseH * (ink.bottom - ink.top);
+          const zonaW = Math.max(W * 0.08, W * dibujoZonaAnchoRatio);
+          const zonaH = H * 0.92;
+          // Al pasar del formato ancho del diseño a uno más cuadrado, la
+          // hoja gana altura visible y el personaje debe acompañarla sin
+          // quedarse ocupando casi toda la página. Usa la proporción real
+          // del área de juego (incluye el modo horizontal forzado en móvil).
+          const vistaW = isRotatedForLandscape() ? window.innerHeight : window.innerWidth;
+          const vistaH = isRotatedForLandscape() ? window.innerWidth : window.innerHeight;
+          const aspectoVista = vistaW / Math.max(1, vistaH);
+          const aspectoDiseno = FONDO.w / FONDO.h;
+          const esCuadrada = aspectoVista <= 1.6;
+          const escalaPorAspecto = Math.max(0.42, Math.min(1, aspectoVista / aspectoDiseno));
+          const escalaResponsive = esCuadrada ? Math.min(1,
+            escalaPorAspecto,
+            zonaW / Math.max(1, visibleW),
+            zonaH / Math.max(1, visibleH)) : 1;
+          const escD = escBase * escalaResponsive;
           const dw = Math.round(img.naturalWidth * escD);
           const dh = Math.round(img.naturalHeight * escD);
-          octx.drawImage(img, Math.round((W - dw) / 2),
-                              Math.round(H * DIBUJO_CY - dh / 2), dw, dh);
+          const centerInkX = esCuadrada && escalaResponsive < 0.999 ? dibujoZonaCentroX : 0.5;
+          const visibleHRatio = (ink.bottom - ink.top) * dh / H;
+          const centerInkY = Math.max(visibleHRatio / 2 + 0.04,
+            Math.min(1 - visibleHRatio / 2 - 0.04, DIBUJO_CY));
+          const drawX = esCuadrada
+            ? W * centerInkX - dw * (ink.left + ink.right) / 2
+            : (W - dw) / 2;
+          const drawY = esCuadrada
+            ? H * centerInkY - dh * (ink.top + ink.bottom) / 2
+            : H * DIBUJO_CY - dh / 2;
+          octx.drawImage(img, Math.round(drawX), Math.round(drawY), dw, dh);
           const src = octx.getImageData(0, 0, W, H);
 
           // La silueta del papel, estirada al lienzo y endurecida con

@@ -76,10 +76,10 @@ body{
   margin:0;
   font-family:'Comfortaa',sans-serif;
   color:var(--plum);
-  /* Fondo de respaldo: se solicita al descargar esta hoja, antes de que
-     motor.js construya el juego y añada el <img> de fondo definitivo. */
+  /* Fondo original a pantalla completa; el ajuste del tamaño afecta solo
+     la hoja dibujada dentro del SVG. */
   background-color:var(--purple-deep);
-  background-image:url('../fondo-dibujo.svg');
+  background-image:url('../fondo-mesa.png');
   background-position:center;
   background-size:cover;
   background-repeat:no-repeat;
@@ -222,12 +222,9 @@ body{
 /* El tamaño real de .paper lo calcula JS (fitStage, en motor.js) para
    que el dibujo entero — con sus barras — quepa en la pantalla sin
    recortarse. max-width/max-height son solo un techo de seguridad. */
-/* La hoja ya no se dibuja acá: viene dentro de fondo-dibujo.svg, para
-   que la decoración pueda pasarle por encima como en el diseño (mirá el
-   lápiz oscuro de abajo a la izquierda). Este elemento quedó solo como
-   la caja que ubica al lienzo sobre esa hoja: fitStage (motor.js)
-   calcula dónde cayó, replicando la transformación de object-fit:cover
-   del fondo, y le pone left/top/width/height. */
+/* La hoja viene de hoja-dibujo.png como capa independiente del fondo.
+   fitStage (motor.js) le calcula su tamaño y posición para que pueda
+   reducirse en pantallas más cuadradas sin cambiar el fondo de la mesa. */
 .paper{
   position:absolute;
   background:none;
@@ -239,6 +236,9 @@ body{
   /* El dibujo ampliado y desplazado nunca debe invadir el fondo que
      rodea la hoja. Es el recorte exterior de seguridad del lienzo. */
   overflow:hidden;
+}
+.paper.separate-sheet{
+  background:url('../hoja-dibujo.png') center / 100% 100% no-repeat;
 }
 .download-notice{
   position:absolute;
