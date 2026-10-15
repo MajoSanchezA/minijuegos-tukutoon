@@ -497,74 +497,127 @@
       const usaDisenoNuevo = aspectoViewport <= 2;
       FONDO = usaDisenoNuevo ? FONDO_CUADRADO : FONDO_RECTANGULAR;
       const esc = Math.max(vw / FONDO.w, vh / FONDO.h);
-      const sobraX = (FONDO.w * esc - vw) / 2;
-      const sobraY = (FONDO.h * esc - vh) / 2;
-      const X = (v) => v * esc - sobraX;
-      const Y = (v) => v * esc - sobraY;
-      const desdeIzq = (v) => v * esc;
-      const desdeDer = (v) => vw - (FONDO.w - v) * esc;
+      // El fondo puede cubrir recortando en los extremos; los controles
+      // usan una escala que siempre cabe en alto para que no desaparezcan
+      // cuando Chrome prueba ventanas panorámicas.
+      const escUI = Math.min(esc, vh / FONDO.h);
+      const uiOffsetY = (vh - FONDO.h * escUI) / 2;
+      const X = (v) => v * escUI;
+      const Y = (v) => uiOffsetY + v * escUI;
+      const desdeIzq = (v) => v * escUI;
+      const desdeDer = (v) => vw - (FONDO.w - v) * escUI;
       const bgMesa = cfg.bgSrc || 'fondo-mesa.png';
-      const bgRectangular = bgMesa.replace(/fondo-mesa\.png(?=([?#]|$))/, 'fondo-dibujo.svg');
-      const bgDeseado = usaDisenoNuevo ? bgMesa : bgRectangular;
+      const bgDeseado = bgMesa;
       if (bgPhotoEl.getAttribute('src') !== bgDeseado) bgPhotoEl.setAttribute('src', bgDeseado);
-      paperEl.classList.toggle('separate-sheet', usaDisenoNuevo);
-      // Solo la nueva composición cuadrada reduce la hoja.
+      // El fondo morado es independiente en todos los tamaños; así la hoja
+      // puede reducirse y conservar un margen visible también en móvil.
+      paperEl.classList.add('separate-sheet');
+      // La composición cuadrada parte de una hoja ligeramente reducida.
+      // En cualquier proporción se limita luego al espacio que realmente
+      // queda entre las herramientas y los bordes visibles.
       const escalaHoja = !usaDisenoNuevo ? 1 : aspectoViewport <= 1.1 ? 0.80
         : aspectoViewport <= 1.35 ? 0.88
         : aspectoViewport <= 1.6 ? 0.96
         : aspectoViewport <= (FONDO.w / FONDO.h) ? 0.98 : 1;
-      const hoja = {
+      const hojaBase = {
         x: FONDO.hoja.x + FONDO.hoja.w * (1 - escalaHoja) / 2,
         y: FONDO.hoja.y + FONDO.hoja.h * (1 - escalaHoja) / 2,
         w: FONDO.hoja.w * escalaHoja,
         h: FONDO.hoja.h * escalaHoja
       };
 
+      // Conserva una franja morada alrededor de la hoja y deja libres los
+      // rieles de herramientas. En tabletas, reserva además la fila de
+      // descargar/reiniciar encima de la hoja. La hoja mantiene su aspecto.
+      // En tabletas damos algo más de ancho al papel para que crezca y su
+      // borde inferior pueda salir del escenario. Dejamos una pequeña
+      // separación morada respecto de los rieles; el margen mayor se reserva
+      // para las proporciones casi cuadradas, donde sí mostramos la hoja entera.
+      const margenHoja = usaDisenoNuevo && aspectoViewport > 1.1
+        ? 8
+        : Math.max(8, Math.min(24, Math.round(Math.min(vw, vh) * 0.02)));
+      const stageLeft = stageWrapEl.offsetLeft;
+      const stageTop = stageWrapEl.offsetTop;
+      const stageRight = stageLeft + stageWrapEl.clientWidth;
+      const stageBottom = stageTop + stageWrapEl.clientHeight;
+      const limiteIzq = Math.max(
+        stageLeft + margenHoja,
+        railIzqEl.offsetLeft + railIzqEl.offsetWidth + margenHoja
+      );
+      const limiteDer = Math.min(
+        stageRight - margenHoja,
+        (parseFloat(coloresEl.style.left) - coloresEl.offsetWidth) - margenHoja
+      );
+      const centroHojaX = (limiteIzq + limiteDer) / 2;
+      const anchoDisponibleHoja = Math.max(0, limiteDer - limiteIzq);
+      const arribaDisponibleHoja = usaDisenoNuevo
+        ? Math.max(stageTop + margenHoja,
+          descargarEl.offsetTop + descargarEl.offsetHeight + margenHoja,
+          reiniciarEl.offsetTop + reiniciarEl.offsetHeight + margenHoja)
+        : stageTop + margenHoja;
+      const abajoDisponibleHoja = stageBottom - margenHoja;
+      const altoDisponibleHoja = Math.max(0, abajoDisponibleHoja - arribaDisponibleHoja);
+      // En tabletas apaisadas, conservar la hoja grande: si se obliga a que
+      // toda la página vertical quepa debajo de los botones, queda demasiado
+      // angosta. Se deja continuar por abajo y el dibujo se centra en la
+      // parte de hoja que sí se ve. Solo las pantallas casi cuadradas la
+      // reducen para mostrarla completa.
+      const hojaGrandeEnTablet = usaDisenoNuevo && aspectoViewport > 1.1;
+      const anchoBaseHojaPx = hojaBase.w * escUI;
+      const altoBaseHojaPx = hojaBase.h * escUI;
+      const ajusteHoja = Math.min(
+        1,
+        anchoDisponibleHoja / Math.max(1, anchoBaseHojaPx),
+        usaDisenoNuevo && !hojaGrandeEnTablet
+          ? altoDisponibleHoja / Math.max(1, altoBaseHojaPx)
+          : 1
+      );
+
       const raiz = document.documentElement;
 
       // --- columna de la izquierda ---
-      const ico = Math.max(Math.round(FONDO.iconos.lado * esc * TAMANO_CONTROLES), 30);
+      const ico = Math.max(Math.round(FONDO.iconos.lado * escUI * TAMANO_CONTROLES), 30);
       raiz.style.setProperty('--ico', ico + 'px');
       raiz.style.setProperty('--rail-gap',
-        Math.max(Math.round(FONDO.iconos.paso * esc - ico), 2) + 'px');
+        Math.max(Math.round(FONDO.iconos.paso * escUI - ico), 2) + 'px');
       // reiniciar se alinea con la estrella y con guardar, misma cuenta
       const railCenterX = usaDisenoNuevo
-        ? Math.max(ico / 2, Math.min(desdeIzq(FONDO.iconos.cx), X(hoja.x) - ico / 2 - 10 * esc))
+        ? Math.max(ico / 2, Math.min(desdeIzq(FONDO.iconos.cx), X(hojaBase.x) - ico / 2 - 10 * escUI))
         : desdeIzq(FONDO.iconos.cx);
       railIzqEl.style.left = Math.round(railCenterX - ico / 2) + 'px';
       railIzqEl.style.top = Math.round(Y(FONDO.iconos.cy0) - ico / 2) + 'px';
       railIzqEl.style.width = ico + 'px';
 
       // --- lápices ---
-      const grosor = Math.max(Math.round(FONDO.lapices.grosor * esc * TAMANO_GROSOR_LAPIZ), 12);
-      const pasoLapiz = Math.round(FONDO.lapices.paso * esc);
+      const grosor = Math.max(Math.round(FONDO.lapices.grosor * escUI * TAMANO_GROSOR_LAPIZ), 12);
+      const pasoLapiz = Math.round(FONDO.lapices.paso * escUI);
       raiz.style.setProperty('--grosor', grosor + 'px');
       raiz.style.setProperty('--lapiz-gap', Math.max(pasoLapiz - grosor, 0) + 'px');
-      raiz.style.setProperty('--lapiz', Math.round(FONDO.lapices.largo * esc * TAMANO_LARGO_LAPIZ) + 'px');
-      raiz.style.setProperty('--lapiz-sel', Math.round(FONDO.lapices.largo * 1.28 * esc * TAMANO_LARGO_LAPIZ) + 'px');
+      raiz.style.setProperty('--lapiz', Math.round(FONDO.lapices.largo * escUI * TAMANO_LARGO_LAPIZ) + 'px');
+      raiz.style.setProperty('--lapiz-sel', Math.round(FONDO.lapices.largo * 1.28 * escUI * TAMANO_LARGO_LAPIZ) + 'px');
       // Alto de seis lápices: los demás se deslizan.
       raiz.style.setProperty('--colores-alto',
         (P.lapicesVisibles * grosor + (P.lapicesVisibles - 1) * Math.max(pasoLapiz - grosor, 0)) + 'px');
       coloresEl.style.top = Math.round(Y(FONDO.lapices.cy0) - grosor / 2) + 'px';
       coloresEl.style.left = Math.round(desdeDer(FONDO.lapices.der)) + 'px';
 
-      const hojaVistaX = X(hoja.x);
-      const hojaVistaW = hoja.w * esc;
+      const hojaVistaX = X(hojaBase.x);
+      const hojaVistaW = hojaBase.w * escUI;
 
       // --- guardar: parte superior derecha, antes de los lápices ---
       const hojaVistaDer = hojaVistaX + hojaVistaW;
       const espacioAcciones = Math.max(0, vw - hojaVistaDer);
-      const icoAccionBase = Math.round(FONDO.descargar.lado * esc * TAMANO_ACCIONES);
+      const icoAccionBase = Math.round(FONDO.descargar.lado * escUI * TAMANO_ACCIONES);
       const icoAccion = usaDisenoNuevo
         ? Math.max(30, Math.min(icoAccionBase,
-          espacioAcciones > 0 ? Math.floor((espacioAcciones - 18 * esc) / 2) : icoAccionBase))
+          Math.floor((vw - 2 * margenHoja - 6 * escUI) / 2)))
         : Math.max(icoAccionBase, 30);
       descargarEl.style.width = icoAccion + 'px';
       descargarEl.style.height = icoAccion + 'px';
       descargarEl.querySelector('img').style.width = icoAccion + 'px';
       descargarEl.querySelector('img').style.height = icoAccion + 'px';
       const descargarX = usaDisenoNuevo
-        ? Math.min(vw - icoAccion / 2 - 4 * esc, hojaVistaDer + icoAccion / 2 + 6 * esc)
+        ? vw - margenHoja - 1.5 * icoAccion - 6 * escUI
         : desdeDer(FONDO.descargar.cx);
       descargarEl.style.left = Math.round(descargarX - icoAccion / 2) + 'px';
       descargarEl.style.top = Math.round(Y(FONDO.descargar.cy) - icoAccion / 2) + 'px';
@@ -577,16 +630,20 @@
       reiniciarEl.querySelector('img').style.width = icoAccion + 'px';
       reiniciarEl.querySelector('img').style.height = icoAccion + 'px';
       const reiniciarX = usaDisenoNuevo
-        ? Math.min(vw - icoAccion / 2 - 4 * esc, descargarX + icoAccion + 6 * esc)
+        ? descargarX + icoAccion + 6 * escUI
         : desdeDer(FONDO.reiniciar.cx);
       reiniciarEl.style.left = Math.round(reiniciarX - icoAccion / 2) + 'px';
       reiniciarEl.style.top = Math.round(Y(FONDO.reiniciar.cy) - icoAccion / 2) + 'px';
 
       // --- la hoja ---
-      const hojaX = X(hoja.x);
-      const hojaTop = Y(hoja.y);
-      const anchoReal = hoja.w * esc;
-      const hojaH = hoja.h * esc;
+      const anchoReal = anchoBaseHojaPx * ajusteHoja;
+      const hojaH = altoBaseHojaPx * ajusteHoja;
+      const hojaX = centroHojaX - anchoReal / 2;
+      const hojaTop = usaDisenoNuevo
+        ? hojaGrandeEnTablet
+          ? arribaDisponibleHoja
+          : arribaDisponibleHoja + (altoDisponibleHoja - hojaH) / 2
+        : stageTop + Math.max(margenHoja, Y(FONDO.hoja.y));
       paperEl.style.left = Math.round(hojaX) + 'px';
       paperEl.style.top = Math.round(hojaTop) + 'px';
       paperEl.style.width = Math.round(anchoReal) + 'px';
@@ -672,11 +729,56 @@
           // exactamente junto con ella sin recibir un segundo encogimiento.
           const cajaW = W * DIBUJO_ANCHO, cajaH = H * DIBUJO_ALTO;
           const escBase = Math.min(cajaW / img.naturalWidth, cajaH / img.naturalHeight);
-          const escD = escBase;
+          const hojaLeftPx = parseFloat(paperEl.style.left) || 0;
+          const hojaTopPx = parseFloat(paperEl.style.top) || 0;
+          const hojaAlturaPx = parseFloat(paperEl.style.height) || 0;
+          const escalaCSS = hojaAlturaPx / H || 1;
+          const visible = (inicioPx, largoPx, limite) => {
+            const inicio = Math.max(0, Math.min(limite, -inicioPx / escalaCSS));
+            const fin = Math.max(inicio, Math.min(limite, (largoPx - inicioPx) / escalaCSS));
+            return { inicio, fin, centro: (inicio + fin) / 2, largo: fin - inicio };
+          };
+          const visibleX = visible(
+            hojaLeftPx - stageWrapEl.offsetLeft,
+            stageWrapEl.clientWidth,
+            W
+          );
+          const visibleY = visible(
+            hojaTopPx - stageWrapEl.offsetTop,
+            stageWrapEl.clientHeight,
+            H
+          );
+          const vh = isRotatedForLandscape()
+            ? window.innerWidth
+            : window.innerHeight;
+          const vw = isRotatedForLandscape()
+            ? window.innerHeight
+            : window.innerWidth;
+          const esDisenoCuadrado = vw / Math.max(1, vh) <= 2;
+          // Centrar sobre la parte visible de la hoja. En tabletas la hoja
+          // puede sobresalir del viewport; usar el centro de toda la hoja
+          // desplaza al personaje hacia abajo y puede esconder sus pies.
+          const centroX = visibleX.centro;
+          const centroY = visibleY.centro;
+          const margenX = visibleX.largo * 0.04;
+          const margenY = visibleY.largo * 0.04;
+          const tintaW = img.naturalWidth * (ink.right - ink.left);
+          const tintaH = img.naturalHeight * (ink.bottom - ink.top);
+          const espacioX = 2 * Math.max(0, Math.min(
+            centroX - visibleX.inicio,
+            visibleX.fin - centroX
+          ));
+          const espacioY = 2 * Math.max(0, Math.min(
+            centroY - visibleY.inicio,
+            visibleY.fin - centroY
+          ));
+          const escSeguroW = tintaW ? Math.max(0, espacioX - 2 * margenX) / tintaW : escBase;
+          const escSeguroH = tintaH ? Math.max(0, espacioY - 2 * margenY) / tintaH : escBase;
+          const escD = Math.min(escBase, escSeguroW, escSeguroH);
           const dw = Math.round(img.naturalWidth * escD);
           const dh = Math.round(img.naturalHeight * escD);
-          const drawX = W / 2 - dw * (ink.left + ink.right) / 2;
-          const drawY = H / 2 - dh * (ink.top + ink.bottom) / 2;
+          const drawX = centroX - dw * (ink.left + ink.right) / 2;
+          const drawY = centroY - dh * (ink.top + ink.bottom) / 2;
           octx.drawImage(img, Math.round(drawX), Math.round(drawY), dw, dh);
           const src = octx.getImageData(0, 0, W, H);
 
