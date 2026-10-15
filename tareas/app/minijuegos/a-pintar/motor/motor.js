@@ -22,6 +22,12 @@
   // se resuelven solos: así agregar un dibujo nuevo no obliga a pasar
   // una ruta más. cfg.iconsBase lo puede pisar si alguna vez hace falta.
   const SCRIPT_SRC = (document.currentScript && document.currentScript.src) || '';
+  // También registra el caché al entrar directamente a un dibujo, sin pasar
+  // primero por el menú. El alcance queda limitado a la carpeta del juego.
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && SCRIPT_SRC) {
+    navigator.serviceWorker.register(new URL('../sw.js', SCRIPT_SRC))
+      .catch(() => {});
+  }
   // Raíz de a-pintar/ vista desde motor/. De acá salen los assets que
   // son iguales para todas las páginas (iconos, capa de decoración), así
   // no hay que pasarles una ruta por página como sí pasa con bgSrc.
@@ -519,6 +525,10 @@
         : aspectoViewport <= 1.35 ? 0.88
         : aspectoViewport <= 1.6 ? 0.96
         : aspectoViewport <= (FONDO.w / FONDO.h) ? 0.98 : 1;
+      // En tablet, acercamos los rieles a los bordes para que la hoja pueda
+      // crecer como en móvil y cortarse más por abajo, sin tapar los controles.
+      const desplazarRielesTablet = usaDisenoNuevo && aspectoViewport > 1.1;
+      const desplazamientoRiel = desplazarRielesTablet ? 32 * escUI : 0;
       const hojaBase = {
         x: FONDO.hoja.x + FONDO.hoja.w * (1 - escalaHoja) / 2,
         y: FONDO.hoja.y + FONDO.hoja.h * (1 - escalaHoja) / 2,
@@ -542,13 +552,17 @@
       const stageBottom = stageTop + stageWrapEl.clientHeight;
       const limiteIzq = Math.max(
         stageLeft + margenHoja,
-        railIzqEl.offsetLeft + railIzqEl.offsetWidth + margenHoja
+        railIzqEl.offsetLeft + railIzqEl.offsetWidth + margenHoja - desplazamientoRiel
+      );
+      const inicioColoresProyectado = desdeDer(
+        FONDO.lapices.der + (escUI ? desplazamientoRiel / escUI : 0)
       );
       const limiteDer = Math.min(
         stageRight - margenHoja,
-        (parseFloat(coloresEl.style.left) - coloresEl.offsetWidth) - margenHoja
+        (desplazarRielesTablet ? inicioColoresProyectado : parseFloat(coloresEl.style.left))
+          - coloresEl.offsetWidth - margenHoja
       );
-      const centroHojaX = (limiteIzq + limiteDer) / 2;
+      const centroHojaX = (limiteIzq + limiteDer) / 2 + desplazamientoRiel * 0.5;
       const anchoDisponibleHoja = Math.max(0, limiteDer - limiteIzq);
       const arribaDisponibleHoja = usaDisenoNuevo
         ? Math.max(stageTop + margenHoja,
@@ -565,9 +579,10 @@
       const hojaGrandeEnTablet = usaDisenoNuevo && aspectoViewport > 1.1;
       const anchoBaseHojaPx = hojaBase.w * escUI;
       const altoBaseHojaPx = hojaBase.h * escUI;
+      const anchoExtraTablet = desplazarRielesTablet ? anchoDisponibleHoja * 0.02 : 0;
       const ajusteHoja = Math.min(
         1,
-        anchoDisponibleHoja / Math.max(1, anchoBaseHojaPx),
+        (anchoDisponibleHoja + anchoExtraTablet) / Math.max(1, anchoBaseHojaPx),
         usaDisenoNuevo && !hojaGrandeEnTablet
           ? altoDisponibleHoja / Math.max(1, altoBaseHojaPx)
           : 1
@@ -584,7 +599,8 @@
       const railCenterX = usaDisenoNuevo
         ? Math.max(ico / 2, Math.min(desdeIzq(FONDO.iconos.cx), X(hojaBase.x) - ico / 2 - 10 * escUI))
         : desdeIzq(FONDO.iconos.cx);
-      railIzqEl.style.left = Math.round(railCenterX - ico / 2) + 'px';
+      railIzqEl.style.left = Math.round(railCenterX - ico / 2 - desplazamientoRiel) + 'px';
+      if (desplazarRielesTablet) railIzqEl.style.zIndex = '11';
       railIzqEl.style.top = Math.round(Y(FONDO.iconos.cy0) - ico / 2) + 'px';
       railIzqEl.style.width = ico + 'px';
 
@@ -599,7 +615,10 @@
       raiz.style.setProperty('--colores-alto',
         (P.lapicesVisibles * grosor + (P.lapicesVisibles - 1) * Math.max(pasoLapiz - grosor, 0)) + 'px');
       coloresEl.style.top = Math.round(Y(FONDO.lapices.cy0) - grosor / 2) + 'px';
-      coloresEl.style.left = Math.round(desdeDer(FONDO.lapices.der)) + 'px';
+      coloresEl.style.left = Math.round(desdeDer(
+        FONDO.lapices.der + (escUI ? desplazamientoRiel / escUI : 0)
+      )) + 'px';
+      if (desplazarRielesTablet) coloresEl.style.zIndex = '11';
 
       const hojaVistaX = X(hojaBase.x);
       const hojaVistaW = hojaBase.w * escUI;

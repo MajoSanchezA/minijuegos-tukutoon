@@ -1,5 +1,12 @@
 /* Construye la galería del menú desde paginas.js. */
 (function () {
+  // Guarda el menú y todos los dibujos para que el juego abra sin conexión
+  // después de la primera visita. Los service workers requieren HTTP(S).
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register(new URL('../sw.js', document.currentScript.src))
+      .catch(() => {});
+  }
+
   const gallery = document.getElementById('gallery');
   const empty = document.getElementById('empty');
 
