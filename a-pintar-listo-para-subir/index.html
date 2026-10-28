@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ff87a4">
+<title>Colorea con TukuToon</title>
+<link rel="stylesheet" href="fonts/fonts.css"><link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<img class="bg-photo" src="fondo-menu.png" alt="" aria-hidden="true">
+
+<main class="menu-scene">
+  <header class="brand">
+    <h1 class="brand-title">
+      <svg viewBox="0 0 500 110" role="img" aria-labelledby="brand-title-text">
+        <title id="brand-title-text">Colorea con</title>
+        <defs><path id="brand-title-arc" d="M 28 94 Q 250 -14 472 94" /></defs>
+        <text><textPath href="#brand-title-arc" startOffset="50%" text-anchor="middle">COLOREA CON</textPath></text>
+      </svg>
+    </h1>
+    <span class="brand-logo-crop">
+      <img src="logo-tukutoon-horizontal.png" alt="TukuToon" class="brand-logo">
+    </span>
+  </header>
+
+  <nav class="gallery" id="gallery" aria-label="Elige un dibujo para colorear"></nav>
+  <p class="empty" id="empty" hidden>Todavía no hay dibujos para colorear.</p>
+</main>
+
+<script src="paginas.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>

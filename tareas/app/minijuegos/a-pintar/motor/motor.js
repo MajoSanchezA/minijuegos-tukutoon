@@ -393,7 +393,9 @@
         const out = document.createElement('canvas');
         out.width = outW; out.height = outH;
         const octx = out.getContext('2d');
-        octx.fillStyle = '#ffffff';
+        // Igualar el fondo de las tarjetas del menú: así las vistas guardadas
+        // pueden mostrarse sin modo de mezcla y conservan sus colores reales.
+        octx.fillStyle = '#fffbed';
         octx.fillRect(0, 0, outW, outH);
         octx.drawImage(paintCanvas, 0, 0, outW, outH);
         octx.drawImage(inkCanvas, 0, 0, outW, outH);

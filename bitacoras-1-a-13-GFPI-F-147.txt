@@ -1,0 +1,81 @@
+Bitácoras 1 a 13 — Formato GFPI-F-147
+
+Bitácora 1 (05/05/26 – 19/05/26)
+
+- Actividad: Inducción al flujo de producción con IA del estudio. Instalación y configuración de ComfyUI y su entorno de trabajo, con primeras pruebas de generación de imágenes y video.
+- Competencias: Configuración de herramientas de software, reconocimiento de procesos de la empresa, preparación de entornos de trabajo.
+- Evidencia: Capturas del entorno configurado y primeras generaciones.
+
+Bitácora 2 (20/05/26 – 03/06/26)
+
+- Actividad: Construcción de workflows de generación de video con IA en ComfyUI usando el modelo WAN VACE 14B, con extracción de movimiento por bordes (canny) e imágenes de referencia. Pruebas y ajuste de parámetros para mejorar los resultados.
+- Competencias: Configuración de pipelines de software, pruebas y validación de resultados, resolución de problemas técnicos.
+- Evidencia: Workflows exportados (.json), clips generados.
+
+Bitácora 3 (04/06/26 – 18/06/26)
+
+- Actividad: Preparación de datasets de imágenes y gestión de modelos LoRA para los personajes del estudio. Rotoscopia y segmentación de video automatizada con el modelo SAM3.
+- Competencias: Procesamiento y organización de datos, preparación de insumos para modelos de IA, uso de modelos de software especializados, automatización de procesos.
+- Evidencia: Datasets organizados, clips segmentados.
+
+Bitácora 4 (19/06/26 – 03/07/26)
+
+- Actividad: Exploración e implementación del workflow Wan Animate V2 (video conductor + imagen de referencia para transferencia de pose y expresión). Evaluación de la herramienta Hyper3D para generación de assets.
+- Competencias: Evaluación de tecnologías, integración de herramientas de software, documentación de pruebas.
+- Evidencia: Workflows y clips de prueba, notas de evaluación.
+
+Bitácora 5 (04/07/26 – 18/07/26)
+
+- Actividad: Investigación y pruebas de desarrollo frontend para una aplicación web interna de gestión de personajes, locaciones y asignación de modelos LoRA, con carga de imágenes de referencia y controles de peso. Desarrollo exploratorio, sin llegar a fase de producción.
+- Competencias: Desarrollo frontend (HTML, CSS, JavaScript), diseño de interfaces de usuario, prototipado.
+- Evidencia: Código fuente de las pruebas, capturas de la interfaz prototipo.
+
+Bitácora 6 (19/07/26 – 02/08/26)
+
+- Actividad: Pruebas de generación de clips en la aplicación web prototipo (endpoint, cancelación de peticiones, vistas timeline/grid) — desarrollo que quedó en fase exploratoria. En paralelo, análisis de requisitos y diseño del modelo de datos para el comparador de versiones de assets, herramienta que sí continuó en desarrollo activo.
+- Competencias: Consumo de servicios web (API REST), prototipado, análisis de requisitos, modelado de bases de datos.
+- Evidencia: Código fuente de las pruebas, documento de requisitos y diagrama del comparador.
+
+Bitácora 7 (03/08/26 – 17/08/26)
+
+- Actividad: Continuación del desarrollo del comparador de versiones tras el diseño inicial. Optimización de archivos de producción mediante reducción de peso de imágenes PNG sin pérdida de calidad. Organización de backups previos a un formateo de equipo.
+- Competencias: Optimización de recursos digitales, gestión de respaldos, mantenimiento de herramientas de software.
+- Evidencia: Capturas del comparador en funcionamiento, comparativa de peso de archivos antes/después, registro de backup.
+
+Nota sobre las bitácoras 8 a 13: se organizan por frente de trabajo. Las fechas de cada una están pendientes de confirmar; la numeración no establece que sean seis periodos consecutivos de quince días. Las actividades descritas no implican aprobación ni publicación definitiva de los desarrollos.
+
+Bitácora 8 (Fechas por confirmar)
+
+- Actividad: Desarrollo de minijuegos educativos de trazos de vocales y números para TukuToon mediante HTML, CSS y JavaScript. Incorporación de vocales minúsculas y separación del motor de interacción respecto del contenido para facilitar su reutilización. Trabajo en menús y almacenamiento local del progreso, con ajustes visuales pendientes según los mockups del equipo de diseño.
+- Competencias: Desarrollo frontend (HTML, CSS, JavaScript), programación de interacciones, reutilización de componentes, almacenamiento local de datos.
+- Evidencia: Código fuente de los minijuegos, menús y configuración del motor de trazos; historial de cambios.
+
+Bitácora 9 (Fechas por confirmar)
+
+- Actividad: Desarrollo del minijuego «A pintar» con dibujos de personajes de TukuToon. Implementación y ajuste de herramientas de dibujo y coloreado, paleta de colores, borrador y guardado del avance. Adaptación de la distribución de controles y de la hoja de dibujo tomando como referencia los prototipos visuales.
+- Competencias: Desarrollo de interfaces interactivas, uso de Canvas, manejo de eventos, almacenamiento local, adaptación de diseños a una aplicación web.
+- Evidencia: Código fuente del juego, dibujos integrados y configuración de las herramientas; historial de ajustes de la interfaz.
+
+Bitácora 10 (Fechas por confirmar)
+
+- Actividad: Desarrollo y pruebas de minijuegos de conteo con globos, secuencias de patrones y clasificación de elementos. Trabajo en las dinámicas de interacción, arrastre y seguimiento del progreso. Corrección del comportamiento del minijuego «Clasificar» al cambiar el tamaño de la ventana, conservando el avance de la ronda. Continuación de ajustes visuales sujeta a los recursos gráficos del equipo.
+- Competencias: Lógica de programación, manejo de eventos, desarrollo de mecánicas de juego, diseño adaptable a distintos tamaños de pantalla, depuración de errores.
+- Evidencia: Código fuente de Globos, Patrones y Clasificar; historial de cambios y corrección del redimensionamiento.
+
+Bitácora 11 (Fechas por confirmar)
+
+- Actividad: Refinamiento de la interfaz de «A pintar», con resaltado de la herramienta seleccionada y ajustes para mantener una escala consistente en las vistas previas de los dibujos. Preparación de paquetes ZIP con archivos locales para su carga en la aplicación y revisión de rutas, dependencias e integridad del contenido. Seguimiento de los problemas de validación y visualización de dibujos, con verificación final en la aplicación pendiente.
+- Competencias: Pruebas de interfaces, corrección de errores, gestión de recursos web, empaquetado de aplicaciones, revisión de compatibilidad.
+- Evidencia: Código fuente actualizado, paquetes ZIP de prueba y registros de revisión de su estructura e integridad.
+
+Bitácora 12 (Fechas por confirmar)
+
+- Actividad: Desarrollo frontend de la página de fanart de TukuToon, con galería, referencias de personajes y ventanas de consulta de imágenes. Ajuste de la identidad visual mediante los colores de la marca. Elaboración del formulario para seleccionar una imagen y registrar los datos del participante y de la persona adulta responsable, con validaciones de campos, tamaño de archivo y consentimiento cuando corresponde. El formulario permanece como demostración; el envío y almacenamiento de imágenes requieren conexión con el servidor y el sistema de almacenamiento.
+- Competencias: Desarrollo frontend (HTML, CSS, JavaScript), diseño de interfaces, validación de formularios, manejo de archivos en el navegador, análisis de requisitos de almacenamiento.
+- Evidencia: Código fuente de la página de fanart, galería, ventanas de referencia y formulario de demostración.
+
+Bitácora 13 (Fechas por confirmar)
+
+- Actividad: Desarrollo y ajuste visual de la sección «Tukucumpleaños» en el sitio web de TukuToon. Organización de la presentación de invitaciones y materiales imprimibles para cumpleaños. Adaptación de tipografías, colores y fondos para mantener coherencia con la página de Inicio, y revisión de la presentación en móvil. Revisión de diseños de Canva para su incorporación como vistas previas reales. El trabajo continúa en desarrollo, con integración de las imágenes definitivas, formulario y descargas pendiente.
+- Competencias: Maquetación web, aplicación de identidad visual, diseño adaptable a dispositivos móviles, organización de recursos digitales, integración de contenido en un sitio web.
+- Evidencia: Sección guardada en el editor del sitio, captura de la revisión visual y diseños de referencia en Canva.

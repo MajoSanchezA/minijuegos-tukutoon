@@ -64,18 +64,13 @@
     const image = document.createElement('img');
     const progress = savedProgress(drawing.id);
     image.src = progress || drawing.miniatura;
-    // La miniatura guardada de Gabo queda alta y el zoom general le corta
-    // el pelo; reducirlo un poco y bajarla centra mejor la figura.
-    if (drawing.id === 'gabo') {
-      image.style.setProperty('--preview-shift-y', '8%');
-      image.style.setProperty('--preview-scale', '1.08');
-    }
-    if (progress && (drawing.id === 'tuku' || drawing.id === 'tico')) {
+    // Tuku ya tiene el centro visual de la captura alineado con la tarjeta;
+    // evitar el desplazamiento antiguo que lo bajaba y lo recortaba.
+    if (progress && drawing.id === 'tico') {
       const oldCenter = savedProgressCenter(drawing.id);
-      const correction = drawing.id === 'tuku' ? 13 : 11;
-      const shift = Math.max(0, Math.min(correction, (0.5 - oldCenter) / (0.5 - ({ tuku: 0.36, tico: 0.384 })[drawing.id]) * correction));
+      const correction = 11;
+      const shift = Math.max(0, Math.min(correction, (0.5 - oldCenter) / (0.5 - 0.384) * correction));
       image.style.setProperty('--preview-shift-y', `${shift}%`);
-      image.classList.add('saved-preview');
     }
     image.alt = `Dibujo de ${drawing.nombre} para colorear`;
     image.draggable = false;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tukutoon-a-pintar-v1';
+const CACHE_NAME = 'tukutoon-a-pintar-v6';
 const APP_SHELL = [
   './',
   './index.html',

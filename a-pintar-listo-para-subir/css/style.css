@@ -1,0 +1,51 @@
+:root{font-family:'Comfortaa',sans-serif;color:#192039;background:#ff91a6;font-synthesis:none}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;min-height:100%;margin:0}
+body{position:relative;overflow:hidden;background:#ff91a6}
+.bg-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none}
+.menu-scene{position:relative;width:100%;height:100%;overflow:hidden;isolation:isolate}
+.brand{position:absolute;z-index:3;top:7.5vh;left:50%;transform:translateX(-50%);width:min(34vw,47vh,450px);text-align:center;pointer-events:none}
+.brand h1{width:100%;height:auto;margin:0 0 2px;filter:drop-shadow(0 2px 0 rgba(206,91,130,.14));transform:rotate(-2deg)}
+.brand-title svg{display:block;width:100%;height:auto;overflow:visible}
+.brand-title text{font-family:'Fredoka',sans-serif;font-size:48px;font-weight:700;letter-spacing:1px;fill:#fff}
+.brand-logo-crop{position:relative;display:block;width:100%;aspect-ratio:2604/813;margin-top:clamp(4px,.6vw,10px);overflow:hidden;filter:drop-shadow(0 3px 0 rgba(194,99,123,.12))}
+.brand-logo{position:absolute;top:-48.08%;left:-13.36%;display:block;width:126.73%;max-width:none;height:auto}
+.gallery{position:absolute;inset:0;z-index:1}
+.card{--tilt:0deg;position:absolute;display:flex;align-items:center;justify-content:center;width:min(22vw,46vh,425px);aspect-ratio:1.28/1;padding:clamp(7px,.65vw,14px);background:#fffbed;border:clamp(2px,.24vw,5px) solid #c9bda0;border-radius:5px;box-shadow:0 9px 22px rgba(99,91,63,.13);text-decoration:none;transform:translate(-50%,-50%) rotate(var(--tilt));transition:transform .18s ease,box-shadow .18s ease;overflow:hidden}
+.card:nth-child(1){left:15.2%;top:46.5%;--tilt:-3deg}
+.card:nth-child(2){left:30%;top:75%;width:min(23vw,48vh,450px);--tilt:6deg}
+.card:nth-child(3){left:50%;top:59%;width:min(23vw,48vh,450px);--tilt:-.5deg;z-index:2}
+.card:nth-child(4){left:84.5%;top:48%;--tilt:8deg}
+.card:nth-child(5){left:68.5%;top:76%;width:min(23vw,48vh,450px);--tilt:-2deg}
+.card:hover,.card:focus-visible{z-index:4;transform:translate(-50%,-52%) rotate(0deg) scale(1.025);box-shadow:0 15px 30px rgba(99,91,63,.24);outline:none}
+.card img{display:block;width:100%;height:100%;object-fit:contain;transform:translateY(var(--preview-shift-y,0%)) scale(var(--preview-scale,1.22));mix-blend-mode:darken;user-select:none;-webkit-user-drag:none}
+.empty{position:absolute;z-index:3;left:50%;top:68%;transform:translate(-50%,-50%);padding:16px 22px;border-radius:12px;background:#fffbed;color:#57475c;font-weight:700}
+.empty[hidden]{display:none}
+
+/* En pantallas apaisadas bajas, dimensiona todo por ancho y alto para que
+   las tarjetas no conserven mínimos grandes que las hagan chocar. */
+@media (orientation:landscape) and (max-height:520px){
+  .brand{top:5.5vh;width:min(30vw,44vh,360px)}
+  .card{width:min(22vw,44vh,425px)}
+  .card:nth-child(2),.card:nth-child(3),.card:nth-child(5){width:min(23vw,46vh,440px)}
+}
+
+/* En vertical, organiza la galería en una cuadrícula que se pueda recorrer. */
+@media (orientation:portrait){
+  html,body{height:auto;min-height:100%;overflow-x:hidden;overflow-y:auto}
+  .menu-scene{height:auto;min-height:100vh;min-height:100svh;overflow:hidden}
+  .brand{position:relative;top:auto;left:auto;transform:none;width:min(88vw,380px);margin:32px auto 12px}
+  .brand h1{margin-bottom:0}
+  .brand-logo-crop{aspect-ratio:auto;overflow:visible;margin-top:4px;filter:none}
+  .brand-logo{position:relative;top:auto;left:auto;width:100%}
+  .gallery{position:relative;inset:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:center;gap:clamp(10px,3vw,24px);padding:10px clamp(12px,4vw,30px) 36px}
+  .card,.card:nth-child(n){position:relative;left:auto;top:auto;width:100%;max-width:none;aspect-ratio:1.18/1;padding:8px;transform:rotate(var(--tilt));}
+  .card:nth-child(1){--tilt:-2deg}
+  .card:nth-child(2){--tilt:3deg}
+  .card:nth-child(3){grid-column:1/-1;width:min(72%,360px);justify-self:center;--tilt:-.5deg}
+  .card:nth-child(4){--tilt:2deg}
+  .card:nth-child(5){--tilt:-2deg}
+  .card:hover,.card:focus-visible{transform:rotate(0deg) scale(1.02)}
+  .empty{position:relative;left:auto;top:auto;transform:none;margin:12px auto 28px;width:max-content;max-width:90%}
+}
+@media (prefers-reduced-motion:reduce){.card{transition:none}}
