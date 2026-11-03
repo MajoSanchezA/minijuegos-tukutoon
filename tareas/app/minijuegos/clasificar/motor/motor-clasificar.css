@@ -24,9 +24,8 @@ body{
 
 /* ---------- cuarto infantil de la escena ---------- */
 .room-scene{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;
-  background:url('../fondo.png') no-repeat center bottom;
-  background-size:cover;
-}
+  background:#8e5947 url('../fondo.webp') center/100% 100% no-repeat}
+.room-scene:before,.room-scene:after{display:none}
 .room-window, .room-shelf, .play-table, .play-rug, .room-floor{display:none;}
 
 /* ---------- header ---------- */
@@ -179,13 +178,13 @@ main{position:relative;z-index:2;flex:1 1 auto;min-height:0;
 
 /* ---------- las cestas ---------- */
 .cesta{pointer-events:none}
-.cesta .baul-imagen{pointer-events:none;filter:drop-shadow(0 5px 5px rgba(0,0,0,.18))}
+.cesta .baul-imagen{pointer-events:none}
 .cesta .cuerpo{stroke-width:7}
 .cesta .rim{stroke-width:5}
 /* la pista: si el chico se equivoca dos veces seguidas, la cesta que
    corresponde late sola — sin que nadie tenga que pedirla */
 .cesta.pista{animation:latido 1s ease-in-out 2}
-@keyframes latido{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes latido{0%,100%{filter:brightness(1)}50%{filter:brightness(1.32)}}
 
 /* fila de marcas arriba de cada cesta: cuantos objetos de ese color hay
    que juntar, y cuantos ya cayeron. Mismo patron que la cuenta de la
@@ -214,9 +213,6 @@ main{position:relative;z-index:2;flex:1 1 auto;min-height:0;
 .card-bolas{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;
   min-height:clamp(44px,13vw,72px)}
 .card-bolas svg{width:clamp(34px,10vw,54px);height:auto;display:block}
-.card-word{font-family:'Fredoka',sans-serif;font-weight:700;
-  font-size:clamp(20px,6.4vw,34px);margin:10px 0 4px}
-.card-word b{color:#2E9B63}
 .card-hint{font-size:clamp(11px,3.2vw,14px);opacity:.55;margin-bottom:14px}
 .card-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .card-actions button{

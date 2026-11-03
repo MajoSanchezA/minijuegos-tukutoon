@@ -5,8 +5,8 @@
    por doble clic (file://) como servida por http, sin depender de
    fetch().
 
-   NO HACE FALTA NINGUN ASSET. Cada bolita y cada cesta se dibujan en SVG
-   desde el motor: sumar un color es sumar una linea aca abajo.
+   Los objetos se cargan desde PNG locales. Cada color tiene varios juguetes
+   para que las rondas puedan variar sin mezclar el color de clasificación.
 
    ---------------------------------------------------------------------
    ESTE ES SOLO EL NIVEL DE COLORES de la propuesta original ("clasifica
@@ -62,19 +62,23 @@ var OBJETOS_POR_COLOR = {
     { id: 'balon-azul', src: 'balon-azul.png' }
   ],
   rojo: [
-    { id: 'dino-rojo', src: 'dino-rojo.png' },
+    { id: 'carro-rojo', src: 'carro-rojo.png' },
     { id: 'crayones-rojos', src: 'crayones-rojos.png' },
     { id: 'balon-rojo', src: 'balon-rojo.png' }
   ],
   amarillo: [
     { id: 'carro-amarillo', src: 'carro-amarillo.png' },
     { id: 'cubos-amarillos', src: 'cubos-amarillos.png' },
-    { id: 'osito-amarillo', src: 'osito-amarillo.png' }
+    { id: 'osito-amarillo', src: 'osito-amarillo.png' },
+    { id: 'dino-amarillo3', src: 'dino-amarillo3.png' },
+    { id: 'dino2-amarillo', src: 'dino2-amarillo.png' },
+    { id: 'crayones-amarillos', src: 'crayones-amarillos.png' },
+    { id: 'balon-amarillo', src: 'balon-amarillo.png' }
   ],
   verde: [
-    { id: 'balon-verde', src: 'balon-verde.png' },
-    { id: 'balon-verde-2', src: 'balon-verde.png' },
-    { id: 'balon-verde-3', src: 'balon-verde.png' }
+    { id: 'carro-verde', src: 'carro-verde.png' },
+    { id: 'crayones-verdes', src: 'crayones-verdes.png' },
+    { id: 'balon-verde', src: 'balon-verde.png' }
   ]
 };
 

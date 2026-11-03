@@ -62,8 +62,8 @@
   // usa. Por eso la que arranca elegida se define aparte, en lugar de
   // ser simplemente la primera de la lista.
   const TOOLS = [
-    { id: 'brush', title: 'Acuarela', icon: 'pincel.png' },
-    { id: 'eraser', title: 'Borrar', icon: 'borrador.png' },
+    { id: 'brush', title: 'Pincel', icon: 'pincel.png' },
+    { id: 'eraser', title: 'Borrador', icon: 'borrador.png' },
     { id: 'pencil', title: 'Lápiz', icon: 'lapiz.png' },
     { id: 'bucket', title: 'Balde', icon: 'balde.png' },
     { id: 'glitter', title: 'Brillantina', icon: 'especial.png' }
@@ -1311,7 +1311,7 @@
       const data = paintData.data;
       // Más gordo que el pincel: un borrador de verdad es un ladrillo, y
       // para un chico de 2 a 5 años tiene que perdonar la puntería.
-      const r = Math.max(4, Math.round(radius * 1.5));
+      const r = Math.max(3, Math.round(radius));
       const r2 = r * r;
       const x0 = Math.max(0, px - r), x1 = Math.min(W - 1, px + r);
       const y0 = Math.max(0, py - r), y1 = Math.min(H - 1, py + r);
@@ -1329,7 +1329,7 @@
     // Cada material tiene su grosor. Un lápiz de color y un pincel de
     // acuarela no pueden dejar la misma huella: si los cinco pintan del
     // mismo ancho, se sienten iguales por más textura que tengan.
-    const RADIO = { brush: 1.25, pencil: 0.30, glitter: 1.0, eraser: 1.5, marker: 0.9, spray: 1.1 };
+    const RADIO = { brush: 0.45, pencil: 0.30, glitter: 1.0, eraser: 0.68, marker: 0.9, spray: 1.1 };
     function radioDe(tool, base) { return Math.max(2, Math.round(base * (RADIO[tool] || 1))); }
 
     function applyStroke(tool, x, y, rgba, radius, ux, uy) {
@@ -1339,7 +1339,9 @@
       else if (tool === 'pencil') stampPencil(x, y, rgba, radius, ux, uy);
       else if (tool === 'brush') stampBrush(x, y, rgba, radius, ux, uy);
       else if (tool === 'spray') stampSpray(x, y, rgba, radius);
-      else if (tool === 'glitter') stampGlitter(x, y, rgba, radius);
+      else if (tool === 'glitter') {
+        stampGlitter(x, y, rgba, radius);
+      }
     }
 
     let zoom = 1, zoomX = 0, zoomY = 0, pinch = null;
@@ -1377,14 +1379,48 @@
 
     let drawing = false;
     let lastX = 0, lastY = 0;
+    // Sonidos locales elegidos para cada herramienta; no hay voz.
+    const toolSounds = {
+      brush: new Audio(RAIZ + 'audio/pincel_bucle.wav'),
+      pencil: new Audio(RAIZ + 'audio/lapiz_bucle.wav'),
+      eraser: new Audio(RAIZ + 'audio/borrador_bucle.wav'),
+      bucket: new Audio(RAIZ + 'audio/balde_pintura.wav')
+    };
+    Object.entries(toolSounds).forEach(([id, sound]) => {
+      sound.preload = 'auto';
+      sound.volume = 0.36;
+      if (id !== 'bucket') sound.loop = true;
+    });
+    let strokeSound = null;
+    function startStrokeSound(tool) {
+      const sound = toolSounds[tool];
+      if (!sound || tool === 'bucket') return;
+      if (strokeSound && strokeSound !== sound) {
+        strokeSound.pause();
+        strokeSound.currentTime = 0;
+      }
+      strokeSound = sound;
+      if (sound.paused) sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+    function stopStrokeSound() {
+      if (!strokeSound) return;
+      strokeSound.pause();
+      strokeSound.currentTime = 0;
+      strokeSound = null;
+    }
     function pointerDown(evt) {
       if (!paintData || !regionsReady) return;
       const [x, y] = getCanvasPixel(evt);
       if (state.tool === 'bucket') {
         fillRegionAt(x, y, [...hexToRgb(state.color), 255]);
+        const sound = toolSounds.bucket;
+        sound.currentTime = 0;
+        sound.play().catch(() => {});
       } else {
         drawing = true;
         lastX = x; lastY = y;
+        startStrokeSound(state.tool);
         if (state.tool === 'brush') acuaIniciar();
         // Que el primer toque plante una estrella aunque el dedo no se
         // mueva: si no, tocar y soltar no deja nada.
@@ -1420,7 +1456,7 @@
       const [x, y] = getCanvasPixel(evt);
       strokeTo(x, y, hexToRgb(state.color), state.brushSize);
     }
-    function pointerUp() { drawing = false; }
+    function pointerUp() { drawing = false; stopStrokeSound(); }
 
     paintCanvas.addEventListener('mousedown', (e) => { pointerDown(e); });
     paintCanvas.addEventListener('mousemove', pointerMove);

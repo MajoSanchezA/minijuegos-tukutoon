@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tukutoon-a-pintar-v6';
+const CACHE_NAME = 'tukutoon-a-pintar-v15';
 const APP_SHELL = [
   './',
   './index.html',
@@ -11,8 +11,12 @@ const APP_SHELL = [
   './fondo-dibujo.png',
   './hoja-dibujo.png',
   './logo-tukutoon-horizontal.png',
-  './motor/motor.js',
-  './motor/motor.css',
+  './motor/motor-v15.js',
+  './motor/motor-v15.css',
+  './audio/pincel_bucle.wav',
+  './audio/lapiz_bucle.wav',
+  './audio/borrador_bucle.wav',
+  './audio/balde_pintura.wav',
   './iconos/borrador.png',
   './iconos/balde.png',
   './iconos/descargar.png',
@@ -77,7 +81,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(request, { ignoreSearch: true }).then((cached) => {
+  caches.match(request).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
         if (!response.ok) return response;

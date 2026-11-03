@@ -130,7 +130,6 @@ function buildDOM(cfg){
     '<div id="card" role="dialog" aria-modal="true">' +
       '<div class="card-box">' +
         '<div class="card-bolas" id="card-bolas"></div>' +
-        '<div class="card-word" id="card-word"></div>' +
         '<div class="card-hint">Tocá para seguir jugando</div>' +
         '<div class="card-actions">' +
           '<button class="btn-again" id="btn-again">&#8634; Otra vez</button>' +
@@ -219,16 +218,13 @@ function objetoSuelto(obj){
 function cestaVisual(color, clase, baulSrc){
   var g = nodo('g', clase ? { 'class':clase } : {});
   if(baulSrc){
-    var marcoBaul = nodo('svg', {
-      x:-138, y:-140, width:276, height:240,
-      viewBox:'350 60 390 475', preserveAspectRatio:'xMidYMid meet',
-      'class':'baul-imagen'
-    });
-    marcoBaul.appendChild(nodo('image', {
-      x:0, y:0, width:1024, height:572, href:baulSrc,
-      preserveAspectRatio:'none'
+    // Cada PNG usa el lienzo completo 1920x1080 y ya trae el cofre en su
+    // sitio y perspectiva (izquierda o derecha); el PNG se estira al mismo
+    // lienzo completo que el fondo para llenar tambien pantallas anchas.
+    g.appendChild(nodo('image', {
+      x:0, y:0, width:W, height:H, href:baulSrc,
+      preserveAspectRatio:'none', 'class':'baul-imagen'
     }));
-    g.appendChild(marcoBaul);
     return g;
   }
   g.appendChild(nodo('rect', {
@@ -264,9 +260,6 @@ var R_MAX     = 92;
 var CELDA     = 2.35;    // celda minima para el reparto de bolitas, en radios (cuadrada)
 var ERRORES_PISTA = 2;   // rebotes seguidos antes de dar una pista
 
-var NUMEROS = ['cero','uno','dos','tres','cuatro','cinco','seis','siete',
-               'ocho','nueve','diez','once','doce'];
-
 /* ---------- estado ---------- */
 var svg      = document.getElementById('stage');
 var fx       = document.getElementById('fx');
@@ -298,6 +291,20 @@ var reduced  = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 function clamp(v, a, b){
   if(a > b) return (a + b) / 2;
   return v < a ? a : (v > b ? b : v);
+}
+var SCENE_W = 1920, SCENE_H = 1080;
+function escenaAjuste(){
+  return {
+    escalaX:W / SCENE_W,
+    escalaY:H / SCENE_H
+  };
+}
+function puntoEscena(x, y, ajuste){
+  ajuste = ajuste || escenaAjuste();
+  return {
+    x:x * ajuste.escalaX,
+    y:y * ajuste.escalaY
+  };
 }
 function barajar(a){
   for(var i = a.length - 1; i > 0; i--){
@@ -344,19 +351,19 @@ function plink(){
   tono(760 + Math.random() * 260, .12, .22);
   setTimeout(function(){ tono(1100 + Math.random() * 160, .09, .14); }, 55);
 }
-/* Cesta equivocada: grave, corto, suave — avisa sin retar. */
+/* Cesta equivocada: tono descendente claro pero amable. */
 function noEra(){
   var a = audio(); if(!a) return;
   try{
     var o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
-    o.type = 'sine';
-    o.frequency.setValueAtTime(300, t);
-    o.frequency.exponentialRampToValueAtTime(180, t + .18);
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(380, t);
+    o.frequency.exponentialRampToValueAtTime(210, t + .24);
     g.gain.setValueAtTime(.0001, t);
-    g.gain.exponentialRampToValueAtTime(.13, t + .02);
-    g.gain.exponentialRampToValueAtTime(.0001, t + .2);
+    g.gain.exponentialRampToValueAtTime(.2, t + .02);
+    g.gain.exponentialRampToValueAtTime(.0001, t + .26);
     o.connect(g); g.connect(a.destination);
-    o.start(t); o.stop(t + .24);
+    o.start(t); o.stop(t + .28);
   }catch(e){}
 }
 function fanfarria(){
@@ -364,16 +371,6 @@ function fanfarria(){
     setTimeout(function(){ tono(f, .2, .26); }, i * 110);
   });
 }
-function speak(text){
-  try{
-    if(!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = 'es-ES'; u.rate = .8; u.pitch = 1.25;
-    window.speechSynthesis.speak(u);
-  }catch(e){}
-}
-
 /* =====================================================================
    LA MASCOTA GUIA (Tuku)
    Queda quieta al costado del escenario — no persigue nada, no habla — y
@@ -476,27 +473,20 @@ function cargarRonda(i){
 
   medir();
 
-  // Las cestas: una por color de la ronda, repartidas abajo del escenario.
-  // El radio sale de dos topes (ancho disponible por cesta, y una fraccion
-  // de la altura) y la posicion vertical se ancla por el BORDE DE ABAJO
-  // del dibujo real (92 unidades locales bajo su centro, mas el margen),
-  // no por una fraccion fija de H — con una fraccion fija la cesta quedaba
-  // cortada por `overflow:hidden` en pantallas mas bajas que anchas.
-  var n = r.colores.length;
-  var rCesta = clamp(Math.min((W / n) * .35, H * .22), 30, 50);
-  var margenAbajo = -10;
-  var yCestas = H - margenAbajo - rCesta * .92;
-  // Agrupar un poco las cajitas al centro
-  var anchoTotalCestas = W * 0.7; // Usar el 70% del ancho
-  var offsetX = (W - anchoTotalCestas) / 2;
-  var pasoX = anchoTotalCestas / n;
+  // Hay dos cofres por ronda. Las imagenes ya traen el cofre en la
+  // perspectiva y posicion indicadas por `ubicacion-cofres.webp`.
+  var ajusteEscena = escenaAjuste();
+  var escalaCofre = Math.min(ajusteEscena.escalaX, ajusteEscena.escalaY);
+  var rCesta = clamp(50 * escalaCofre, 28, 64);
   r.colores.forEach(function(colorId, i){
     var col = colorPorId(colorId);
+    // Los PNG nuevos ya incluyen el cofre colocado en el lienzo completo:
+    // sin sufijo para el lado izquierdo y con "2" para el derecho.
     var baulSrc = /^(rojo|amarillo|azul|verde)$/.test(colorId)
-      ? 'baul-' + colorId + '.png' : null;
+      ? 'cofre' + colorId + (i === 0 ? '' : '2') + '.png' : null;
     var el = cestaVisual(col.color, 'cesta', baulSrc);
-    svg.appendChild(el);
-    var cx = offsetX + pasoX * (i + 0.5);
+    var punto = puntoEscena(i === 0 ? 660 : 1280, 805, ajusteEscena);
+    var cx = punto.x, cy = punto.y;
 
     // la fila de marcas de esta cesta, dibujada arriba de ella
     var marcas = [];
@@ -508,7 +498,7 @@ function cargarRonda(i){
     for(var m = 0; !baulSrc && m < totalColor; m++){
       var mk = marcaVisual();
       var mx = cx - anchoMarcas / 2 + pasoM * m;
-      var my = yCestas - rCesta * 1.55;
+      var my = cy - rCesta * 1.55;
       var esc = rCesta * .0028;
       mk.setAttribute('transform', 'translate(' + mx + ',' + my + ') scale(' + esc + ')');
       mk.style.setProperty('--m', col.color);
@@ -518,11 +508,19 @@ function cargarRonda(i){
 
     cestas.push({
       el:el, colorId:colorId, color:col.color,
-      x:cx, y:yCestas, r:rCesta,
+      x:cx, y:cy, r:rCesta,
+      sceneX:i === 0 ? 660 : 1280, sceneY:805,
+      hitW:baulSrc ? 190 * ajusteEscena.escalaX : null,
+      hitH:baulSrc ? 55 * ajusteEscena.escalaY : null,
+      sceneHitW:190, sceneHitH:55,
+      fullFrame:!!baulSrc,
       completados:0, total:totalColor, marcas:marcas
     });
-    el.setAttribute('transform',
-      'translate(' + cx.toFixed(1) + ',' + yCestas.toFixed(1) + ') scale(' + (rCesta / 100).toFixed(4) + ')');
+    if(!baulSrc){
+      el.setAttribute('transform',
+        'translate(' + cx.toFixed(1) + ',' + cy.toFixed(1) + ') scale(' + (rCesta / 100).toFixed(4) + ')');
+      svg.appendChild(el);
+    }
   });
 
   // las bolitas: una lista con `porColor` de cada color, barajada para que
@@ -581,6 +579,10 @@ function cargarRonda(i){
     posicionarBola(b);
   });
 
+  // Los cofres se dibujan sobre los juguetes y el objeto arrastrado pasa
+  // temporalmente al frente para seguir el puntero y caer en la abertura.
+  cestas.forEach(function(c){ if(c.fullFrame){ svg.appendChild(c.el); } });
+
   faltan = lista.length;
   ponerConsigna();
   refreshChrome();
@@ -607,6 +609,7 @@ function recalcular(){
   // celular) podia borrar el progreso o dejar las cestas fuera del SVG.
   var sx = W / anchoAnterior, sy = H / altoAnterior;
   var escala = Math.min(sx, sy);
+  var ajusteEscena = escenaAjuste();
   bolas.forEach(function(b){
     b.x *= sx; b.ox *= sx;
     b.y *= sy; b.oy *= sy;
@@ -614,9 +617,19 @@ function recalcular(){
     posicionarBola(b, b.ordenada ? .5 : 1);
   });
   cestas.forEach(function(c){
-    c.x *= sx; c.y *= sy; c.r *= escala;
-    c.el.setAttribute('transform',
-      'translate(' + c.x.toFixed(1) + ',' + c.y.toFixed(1) + ') scale(' + (c.r / 100).toFixed(4) + ')');
+    var punto = puntoEscena(c.sceneX, c.sceneY, ajusteEscena);
+    c.x = punto.x; c.y = punto.y;
+    c.r = clamp(50 * Math.min(ajusteEscena.escalaX, ajusteEscena.escalaY), 28, 64);
+    if(c.fullFrame){
+      c.hitW = c.sceneHitW * ajusteEscena.escalaX;
+      c.hitH = c.sceneHitH * ajusteEscena.escalaY;
+      var imagenBaul = c.el.firstChild;
+      imagenBaul.setAttribute('width', W);
+      imagenBaul.setAttribute('height', H);
+    }else{
+      c.el.setAttribute('transform',
+        'translate(' + c.x.toFixed(1) + ',' + c.y.toFixed(1) + ') scale(' + (c.r / 100).toFixed(4) + ')');
+    }
 
     var anchoMarcas = Math.min(c.total * c.r * .62, c.r * 2.6);
     var pasoM = c.total > 1 ? anchoMarcas / (c.total - 1) : 0;
@@ -704,9 +717,15 @@ function cestaMasCercana(b){
   for(var i = 0; i < cestas.length; i++){
     var c = cestas[i];
     var dx = b.x - c.x, dy = b.y - c.y, d = Math.sqrt(dx * dx + dy * dy);
+    if(c.hitW && c.hitH){
+      d = Math.sqrt((dx / c.hitW) * (dx / c.hitW) + (dy / c.hitH) * (dy / c.hitH));
+      if(d > 1) continue;
+    }else{
+      d = d / (c.r * TOL_CESTA);
+      if(d > 1) continue;
+    }
     if(d < mejorD){ mejorD = d; mejor = c; }
   }
-  if(!mejor || mejorD > mejor.r * TOL_CESTA) return null;
   return mejor;
 }
 
@@ -743,7 +762,7 @@ function cestaDe(colorId){
 function correcta(b, cesta){
   errores = 0;
   b.ordenada = true;
-  b.x = cesta.x; b.y = cesta.y - cesta.r * .25;
+  b.x = cesta.x; b.y = cesta.y + cesta.r * .08;
   b.el.classList.add('suave');
   posicionarBola(b, .5);
   b.el.classList.add('entra');
@@ -858,12 +877,7 @@ function showCard(){
     fila.appendChild(item && item.src ? objetoSuelto(item) : bolaSuelta(item));
   });
 
-  var n = ordenadas.length;
-  var sustantivo = RONDAS[rIdx].objetos ? 'objetos' : 'bolitas';
-  document.getElementById('card-word').innerHTML =
-    '¡Ordenaste <b>' + n + '</b> ' + sustantivo + '!';
   cardEl.classList.add('show');
-  speak((NUMEROS[n] || n) + ' ' + sustantivo + ' ordenados');
 }
 function hideCard(){ cardEl.classList.remove('show'); }
 
