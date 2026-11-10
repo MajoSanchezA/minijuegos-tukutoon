@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tukutoon-a-pintar-v15';
+const CACHE_NAME = 'tukutoon-a-pintar-v17';
 const APP_SHELL = [
   './',
   './index.html',
@@ -11,12 +11,13 @@ const APP_SHELL = [
   './fondo-dibujo.png',
   './hoja-dibujo.png',
   './logo-tukutoon-horizontal.png',
-  './motor/motor-v15.js',
-  './motor/motor-v15.css',
+  './motor/motor-v17.js',
+  './motor/motor-v17.css',
   './audio/pincel_bucle.wav',
   './audio/lapiz_bucle.wav',
   './audio/borrador_bucle.wav',
   './audio/balde_pintura.wav',
+  './audio/musica-fondo.mp3',
   './iconos/borrador.png',
   './iconos/balde.png',
   './iconos/descargar.png',

@@ -1380,6 +1380,29 @@
     let drawing = false;
     let lastX = 0, lastY = 0;
     // Sonidos locales elegidos para cada herramienta; no hay voz.
+    const backgroundMusic = new Audio(RAIZ + 'audio/musica-fondo.mp3');
+    backgroundMusic.preload = 'auto';
+    backgroundMusic.loop = true;
+    backgroundMusic.volume = 0.18;
+    let backgroundMusicStarted = false;
+    function startBackgroundMusic() {
+      if (document.hidden || backgroundMusicStarted) return;
+      backgroundMusic.play().then(() => {
+        backgroundMusicStarted = true;
+      }).catch(() => {});
+    }
+    backgroundMusic.load();
+    startBackgroundMusic();
+    window.addEventListener('pointerdown', startBackgroundMusic, { capture: true });
+    window.addEventListener('keydown', startBackgroundMusic);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        backgroundMusic.pause();
+      } else if (backgroundMusicStarted) {
+        backgroundMusic.play().catch(() => {});
+      }
+    });
+
     const toolSounds = {
       brush: new Audio(RAIZ + 'audio/pincel_bucle.wav'),
       pencil: new Audio(RAIZ + 'audio/lapiz_bucle.wav'),
@@ -1389,6 +1412,7 @@
     Object.entries(toolSounds).forEach(([id, sound]) => {
       sound.preload = 'auto';
       sound.volume = 0.36;
+      sound.load();
       if (id !== 'bucket') sound.loop = true;
     });
     let strokeSound = null;
@@ -1413,10 +1437,10 @@
       if (!paintData || !regionsReady) return;
       const [x, y] = getCanvasPixel(evt);
       if (state.tool === 'bucket') {
-        fillRegionAt(x, y, [...hexToRgb(state.color), 255]);
         const sound = toolSounds.bucket;
         sound.currentTime = 0;
         sound.play().catch(() => {});
+        fillRegionAt(x, y, [...hexToRgb(state.color), 255]);
       } else {
         drawing = true;
         lastX = x; lastY = y;

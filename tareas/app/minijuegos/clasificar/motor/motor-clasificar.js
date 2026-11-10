@@ -108,6 +108,7 @@ function buildDOM(cfg){
 
   document.body.innerHTML =
     '<div class="room-scene" aria-hidden="true">' +
+      '<img id="room-plan" class="room-plan" alt="" draggable="false">' +
       '<div class="room-window"><i></i><i></i></div>' +
       '<div class="room-shelf"></div>' +
       '<div class="play-table"></div>' +
@@ -181,8 +182,30 @@ function bolaSuelta(color){
   s.appendChild(bolaVisual(color));
   return s;
 }
-function objetoVisual(src, clase){
+function objetoVisual(src, clase, apoyado){
   var g = nodo('g', clase ? { 'class':clase } : {});
+  if(apoyado){
+    // Recortamos el margen transparente y alineamos el borde inferior real
+    // del PNG con el piso. Así cada juguete nace apoyado sobre su sombra.
+    var familia = src.split('-')[0];
+    var recortes = {
+      balon:[313,86,400,402], bloques:[288,96,566,408], carro:[217,102,610,392],
+      crayones:[326,46,376,490], dino2:[269,62,457,440], dino3:[296,32,447,508],
+      osito:[358,69,314,454]
+    };
+    var marco = recortes[familia] || [260,40,504,496];
+    var recorteApoyado = nodo('svg', {
+      x:-100, y:-200, width:200, height:200,
+      viewBox:marco[0]+' '+marco[1]+' '+marco[2]+' '+marco[3],
+      preserveAspectRatio:'xMidYMax meet', 'class':'objeto-imagen'
+    });
+    recorteApoyado.appendChild(nodo('image', {
+      x:0, y:0, width:1024, height:576, href:src,
+      preserveAspectRatio:'none'
+    }));
+    g.appendChild(recorteApoyado);
+    return g;
+  }
   // Los balones PNG tienen mucho margen transparente alrededor del balón.
   // Recortamos ese margen dentro de un SVG anidado para que ocupen el mismo
   // espacio que las bolitas dibujadas por el motor.
@@ -215,16 +238,22 @@ function objetoSuelto(obj){
    Un balde simple: cuerpo redondeado + borde ovalado arriba sugiriendo la
    abertura. Mismas unidades locales (radio de referencia 100) que la
    bolita, para que el motor escale las dos cosas con la misma cuenta. */
-function cestaVisual(color, clase, baulSrc){
+function cestaVisual(color, clase, baulSrc, lado, centroX, escala){
   var g = nodo('g', clase ? { 'class':clase } : {});
   if(baulSrc){
-    // Cada PNG usa el lienzo completo 1920x1080 y ya trae el cofre en su
-    // sitio y perspectiva (izquierda o derecha); el PNG se estira al mismo
-    // lienzo completo que el fondo para llenar tambien pantallas anchas.
-    g.appendChild(nodo('image', {
-      x:0, y:0, width:W, height:H, href:baulSrc,
-      preserveAspectRatio:'none', 'class':'baul-imagen'
+    // Recortamos el lienzo transparente alrededor del cofre, conservando
+    // su proporción y perspectiva al adaptarlo al tamaño de pantalla.
+    var marco = lado === 'izquierda' ? [400,740,520,340] : [1010,740,540,340];
+    var recorte = nodo('svg', {
+      x:centroX - marco[2] * escala / 2, y:H - marco[3] * escala,
+      width:marco[2] * escala, height:marco[3] * escala,
+      viewBox:marco.join(' '), preserveAspectRatio:'none', 'class':'baul-imagen'
+    });
+    recorte.appendChild(nodo('image', {
+      x:0, y:0, width:SCENE_W, height:SCENE_H, href:baulSrc,
+      preserveAspectRatio:'none'
     }));
+    g.appendChild(recorte);
     return g;
   }
   g.appendChild(nodo('rect', {
@@ -267,6 +296,7 @@ var ctx      = fx.getContext('2d');
 var cardEl   = document.getElementById('card');
 var promptEl = document.getElementById('prompt');
 var mainEl   = document.querySelector('main');
+var roomPlanEl = document.getElementById('room-plan');
 var mascotaEl = document.getElementById('mascota');   // null si no vino cfg.mascota
 
 var rIdx     = 0;
@@ -294,16 +324,19 @@ function clamp(v, a, b){
 }
 var SCENE_W = 1920, SCENE_H = 1080;
 function escenaAjuste(){
+  var escala = Math.max(W / SCENE_W, H / SCENE_H);
   return {
-    escalaX:W / SCENE_W,
-    escalaY:H / SCENE_H
+    escalaX:escala,
+    escalaY:escala,
+    offsetX:(W - SCENE_W * escala) / 2,
+    offsetY:H - SCENE_H * escala
   };
 }
 function puntoEscena(x, y, ajuste){
   ajuste = ajuste || escenaAjuste();
   return {
-    x:x * ajuste.escalaX,
-    y:y * ajuste.escalaY
+    x:x * ajuste.escalaX + ajuste.offsetX,
+    y:y * ajuste.escalaY + ajuste.offsetY
   };
 }
 function barajar(a){
@@ -435,7 +468,7 @@ function refreshChrome(){
   buildStars();
 }
 function ponerConsigna(){
-  promptEl.textContent = 'Llevá cada bolita a su cesta';
+  promptEl.textContent = 'Llevá cada juguete a su cofre';
 }
 
 /* =====================================================================
@@ -458,6 +491,7 @@ function medir(){
 function cargarRonda(i){
   rIdx = ((i % RONDAS.length) + RONDAS.length) % RONDAS.length;
   var r = RONDAS[rIdx];
+  if(roomPlanEl && r.plano){ roomPlanEl.src = r.plano; }
 
   if(tarjetaTO){ clearTimeout(tarjetaTO); tarjetaTO = null; }
   drag = null; dragId = null;
@@ -473,20 +507,23 @@ function cargarRonda(i){
 
   medir();
 
-  // Hay dos cofres por ronda. Las imagenes ya traen el cofre en la
-  // perspectiva y posicion indicadas por `ubicacion-cofres.webp`.
-  var ajusteEscena = escenaAjuste();
-  var escalaCofre = Math.min(ajusteEscena.escalaX, ajusteEscena.escalaY);
+  // Cada plano ya incluye la pareja exacta de cofres de esta ronda.
+  var escalaCofre = Math.min(W / SCENE_W, H / SCENE_H);
   var rCesta = clamp(50 * escalaCofre, 28, 64);
   r.colores.forEach(function(colorId, i){
     var col = colorPorId(colorId);
-    // Los PNG nuevos ya incluyen el cofre colocado en el lienzo completo:
-    // sin sufijo para el lado izquierdo y con "2" para el derecho.
     var baulSrc = /^(rojo|amarillo|azul|verde)$/.test(colorId)
       ? 'cofre' + colorId + (i === 0 ? '' : '2') + '.png' : null;
-    var el = cestaVisual(col.color, 'cesta', baulSrc);
-    var punto = puntoEscena(i === 0 ? 660 : 1280, 805, ajusteEscena);
-    var cx = punto.x, cy = punto.y;
+    var lado = i === 0 ? 'izquierda' : 'derecha';
+    var caja = i === 0
+      ? { x:.343, y:.809, mitadAncho:.132, mitadAlto:.191 }
+      : { x:.691, y:.809, mitadAncho:.135, mitadAlto:.191 };
+    var cx = W * caja.x;
+    var cy = H * caja.y;
+    // No redibujamos los cofres: ya vienen integrados en cada imagen.
+    // El grupo vacío conserva la interacción y las pistas de la ronda.
+    var el = baulSrc ? nodo('g', { 'class':'cesta' })
+      : cestaVisual(col.color, 'cesta', null, lado, cx, escalaCofre);
 
     // la fila de marcas de esta cesta, dibujada arriba de ella
     var marcas = [];
@@ -509,10 +546,11 @@ function cargarRonda(i){
     cestas.push({
       el:el, colorId:colorId, color:col.color,
       x:cx, y:cy, r:rCesta,
-      sceneX:i === 0 ? 660 : 1280, sceneY:805,
-      hitW:baulSrc ? 190 * ajusteEscena.escalaX : null,
-      hitH:baulSrc ? 55 * ajusteEscena.escalaY : null,
-      sceneHitW:190, sceneHitH:55,
+      cajaX:caja.x, cajaY:caja.y,
+      hitWRatio:caja.mitadAncho, hitHRatio:caja.mitadAlto,
+      hitW:baulSrc ? W * caja.mitadAncho : null,
+      hitH:baulSrc ? H * caja.mitadAlto : null,
+      lado:lado,
       fullFrame:!!baulSrc,
       completados:0, total:totalColor, marcas:marcas
     });
@@ -535,36 +573,58 @@ function cargarRonda(i){
   }
   barajar(lista);
 
-  // Zona de aparición (sobre la mesa central)
-  // Restringimos el ancho para que no se vayan a las esquinas y se queden cerca de la mesa
-  var playW = W * 0.55; 
-  var playX = (W - playW) / 2;
-  // Ajustamos la altura para que coincida con la superficie de la mesa
-  var playY = H * 0.52;
-  var playH = Math.max(40, H * 0.15);
-  
-  var aspecto = 1;
-  var cols = Math.max(1, Math.min(lista.length,
-    Math.round(Math.sqrt(lista.length * (playW / playH) / aspecto))));
-  var rows = Math.ceil(lista.length / cols);
-  var cw = playW / cols, ch = playH / rows;
-  var rBola = clamp(Math.min(cw, ch) / 1.5, 30, 60); 
-  var holguraX = Math.max(0, cw - rBola * 2);
-  var holguraY = Math.max(0, ch - rBola * 2);
+  // Los juguetes se dispersan por el piso a distintas profundidades, con
+  // posiciones aleatorias y separación para que no formen una fila.
+  // Mantenerlos dentro de la zona despejada del piso: los extremos del
+  // escenario corresponden al estante y al tobogán, no al área de juego.
+  var playX = W * 0.28;
+  var playW = W * 0.44;
+  // El origen del sprite es su base. La variación en Y los mantiene dentro
+  // del piso y crea profundidad sin llevarlos al estante o al tobogán.
+  var playY = H * 0.54;
+  var playH = H * 0.075;
+  var rBola = clamp(Math.min(W, H) * 0.061, 29, 40);
+  var separacion = clamp(rBola * 2.15, 64, 86);
+  var posiciones = [];
 
-  var celdas = [];
-  for(var c = 0; c < cols; c++){ for(var f = 0; f < rows; f++){ celdas.push({ c:c, f:f }); } }
-  barajar(celdas);
+  function lugarJuguete(){
+    var mejor = null, mejorDistancia = -1;
+    for(var intento = 0; intento < 70; intento++){
+      var candidato = {
+        x:playX + Math.random() * playW,
+        y:playY + Math.random() * playH
+      };
+      var distancia = Infinity;
+      posiciones.forEach(function(otro){
+        var dx = candidato.x - otro.x, dy = candidato.y - otro.y;
+        distancia = Math.min(distancia, Math.sqrt(dx * dx + dy * dy));
+      });
+      if(!posiciones.length || distancia >= separacion){
+        posiciones.push(candidato);
+        return candidato;
+      }
+      if(distancia > mejorDistancia){ mejor = candidato; mejorDistancia = distancia; }
+    }
+    posiciones.push(mejor);
+    return mejor;
+  }
 
   lista.forEach(function(item, k){
     var colorId = typeof item === 'string' ? item : item.colorId;
     var col = colorPorId(colorId);
-    var cel = celdas[k % celdas.length];
-    var x = playX + (cel.c + .5) * cw + (Math.random() - .5) * holguraX;
-    var y = playY + (cel.f + .5) * ch + (Math.random() - .5) * holguraY;
+    var sitio = lugarJuguete();
+    var x = sitio.x, y = sitio.y;
+    // Los que quedan más cerca del fondo se ven un poco más pequeños.
+    var profundidad = (y - playY) / playH;
+    var escalaVisual = .82 + profundidad * .16;
 
     var el = nodo('g', { 'class':'bola caida' });
-    var anim = item.src ? objetoVisual(item.src, 'anim') : bolaVisual(col.color, 'anim');
+    if(item && item.src){
+      el.appendChild(nodo('ellipse', {
+        'class':'sombra-objeto', cx:0, cy:3, rx:70, ry:10
+      }));
+    }
+    var anim = item.src ? objetoVisual(item.src, 'anim', true) : bolaVisual(col.color, 'anim');
     el.appendChild(anim);
     svg.appendChild(el);
     anim.addEventListener('animationend', function(){
@@ -573,7 +633,7 @@ function cargarRonda(i){
 
     var b = {
       el:el, anim:anim, item:item, colorId:colorId, color:col.color,
-      x:x, y:y, ox:x, oy:y, r:rBola, ordenada:false
+      x:x, y:y, ox:x, oy:y, r:rBola, escalaVisual:escalaVisual, ordenada:false
     };
     bolas.push(b);
     posicionarBola(b);
@@ -589,7 +649,7 @@ function cargarRonda(i){
 }
 
 function posicionarBola(b, escalaExtra){
-  var e = (b.r / 100) * (escalaExtra || 1);
+  var e = (b.r / 100) * (b.escalaVisual || 1) * (escalaExtra || 1);
   b.el.setAttribute('transform',
     'translate(' + b.x.toFixed(1) + ',' + b.y.toFixed(1) + ') scale(' + e.toFixed(4) + ')');
 }
@@ -609,7 +669,7 @@ function recalcular(){
   // celular) podia borrar el progreso o dejar las cestas fuera del SVG.
   var sx = W / anchoAnterior, sy = H / altoAnterior;
   var escala = Math.min(sx, sy);
-  var ajusteEscena = escenaAjuste();
+  var escalaCofre = Math.min(W / SCENE_W, H / SCENE_H);
   bolas.forEach(function(b){
     b.x *= sx; b.ox *= sx;
     b.y *= sy; b.oy *= sy;
@@ -617,15 +677,12 @@ function recalcular(){
     posicionarBola(b, b.ordenada ? .5 : 1);
   });
   cestas.forEach(function(c){
-    var punto = puntoEscena(c.sceneX, c.sceneY, ajusteEscena);
-    c.x = punto.x; c.y = punto.y;
-    c.r = clamp(50 * Math.min(ajusteEscena.escalaX, ajusteEscena.escalaY), 28, 64);
+    c.x = W * c.cajaX;
+    c.y = H * c.cajaY;
+    c.r = clamp(50 * escalaCofre, 28, 64);
     if(c.fullFrame){
-      c.hitW = c.sceneHitW * ajusteEscena.escalaX;
-      c.hitH = c.sceneHitH * ajusteEscena.escalaY;
-      var imagenBaul = c.el.firstChild;
-      imagenBaul.setAttribute('width', W);
-      imagenBaul.setAttribute('height', H);
+      c.hitW = W * c.hitWRatio;
+      c.hitH = H * c.hitHRatio;
     }else{
       c.el.setAttribute('transform',
         'translate(' + c.x.toFixed(1) + ',' + c.y.toFixed(1) + ') scale(' + (c.r / 100).toFixed(4) + ')');
@@ -718,7 +775,9 @@ function cestaMasCercana(b){
     var c = cestas[i];
     var dx = b.x - c.x, dy = b.y - c.y, d = Math.sqrt(dx * dx + dy * dy);
     if(c.hitW && c.hitH){
-      d = Math.sqrt((dx / c.hitW) * (dx / c.hitW) + (dy / c.hitH) * (dy / c.hitH));
+      var anchoTacto = c.hitW + b.r * .7;
+      var altoTacto = c.hitH + b.r * .7;
+      d = Math.max(Math.abs(dx) / anchoTacto, Math.abs(dy) / altoTacto);
       if(d > 1) continue;
     }else{
       d = d / (c.r * TOL_CESTA);

@@ -58,41 +58,59 @@ var CLASIFICAR_COLORES = [
 var OBJETOS_POR_COLOR = {
   azul: [
     { id: 'carro-azul', src: 'carro-azul.png' },
+    { id: 'bloques-azul', src: 'bloques-azul.png' },
     { id: 'crayones-azules', src: 'crayones-azules.png' },
-    { id: 'balon-azul', src: 'balon-azul.png' }
+    { id: 'balon-azul', src: 'balon-azul.png' },
+    { id: 'dino2-azul', src: 'dino2-azul.png' },
+    { id: 'dino3-azul', src: 'dino3-azul.png' },
+    { id: 'osito-azul', src: 'osito-azul.png' }
   ],
   rojo: [
     { id: 'carro-rojo', src: 'carro-rojo.png' },
+    { id: 'bloques-rojos', src: 'bloques-rojos.png' },
     { id: 'crayones-rojos', src: 'crayones-rojos.png' },
-    { id: 'balon-rojo', src: 'balon-rojo.png' }
+    { id: 'balon-rojo', src: 'balon-rojo.png' },
+    { id: 'dino2-rojo', src: 'dino2-rojo.png' },
+    { id: 'dino3-rojo', src: 'dino3-rojo.png' },
+    { id: 'osito-rojo', src: 'osito-rojo.png' }
   ],
   amarillo: [
     { id: 'carro-amarillo', src: 'carro-amarillo.png' },
-    { id: 'cubos-amarillos', src: 'cubos-amarillos.png' },
+    { id: 'bloques-amarillos', src: 'bloques-amarillos.png' },
     { id: 'osito-amarillo', src: 'osito-amarillo.png' },
-    { id: 'dino-amarillo3', src: 'dino-amarillo3.png' },
     { id: 'dino2-amarillo', src: 'dino2-amarillo.png' },
+    { id: 'dino3-amarillo', src: 'dino3-amarillo.png' },
     { id: 'crayones-amarillos', src: 'crayones-amarillos.png' },
     { id: 'balon-amarillo', src: 'balon-amarillo.png' }
   ],
   verde: [
     { id: 'carro-verde', src: 'carro-verde.png' },
+    { id: 'bloques-verdes', src: 'bloques-verdes.png' },
     { id: 'crayones-verdes', src: 'crayones-verdes.png' },
-    { id: 'balon-verde', src: 'balon-verde.png' }
+    { id: 'balon-verde', src: 'balon-verde.png' },
+    { id: 'dino2-verde', src: 'dino2-verde.png' },
+    { id: 'dino3-verde', src: 'dino3-verde.png' },
+    { id: 'osito-verde', src: 'osito-verde.png' }
   ]
 };
 
-/**
- * Escoge dos colores distintos al azar.
- */
-function coloresAleatorios() {
-  // Sólo usar colores que tienen objetos definidos en OBJETOS_POR_COLOR
-  var ids = Object.keys(OBJETOS_POR_COLOR);
-  var a = ids[Math.floor(Math.random() * ids.length)];
-  var b;
-  do { b = ids[Math.floor(Math.random() * ids.length)]; } while (b === a);
-  return [a, b];
-}
+// Cada archivo es una de las composiciones de cofres que envio Cammgo.
+// El orden importa: primer cofre a la izquierda y segundo a la derecha.
+var COMBINACIONES_COFRES = [
+  { colores:['azul','rojo'], plano:'2601b38b-678e-4ff8-9f28-7963562bece0.webp' },
+  { colores:['azul','amarillo'], plano:'50a5517a-ed97-407d-950b-8d8029f45cc7.webp' },
+  { colores:['azul','verde'], plano:'50fa0190-3bc2-4c82-9893-a48c06e2b185.webp' },
+  { colores:['verde','amarillo'], plano:'5b8e6188-fe66-4ab8-9e74-756f8c13a1a4.webp' },
+  { colores:['amarillo','verde'], plano:'828e3770-241f-4fd5-9f6a-0b5635d81400.webp' },
+  { colores:['rojo','azul'], plano:'89a12403-1f12-4af2-ab3c-f498b438167e.webp' },
+  { colores:['verde','azul'], plano:'8e986b94-6de3-452c-be50-81b7901af87c.webp' },
+  { colores:['amarillo','rojo'], plano:'a2ef6166-ac61-42f6-a064-4b18fd3ae25b.webp' },
+  { colores:['amarillo','azul'], plano:'c8bbde39-4bf1-4b5b-9287-ac170520f3c2.webp' },
+  { colores:['rojo','amarillo'], plano:'d8a5cd4a-d474-4901-8f37-270999d46eea.webp' },
+  { colores:['rojo','verde'], plano:'dcb53836-1dd3-488c-b422-e757b4ba875a.webp' },
+  { colores:['verde','rojo'], plano:'eb15fded-fc04-4d5b-b423-0d41c2197fff.webp' }
+];
+var ordenCombinaciones = mezclarPool(COMBINACIONES_COFRES.slice());
 
 /**
  * Genera la lista de objetos para una ronda dada un par de colores y la cantidad por color.
@@ -101,9 +119,10 @@ function generarObjetos(colores, porColor) {
   var objetos = [];
   colores.forEach(function(colorId) {
     var pool = OBJETOS_POR_COLOR[colorId];
+    var opciones = mezclarPool(pool.slice());
     for (var i = 0; i < porColor; i++) {
-      // Elegir aleatoriamente un objeto del pool (puede repetirse)
-      var tmpl = pool[Math.floor(Math.random() * pool.length)];
+      // Mezclar sin repetir hasta usar los juguetes disponibles del color.
+      var tmpl = opciones[i % opciones.length];
       // Creamos un id único añadiendo un sufijo
       var uniqId = tmpl.id + '_' + colorId + '_' + i;
       objetos.push({ id: uniqId, colorId: colorId, src: tmpl.src });
@@ -112,13 +131,29 @@ function generarObjetos(colores, porColor) {
   return objetos;
 }
 
+function mezclarPool(lista) {
+  for (var i = lista.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temporal = lista[i];
+    lista[i] = lista[j];
+    lista[j] = temporal;
+  }
+  return lista;
+}
+
 /**
  * Genera una ronda con la lógica solicitada.
  *   - Las primeras 4 rondas usan porColor = 2,3,4,5 respectivamente.
  *   - Después, porColor se elige aleatoriamente entre 4 y 5.
  */
 function crearRonda(indice) {
-  var colores = coloresAleatorios();
+  // Barajar un ciclo completo: salen en orden aleatorio y sin repetir hasta
+  // haber mostrado las doce imagenes; despues comienza otro orden nuevo.
+  if(indice > 0 && indice % COMBINACIONES_COFRES.length === 0){
+    ordenCombinaciones = mezclarPool(COMBINACIONES_COFRES.slice());
+  }
+  var combinacion = ordenCombinaciones[indice % COMBINACIONES_COFRES.length];
+  var colores = combinacion.colores.slice();
   var porColor;
   if (indice < 4) {
     porColor = indice + 2; // 2,3,4,5
@@ -129,6 +164,7 @@ function crearRonda(indice) {
   return {
     id: 'ronda_' + indice,
     colores: colores,
+    plano: combinacion.plano,
     porColor: porColor,
     objetos: generarObjetos(colores, porColor)
   };

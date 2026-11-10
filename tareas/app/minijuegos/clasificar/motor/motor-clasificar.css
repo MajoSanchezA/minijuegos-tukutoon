@@ -22,10 +22,12 @@ body{
   user-select:none; -webkit-user-select:none;
 }
 
-/* ---------- cuarto infantil de la escena ---------- */
-.room-scene{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;
-  background:#8e5947 url('../fondo.webp') center/100% 100% no-repeat}
+/* ---------- cuarto infantil de la escena ----------
+   Cada ronda usa su plano ya compuesto con la pareja exacta de cofres. */
+.room-scene{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;background:#8e5947}
 .room-scene:before,.room-scene:after{display:none}
+.room-plan{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center bottom;
+  pointer-events:none;user-select:none;-webkit-user-drag:none}
 .room-window, .room-shelf, .play-table, .play-rug, .room-floor{display:none;}
 
 /* ---------- header ---------- */
@@ -86,8 +88,8 @@ header{
 
    `overflow:hidden` en main corta cualquier bolita que quede a mitad de
    camino de salir del escenario durante un resize. */
-main{position:relative;z-index:2;flex:1 1 auto;min-height:0;
-  display:flex;flex-direction:row;align-items:stretch;
+main{position:fixed;inset:0;z-index:2;flex:0 0 auto;min-height:0;
+  width:100vw;height:100dvh;display:flex;flex-direction:row;align-items:stretch;
   padding:0;overflow:hidden}
 #stage{flex:1 1 0%;min-width:0;height:100%;display:block;touch-action:none;order:2;overflow:visible}
 
@@ -153,6 +155,8 @@ main{position:relative;z-index:2;flex:1 1 auto;min-height:0;
 .bola .face .cheek{fill:rgba(239,101,142,.4)}
 .bola .face .mouth{fill:none;stroke:#2B2140;stroke-width:5;stroke-linecap:round}
 .bola .objeto-imagen{pointer-events:none;}
+.bola .sombra-objeto{fill:rgba(74,40,22,.22);filter:blur(3px);pointer-events:none}
+.bola.entra .sombra-objeto{opacity:0;transition:opacity .28s ease-out}
 /* mientras se arrastra, una sombra la despega del resto — no hay transform
    CSS por la razon de arriba, asi que el "levantarse" se hace subiendo la
    escala directamente en el transform que pone el JS (ver `posicionar`) */
