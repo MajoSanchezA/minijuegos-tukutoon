@@ -117,17 +117,33 @@ var ordenCombinaciones = mezclarPool(COMBINACIONES_COFRES.slice());
  */
 function generarObjetos(colores, porColor) {
   var objetos = [];
+  var opcionesPorColor = {};
+  var tiposUsados = {};
+  var imagenesUsadas = {};
   colores.forEach(function(colorId) {
-    var pool = OBJETOS_POR_COLOR[colorId];
-    var opciones = mezclarPool(pool.slice());
-    for (var i = 0; i < porColor; i++) {
-      // Mezclar sin repetir hasta usar los juguetes disponibles del color.
-      var tmpl = opciones[i % opciones.length];
-      // Creamos un id único añadiendo un sufijo
-      var uniqId = tmpl.id + '_' + colorId + '_' + i;
-      objetos.push({ id: uniqId, colorId: colorId, src: tmpl.src });
-    }
+    opcionesPorColor[colorId] = mezclarPool(OBJETOS_POR_COLOR[colorId].slice());
   });
+
+  // Intercalar colores y priorizar un tipo distinto en toda la ronda. Cuando
+  // se superan los siete tipos disponibles, usar otra variante de color sin
+  // repetir la misma imagen ni reducir la cantidad pedida por color.
+  for (var i = 0; i < porColor; i++) {
+    colores.forEach(function(colorId) {
+      var opciones = opcionesPorColor[colorId];
+      var indice = opciones.findIndex(function(tmpl) {
+        return !tiposUsados[tmpl.src.split('-')[0]] && !imagenesUsadas[tmpl.src];
+      });
+      if (indice < 0) {
+        indice = opciones.findIndex(function(tmpl) { return !imagenesUsadas[tmpl.src]; });
+      }
+      if (indice < 0) return;
+
+      var tmpl = opciones.splice(indice, 1)[0];
+      tiposUsados[tmpl.src.split('-')[0]] = true;
+      imagenesUsadas[tmpl.src] = true;
+      objetos.push({ id: tmpl.id + '_' + colorId + '_' + i, colorId: colorId, src: tmpl.src });
+    });
+  }
   return objetos;
 }
 
@@ -143,8 +159,8 @@ function mezclarPool(lista) {
 
 /**
  * Genera una ronda con la lógica solicitada.
- *   - Las primeras 4 rondas usan porColor = 2,3,4,5 respectivamente.
- *   - Después, porColor se elige aleatoriamente entre 4 y 5.
+ *   - Las primeras rondas avanzan de 2 a 5 objetos por color.
+ *   - Al alcanzar 4 y 5, esas cantidades se alternan de forma estable.
  */
 function crearRonda(indice) {
   // Barajar un ciclo completo: salen en orden aleatorio y sin repetir hasta
@@ -158,8 +174,8 @@ function crearRonda(indice) {
   if (indice < 4) {
     porColor = indice + 2; // 2,3,4,5
   } else {
-    // después de la ronda 5, escoger 4 o 5 al azar
-    porColor = Math.random() < 0.5 ? 4 : 5;
+    // Desde la ronda siguiente al primer grupo, alternar 4, 5, 4, 5...
+    porColor = indice % 2 === 0 ? 4 : 5;
   }
   return {
     id: 'ronda_' + indice,

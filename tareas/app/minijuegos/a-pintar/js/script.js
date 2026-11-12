@@ -3,7 +3,12 @@
   // Guarda el menú y todos los dibujos para que el juego abra sin conexión
   // después de la primera visita. Los service workers requieren HTTP(S).
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    navigator.serviceWorker.register(new URL('../sw.js', document.currentScript.src))
+    const scriptUrl = new URL(document.currentScript.src);
+    const jsFolder = scriptUrl.pathname.lastIndexOf('/js/');
+    const appRoot = jsFolder >= 0
+      ? new URL(scriptUrl.pathname.slice(0, jsFolder + 1), scriptUrl.origin)
+      : new URL('./', scriptUrl);
+    navigator.serviceWorker.register(new URL('sw.js', appRoot))
       .catch(() => {});
   }
 

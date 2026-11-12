@@ -128,15 +128,8 @@ function buildDOM(cfg){
 
     '<canvas id="fx"></canvas>' +
 
-    '<div id="card" role="dialog" aria-modal="true">' +
-      '<div class="card-box">' +
-        '<div class="card-bolas" id="card-bolas"></div>' +
-        '<div class="card-hint">Tocá para seguir jugando</div>' +
-        '<div class="card-actions">' +
-          '<button class="btn-again" id="btn-again">&#8634; Otra vez</button>' +
-          '<button class="btn-next" id="btn-next">Siguiente &#8594;</button>' +
-        '</div>' +
-      '</div>' +
+    '<div id="card" aria-live="polite">' +
+      '<button class="btn-next" id="btn-next">Siguiente &#8594;</button>' +
     '</div>';
 }
 
@@ -355,55 +348,27 @@ function indiceDeRonda(id){
 }
 
 /* =====================================================================
-   AUDIO (WebAudio, sin assets) — mismos sonidos de base que motor-globos.js
+   AUDIO: grabaciones locales para acierto, error y cierre de ronda.
    ===================================================================== */
-var AC = null;
-function audio(){
+var sonidos = {};
+function reproducirSonido(nombre, volumen){
   try{
-    if(!AC){ var C = window.AudioContext || window.webkitAudioContext; if(C){ AC = new C(); } }
-    if(AC && AC.state === 'suspended'){ AC.resume(); }
-  }catch(e){ AC = null; }
-  return AC;
-}
-function tono(freq, dur, vol){
-  var a = audio(); if(!a) return;
-  try{
-    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
-    o.type = 'sine';
-    o.frequency.setValueAtTime(freq, t);
-    o.frequency.exponentialRampToValueAtTime(freq * 1.7, t + dur);
-    g.gain.setValueAtTime(.0001, t);
-    g.gain.exponentialRampToValueAtTime(vol, t + .02);
-    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    o.connect(g); g.connect(a.destination);
-    o.start(t); o.stop(t + dur + .02);
+    var sonido = sonidos[nombre];
+    if(!sonido){
+      sonido = new Audio('audio/' + nombre + '.mp3');
+      sonido.preload = 'auto';
+      sonidos[nombre] = sonido;
+    }
+    sonido.pause();
+    sonido.currentTime = 0;
+    sonido.volume = volumen;
+    var reproduccion = sonido.play();
+    if(reproduccion && reproduccion.catch){ reproduccion.catch(function(){}); }
   }catch(e){}
 }
-/* La bolita cayendo en su cesta: un "plink" corto y agudo, no un pop. */
-function plink(){
-  tono(760 + Math.random() * 260, .12, .22);
-  setTimeout(function(){ tono(1100 + Math.random() * 160, .09, .14); }, 55);
-}
-/* Cesta equivocada: tono descendente claro pero amable. */
-function noEra(){
-  var a = audio(); if(!a) return;
-  try{
-    var o = a.createOscillator(), g = a.createGain(), t = a.currentTime;
-    o.type = 'triangle';
-    o.frequency.setValueAtTime(380, t);
-    o.frequency.exponentialRampToValueAtTime(210, t + .24);
-    g.gain.setValueAtTime(.0001, t);
-    g.gain.exponentialRampToValueAtTime(.2, t + .02);
-    g.gain.exponentialRampToValueAtTime(.0001, t + .26);
-    o.connect(g); g.connect(a.destination);
-    o.start(t); o.stop(t + .28);
-  }catch(e){}
-}
-function fanfarria(){
-  [523, 659, 784, 1047].forEach(function(f, i){
-    setTimeout(function(){ tono(f, .2, .26); }, i * 110);
-  });
-}
+function plink(){ reproducirSonido('acierto', .7); }
+function noEra(){ reproducirSonido('incorrecto', .75); }
+function aplausos(){ reproducirSonido('aplausos', .68); }
 /* =====================================================================
    LA MASCOTA GUIA (Tuku)
    Queda quieta al costado del escenario — no persigue nada, no habla — y
@@ -573,31 +538,56 @@ function cargarRonda(i){
   }
   barajar(lista);
 
-  // Los juguetes se dispersan por el piso a distintas profundidades, con
-  // posiciones aleatorias y separación para que no formen una fila.
-  // Mantenerlos dentro de la zona despejada del piso: los extremos del
-  // escenario corresponden al estante y al tobogán, no al área de juego.
-  var playX = W * 0.28;
-  var playW = W * 0.44;
-  // El origen del sprite es su base. La variación en Y los mantiene dentro
-  // del piso y crea profundidad sin llevarlos al estante o al tobogán.
-  var playY = H * 0.54;
-  var playH = H * 0.075;
-  var rBola = clamp(Math.min(W, H) * 0.061, 29, 40);
-  var separacion = clamp(rBola * 2.15, 64, 86);
+  // Calcular las posiciones sobre el plano original del cuarto para respetar
+  // el borde del piso y el espacio que ocupan el estante, el tobogán y cofres.
+  var ajustePiso = escenaAjuste();
+  var lineaPiso = SCENE_H * .568;
+  var inicioPiso = lineaPiso + SCENE_H * .065;
+  var finPiso = SCENE_H * .97;
+  var rBola = clamp(Math.min(W, H) * 0.064, 31, 42);
+  var separacion = clamp(rBola * 2.02, 64, 88);
   var posiciones = [];
 
   function lugarJuguete(){
     var mejor = null, mejorDistancia = -1;
-    for(var intento = 0; intento < 70; intento++){
+    for(var intento = 0; intento < 1800; intento++){
+      var sceneY = inicioPiso + Math.random() * (finPiso - inicioPiso);
+      var profundidadPiso = (sceneY - lineaPiso) / (SCENE_H - lineaPiso);
+      var profundidad = (sceneY - inicioPiso) / (finPiso - inicioPiso);
+      var escalaVisual = .82 + profundidad * .16;
+      var medioJugueteEscena = rBola * escalaVisual / ajustePiso.escalaX;
+      // La habitación se abre hacia delante; los bordes curvos mantienen
+      // cada juguete dentro del suelo y fuera de los muebles laterales.
+      var bordeIzquierdo = .24 * Math.pow(1 - profundidadPiso, 1.15);
+      var bordeDerecho = 1 - bordeIzquierdo;
+      var xMin = bordeIzquierdo + medioJugueteEscena / SCENE_W;
+      var xMax = bordeDerecho - medioJugueteEscena / SCENE_W;
+      if(xMax <= xMin) continue;
+      var sceneX = (xMin + Math.random() * (xMax - xMin)) * SCENE_W;
+
+      // Los cofres forman parte del fondo: en su zona solo dejamos juguetes
+      // si quedan enteros en el hueco o a los lados, nunca sobre su imagen.
+      if(sceneY > SCENE_H * .70){
+        var xRel = sceneX / SCENE_W;
+        var medioRel = medioJugueteEscena / SCENE_W;
+        var fueraDeCofres = xRel + medioRel < .211 ||
+          (xRel - medioRel > .475 && xRel + medioRel < .556) ||
+          xRel - medioRel > .826;
+        if(!fueraDeCofres) continue;
+      }
+      var punto = puntoEscena(sceneX, sceneY, ajustePiso);
       var candidato = {
-        x:playX + Math.random() * playW,
-        y:playY + Math.random() * playH
+        x:punto.x,
+        y:punto.y,
+        escalaVisual:escalaVisual
       };
+      // Comparar los centros visibles (el origen de cada sprite está en su base).
+      var centroY = candidato.y - rBola * candidato.escalaVisual;
       var distancia = Infinity;
       posiciones.forEach(function(otro){
-        var dx = candidato.x - otro.x, dy = candidato.y - otro.y;
-        distancia = Math.min(distancia, Math.sqrt(dx * dx + dy * dy));
+        var dx = candidato.x - otro.x;
+        var otroCentroY = otro.y - rBola * otro.escalaVisual;
+        distancia = Math.min(distancia, Math.sqrt(dx * dx + Math.pow(centroY - otroCentroY, 2)));
       });
       if(!posiciones.length || distancia >= separacion){
         posiciones.push(candidato);
@@ -605,6 +595,7 @@ function cargarRonda(i){
       }
       if(distancia > mejorDistancia){ mejor = candidato; mejorDistancia = distancia; }
     }
+    // En el caso extremo de una ronda muy llena, usar el punto más despejado.
     posiciones.push(mejor);
     return mejor;
   }
@@ -615,8 +606,7 @@ function cargarRonda(i){
     var sitio = lugarJuguete();
     var x = sitio.x, y = sitio.y;
     // Los que quedan más cerca del fondo se ven un poco más pequeños.
-    var profundidad = (y - playY) / playH;
-    var escalaVisual = .82 + profundidad * .16;
+    var escalaVisual = sitio.escalaVisual;
 
     var el = nodo('g', { 'class':'bola caida' });
     if(item && item.src){
@@ -626,7 +616,6 @@ function cargarRonda(i){
     }
     var anim = item.src ? objetoVisual(item.src, 'anim', true) : bolaVisual(col.color, 'anim');
     el.appendChild(anim);
-    svg.appendChild(el);
     anim.addEventListener('animationend', function(){
       el.classList.remove('mal');
     });
@@ -637,6 +626,12 @@ function cargarRonda(i){
     };
     bolas.push(b);
     posicionarBola(b);
+  });
+
+  // Dibujar primero los juguetes del fondo y luego los más cercanos, como
+  // ocurriría en el plano de la habitación.
+  bolas.slice().sort(function(a, b){ return a.y - b.y; }).forEach(function(b){
+    svg.appendChild(b.el);
   });
 
   // Los cofres se dibujan sobre los juguetes y el objeto arrastrado pasa
@@ -726,8 +721,6 @@ function onDown(e){
   if(!mejor || mejorD > mejor.r * TOL_TOQUE) return;   // toco el aire: no pasa nada
 
   e.preventDefault();
-  audio();   // el primer toque destraba el audio en el celular
-
   drag = mejor;
   dragId = e.pointerId;
   drag.el.classList.remove('suave');
@@ -848,7 +841,7 @@ function ganar(){
   if(done.indexOf(r.id) < 0){ done.push(r.id); saveDone(); }
   refreshChrome();
   confetti('#2E9B63');
-  fanfarria();
+  aplausos();
   reaccionMascota('festejo');
   tarjetaTO = setTimeout(showCard, 700);
 }
@@ -930,26 +923,14 @@ function runFx(){
    TARJETA FINAL
    ===================================================================== */
 function showCard(){
-  var fila = document.getElementById('card-bolas');
-  fila.innerHTML = '';
-  ordenadas.slice(0, 12).forEach(function(item){
-    fila.appendChild(item && item.src ? objetoSuelto(item) : bolaSuelta(item));
-  });
-
   cardEl.classList.add('show');
 }
 function hideCard(){ cardEl.classList.remove('show'); }
 
-document.getElementById('btn-again').addEventListener('click', function(e){
-  e.stopPropagation(); hideCard(); cargarRonda(rIdx);
-});
 document.getElementById('btn-next').addEventListener('click', function(e){
   e.stopPropagation();
   if(unaSola && cfg.menuHref){ location.href = cfg.menuHref; return; }
   hideCard(); cargarRonda(unaSola ? rIdx : rIdx + 1);
-});
-cardEl.addEventListener('click', function(e){
-  if(e.target === cardEl){ hideCard(); cargarRonda(unaSola ? rIdx : rIdx + 1); }
 });
 
 svg.addEventListener('pointerdown', onDown);

@@ -24,14 +24,17 @@
   const SCRIPT_SRC = (document.currentScript && document.currentScript.src) || '';
   // También registra el caché al entrar directamente a un dibujo, sin pasar
   // primero por el menú. El alcance queda limitado a la carpeta del juego.
-  if ('serviceWorker' in navigator && location.protocol !== 'file:' && SCRIPT_SRC) {
-    navigator.serviceWorker.register(new URL('../sw.js', SCRIPT_SRC))
+  const scriptUrl = SCRIPT_SRC ? new URL(SCRIPT_SRC) : null;
+  const motorFolder = scriptUrl ? scriptUrl.pathname.lastIndexOf('/motor/') : -1;
+  const RAIZ = scriptUrl
+    ? (motorFolder >= 0
+      ? new URL(scriptUrl.pathname.slice(0, motorFolder + 1), scriptUrl.origin).href
+      : new URL('./', scriptUrl).href)
+    : '';
+  if ('serviceWorker' in navigator && location.protocol !== 'file:' && RAIZ) {
+    navigator.serviceWorker.register(new URL('sw.js', RAIZ))
       .catch(() => {});
   }
-  // Raíz de a-pintar/ vista desde motor/. De acá salen los assets que
-  // son iguales para todas las páginas (iconos, capa de decoración), así
-  // no hay que pasarles una ruta por página como sí pasa con bgSrc.
-  const RAIZ = SCRIPT_SRC ? SCRIPT_SRC.replace(/\/[^/]*$/, '/../') : '';
   const ICONS_BASE = RAIZ + 'iconos/';
 
   const DEFAULT_PALETTE = ['#FF6F59','#FFC94A','#2EC4B6','#5AA9E6','#B388EB','#FFB4C6','#8BC34A','#E8735A','#2B2140','#FFFFFF'];
@@ -1380,29 +1383,6 @@
     let drawing = false;
     let lastX = 0, lastY = 0;
     // Sonidos locales elegidos para cada herramienta; no hay voz.
-    const backgroundMusic = new Audio(RAIZ + 'audio/musica-fondo.mp3');
-    backgroundMusic.preload = 'auto';
-    backgroundMusic.loop = true;
-    backgroundMusic.volume = 0.18;
-    let backgroundMusicStarted = false;
-    function startBackgroundMusic() {
-      if (document.hidden || backgroundMusicStarted) return;
-      backgroundMusic.play().then(() => {
-        backgroundMusicStarted = true;
-      }).catch(() => {});
-    }
-    backgroundMusic.load();
-    startBackgroundMusic();
-    window.addEventListener('pointerdown', startBackgroundMusic, { capture: true });
-    window.addEventListener('keydown', startBackgroundMusic);
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) {
-        backgroundMusic.pause();
-      } else if (backgroundMusicStarted) {
-        backgroundMusic.play().catch(() => {});
-      }
-    });
-
     const toolSounds = {
       brush: new Audio(RAIZ + 'audio/pincel_bucle.wav'),
       pencil: new Audio(RAIZ + 'audio/lapiz_bucle.wav'),

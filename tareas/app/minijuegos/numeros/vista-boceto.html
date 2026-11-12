@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#76e9f1">
+  <title>TukuToon · Aprende los números</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
+    body {
+      display: grid; place-items: center;
+      background: #76e9f1 url("assets/WebP/fondo.webp") center / cover no-repeat;
+      user-select: none;
+    }
+    .scene {
+      position: relative;
+      width: min(100vw, 216.6vh);
+      aspect-ratio: 2779 / 1283;
+      overflow: hidden;
+      isolation: isolate;
+      container-type: inline-size;
+    }
+    .layer { position: absolute; display: block; pointer-events: none; object-fit: contain; }
+    .background { inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.1); z-index: -2; }
+    .board { left: 21.8%; top: 9.3%; width: 56.2%; height: 83%; z-index: -1; }
+    .panel { left: 27%; top: 77%; width: 46%; height: 34%; }
+    .title { left: 33.5%; top: 0%; width: 33%; height: 34%; }
+    .instructions { left: 34.5%; top: 29.5%; width: 31%; height: 7%; }
+    .aida { left: 78.7%; top: 35.4%; width: 28.8%; height: 57%; object-fit: fill; }
+    .back { left: 3.6%; top: 3.3%; width: 6.2%; height: 11%; pointer-events: auto; filter: hue-rotate(180deg); }
+    #volver { border: 0; padding: 0; background: transparent; cursor: pointer; }
+    .nav {
+      position: absolute; top: 43.5%; width: 8.4%; aspect-ratio: 1;
+      border: 0; padding: 0; background: transparent; cursor: pointer; z-index: 4;
+      touch-action: manipulation;
+    }
+    .nav img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .nav.prev { left: 17.5%; }
+    .nav.next { right: 17.5%; }
+    .number-area {
+      position: absolute; z-index: 2; left: 50%; top: 56.5%;
+      width: 25%; height: 54.3%; transform: translate(-50%, -50%);
+      border: 0; padding: 0; background: transparent; cursor: crosshair;
+      touch-action: none; overflow: visible;
+    }
+    .trace-svg { display: block; width: 100%; height: 100%; overflow: visible; touch-action: none; }
+    .trace-base { fill: none; stroke: rgba(43, 130, 177, .54); stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 12 23; }
+    .trace-progress { fill: none; stroke: #43d3ef; stroke-width: 21; stroke-linecap: round; stroke-linejoin: round; opacity: 0; filter: drop-shadow(0 0 7px rgba(67, 211, 239, .5)); }
+    .trace-completed { fill: none; stroke: #43d3ef; stroke-width: 18; stroke-linecap: round; stroke-linejoin: round; opacity: .9; }
+    .path-guide { fill: none; stroke: transparent; stroke-width: 130; stroke-linecap: round; stroke-linejoin: round; }
+    .cursor-image { pointer-events: none; opacity: 1; transition: opacity .12s ease; }
+    .number-area.drawing { cursor: none; }
+    .number-area.complete { cursor: pointer; }
+    .number-area:focus-visible { outline: 3px dashed rgba(51, 190, 226, .8); outline-offset: 6px; border-radius: 24px; }
+    .selector {
+      position: absolute; z-index: 3; left: 32%; top: 82%; width: 36%; height: 17%;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .number-choice {
+      width: 17%; height: 100%; padding: 0; border: 0; background: transparent;
+      display: grid; place-items: center; cursor: pointer; touch-action: manipulation;
+    }
+    .number-choice img { display: block; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+    .number-choice:focus-visible { outline: 3px solid #fff; outline-offset: 2px; border-radius: 24px; }
+    @media (max-aspect-ratio: 1/1) {
+      .scene { width: min(100vw, 216.6vh); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene" aria-label="Aprende los números">
+    <img class="layer background" src="assets/WebP/fondo.webp" alt="">
+    <img class="layer board" src="assets/WebP/tablero.webp" alt="">
+    <img class="layer panel" src="assets/WebP/panel.webp" alt="">
+    <img class="layer title" src="assets/WebP/nube_titulo.webp" alt="">
+    <img class="layer instructions" src="assets/WebP/instrucciones.webp" alt="">
+    <img class="layer aida" src="assets/WebP/aida.webp" alt="Aida enseña a trazar los números">
+    <button class="layer back" id="volver" type="button" aria-label="Volver a la pantalla anterior">
+      <img class="layer" style="inset:0;width:100%;height:100%" src="assets/WebP/boton_anterior.webp" alt="">
+    </button>
+
+    <button class="nav prev" id="anterior" type="button" aria-label="Número anterior">
+      <img src="assets/WebP/boton_anterior.webp" alt="">
+    </button>
+    <button class="nav next" id="siguiente" type="button" aria-label="Número siguiente">
+      <img src="assets/WebP/boton_siguiente.webp" alt="">
+    </button>
+
+    <div class="number-area" id="trazo" role="application" aria-label="Área para trazar el número"></div>
+    <nav class="selector" id="selector" aria-label="Elegir número"></nav>
+  </main>
+
+  <script src="numeros.js"></script>
+  <script>
+    (function () {
+      'use strict';
+      var root = 'assets/WebP/';
+      var numbers = [1, 2, 3, 4, 5];
+      var svgNS = 'http://www.w3.org/2000/svg';
+      var pathOverrides = {
+        1: ['M352 395 L505 199', 'M505 199 L505 830'],
+        2: ['M334 326 C334 217 505 171 609 239 C713 308 672 416 568 507 L328 807', 'M328 807 L698 807'],
+        3: ['M339 308 C370 199 630 185 646 312 C661 430 531 503 448 507', 'M448 507 C557 503 698 553 687 666 C677 789 422 848 328 739'],
+        4: ['M583 199 L302 598', 'M302 598 L698 598', 'M583 199 L583 830'],
+        5: ['M360 212 L651 212', 'M360 212 L360 457', 'M360 457 C505 394 698 448 687 630 C677 789 453 852 334 748']
+      };
+      var sampleStep = 10;
+      var lookAhead = 24;
+      var tolerance = 100;
+      var activePointer = null;
+      var svg;
+      var mask;
+      var paths = [];
+      var progress = [];
+      var activeIndex = 0;
+      var revealGroup;
+      var cursor;
+      var paintVersion = 0;
+      var selected = 1;
+      var trace = document.getElementById('trazo');
+      var selector = document.getElementById('selector');
+
+      function node(tag, attributes) {
+        var item = document.createElementNS(svgNS, tag);
+        Object.keys(attributes || {}).forEach(function (key) { item.setAttribute(key, attributes[key]); });
+        return item;
+      }
+
+      function raster(name, x, y, width, height, attributes) {
+        var attrs = Object.assign({
+          href: root + name,
+          x: x,
+          y: y,
+          width: width,
+          height: height,
+          preserveAspectRatio: 'none'
+        }, attributes || {});
+        return node('image', attrs);
+      }
+
+      function paint() {
+        var currentNumber = selected;
+        var version = ++paintVersion;
+        trace.replaceChildren();
+        trace.classList.remove('drawing', 'complete');
+        activePointer = null;
+        activeIndex = 0;
+        paths = [];
+        progress = [];
+
+        var entry = NUMEROS.filter(function (item) { return item.letter === String(currentNumber); })[0];
+        var outlineName = 'num_' + currentNumber + '_borde.webp';
+        var fillName = 'num_' + currentNumber + '_relleno.webp';
+        var image = new Image();
+        image.onload = function () {
+          if (version !== paintVersion) return;
+          var frameHeight = 626;
+          var frameWidth = frameHeight * image.naturalWidth / image.naturalHeight;
+          var frameX = (1000 - frameWidth) / 2;
+          var frameY = 199;
+
+          svg = node('svg', { class: 'trace-svg', viewBox: '0 0 1000 1000', preserveAspectRatio: 'none', 'aria-hidden': 'true' });
+          var defs = node('defs');
+          mask = node('mask', { id: 'reveal-mask', maskUnits: 'userSpaceOnUse', x: '0', y: '0', width: '1000', height: '1000' });
+          mask.appendChild(node('rect', { x: '0', y: '0', width: '1000', height: '1000', fill: 'black' }));
+          revealGroup = node('g');
+          var colored = raster(fillName, frameX, frameY, frameWidth, frameHeight, { mask: 'url(#reveal-mask)' });
+          revealGroup.appendChild(colored);
+          defs.appendChild(mask);
+          svg.appendChild(defs);
+
+          var guideLayer = raster('num_' + currentNumber + '_guias.webp', 231, 119, 538, 762, { class: 'guide-image', opacity: '1' });
+          svg.appendChild(guideLayer);
+          svg.appendChild(raster(outlineName, frameX, frameY, frameWidth, frameHeight));
+          svg.appendChild(revealGroup);
+
+          var numberData = entry && entry.mayus;
+          var pathStrings = pathOverrides[currentNumber] || (numberData ? numberData.strokes : []);
+          paths = pathStrings.map(function (definition, index) {
+            var path = node('path', { d: definition, class: 'path-guide' });
+            var road = node('path', { d: definition, class: index === 0 ? 'trace-base active-road' : 'trace-base' });
+            var progressPath = node('path', { d: definition, class: 'trace-progress', 'stroke-dasharray': '0 10000' });
+            var completed = node('path', { d: definition, class: 'trace-completed', 'stroke-dasharray': '0 10000' });
+            svg.appendChild(road);
+            svg.appendChild(progressPath);
+            svg.appendChild(completed);
+            svg.appendChild(path);
+            var length = path.getTotalLength();
+            var points = [];
+            for (var l = 0; l < length; l += sampleStep) {
+              var p = path.getPointAtLength(l);
+              points.push({ x: p.x, y: p.y, length: l });
+            }
+            var last = path.getPointAtLength(length);
+            points.push({ x: last.x, y: last.y, length: length });
+            var maskStroke = node('path', {
+              d: definition,
+              fill: 'none',
+              stroke: 'white',
+              'stroke-width': '180',
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round',
+              'stroke-dasharray': '0 ' + (length + 1),
+              opacity: '0'
+            });
+            mask.appendChild(maskStroke);
+            return { path: path, road: road, progress: progressPath, completed: completed, mask: maskStroke, length: length, points: points };
+          });
+
+          cursor = raster('num_' + currentNumber + '_cursor.webp', -50, -100, 100, 120, { class: 'cursor-image' });
+          svg.appendChild(cursor);
+          trace.appendChild(svg);
+          if (paths.length) {
+            cursor.setAttribute('x', paths[0].points[0].x - 50);
+            cursor.setAttribute('y', paths[0].points[0].y - 100);
+            cursor.style.opacity = '1';
+          }
+          updateVisuals();
+        };
+        image.src = root + outlineName;
+        trace.setAttribute('aria-label', 'Traza el número ' + currentNumber + '. Sigue las flechas desde el inicio.');
+
+        selector.replaceChildren();
+        numbers.forEach(function (number) {
+          var button = document.createElement('button');
+          var active = number === selected;
+          button.type = 'button';
+          button.className = 'number-choice';
+          button.setAttribute('aria-label', 'Elegir número ' + number);
+          button.setAttribute('aria-pressed', active ? 'true' : 'false');
+          var tile = document.createElement('img');
+          tile.src = root + 'caja_' + number + (active ? '_select' : '') + '.webp';
+          tile.alt = '';
+          button.appendChild(tile);
+          button.addEventListener('click', function () { select(number); });
+          selector.appendChild(button);
+        });
+      }
+
+      function setDash(path, amount, total) {
+        path.setAttribute('stroke-dasharray', Math.max(0, amount) + ' ' + (total + 1));
+      }
+
+      function updateVisuals() {
+        if (!svg) return;
+        paths.forEach(function (item, index) {
+          var amount = progress[index] || 0;
+          var isActive = index === activeIndex && activeIndex < paths.length;
+          setDash(item.progress, amount, item.length);
+          item.progress.style.opacity = isActive && amount > 0 ? '.9' : '0';
+          setDash(item.completed, 0, item.length);
+          item.completed.style.opacity = '0';
+          var maskAmount = index < activeIndex ? item.length : index === activeIndex ? amount : 0;
+          setDash(item.mask, maskAmount, item.length);
+          item.mask.setAttribute('opacity', maskAmount > 0 ? '1' : '0');
+          item.road.style.opacity = isActive && amount > 0 ? '1' : '0';
+        });
+        var guides = svg.querySelector('.guide-image');
+        if (guides) guides.style.opacity = activeIndex >= paths.length ? '0' : activeIndex === 0 && !(progress[0] > 0) ? '1' : '.12';
+        if (activeIndex >= paths.length) {
+          trace.classList.add('complete');
+          if (revealGroup) revealGroup.firstChild.removeAttribute('mask');
+          cursor.style.opacity = '0';
+        }
+      }
+
+      function pointFromEvent(event) {
+        var point = svg.createSVGPoint();
+        point.x = event.clientX;
+        point.y = event.clientY;
+        return point.matrixTransform(svg.getScreenCTM().inverse());
+      }
+
+      function distance(a, b) {
+        var dx = a.x - b.x, dy = a.y - b.y;
+        return dx * dx + dy * dy;
+      }
+
+      function pointIndex(data, length) {
+        var low = 0, high = data.points.length - 1;
+        while (low < high) {
+          var middle = (low + high) >> 1;
+          if (data.points[middle].length < length) low = middle + 1;
+          else high = middle;
+        }
+        return low;
+      }
+
+      function startTrace(event) {
+        if (activeIndex >= paths.length) {
+          paint();
+          return;
+        }
+        event.preventDefault();
+        var p = pointFromEvent(event);
+        var data = paths[activeIndex];
+        var current = data.points[pointIndex(data, progress[activeIndex] || 0)];
+        if (distance(p, current) > tolerance * tolerance) return;
+        activePointer = event.pointerId;
+        trace.classList.add('drawing');
+        trace.setPointerCapture(event.pointerId);
+        moveTrace(event);
+      }
+
+      function moveTrace(event) {
+        if (event.pointerId !== activePointer || activeIndex >= paths.length) return;
+        var data = paths[activeIndex];
+        var p = pointFromEvent(event);
+        var startAt = pointIndex(data, progress[activeIndex] || 0);
+        var endAt = Math.min(data.points.length - 1, startAt + lookAhead);
+        var best = startAt;
+        var bestDistance = tolerance * tolerance;
+        for (var i = startAt; i <= endAt; i++) {
+          var d2 = distance(p, data.points[i]);
+          if (d2 <= bestDistance) { best = i; bestDistance = d2; }
+        }
+        if (best > startAt || bestDistance <= tolerance * tolerance) {
+          progress[activeIndex] = data.points[best].length;
+          cursor.setAttribute('x', data.points[best].x - 50);
+          cursor.setAttribute('y', data.points[best].y - 100);
+          cursor.style.opacity = '1';
+          updateVisuals();
+          if (progress[activeIndex] >= data.length - sampleStep) {
+            progress[activeIndex] = data.length;
+            activeIndex++;
+            trace.classList.remove('drawing');
+            updateVisuals();
+          }
+        }
+      }
+
+      function stopTrace(event) {
+        if (event.pointerId !== activePointer) return;
+        activePointer = null;
+        trace.classList.remove('drawing');
+      }
+
+      function select(number) {
+        selected = number;
+        paint();
+      }
+
+      function move(delta) {
+        var index = numbers.indexOf(selected);
+        select(numbers[(index + delta + numbers.length) % numbers.length]);
+      }
+
+      trace.addEventListener('pointerdown', startTrace);
+      trace.addEventListener('pointermove', moveTrace);
+      trace.addEventListener('pointerup', stopTrace);
+      trace.addEventListener('pointercancel', stopTrace);
+      document.getElementById('volver').addEventListener('click', function () { window.history.back(); });
+      document.getElementById('anterior').addEventListener('click', function () { move(-1); });
+      document.getElementById('siguiente').addEventListener('click', function () { move(1); });
+      document.addEventListener('keydown', function (event) {
+        if (event.key === 'ArrowLeft') move(-1);
+        if (event.key === 'ArrowRight') move(1);
+      });
+      paint();
+    }());
+  </script>
+</body>
+</html>

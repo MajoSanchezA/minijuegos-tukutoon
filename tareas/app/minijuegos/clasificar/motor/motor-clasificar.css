@@ -204,29 +204,17 @@ main{position:fixed;inset:0;z-index:2;flex:0 0 auto;min-height:0;
 #card{
   position:fixed;inset:0;z-index:6;display:none;
   align-items:center;justify-content:center;padding:18px;
-  background:rgba(20,58,44,.5);
+  background:transparent;pointer-events:none;
 }
 #card.show{display:flex;animation:fade .28s ease-out}
 @keyframes fade{from{opacity:0}to{opacity:1}}
-.card-box{
-  background:#FFFDF6;border-radius:28px;padding:clamp(16px,4.5vw,28px) clamp(20px,6vw,40px);
-  text-align:center;box-shadow:0 14px 0 rgba(0,0,0,.18);max-width:min(92vw,460px);
-  animation:pop .42s cubic-bezier(.2,1.5,.45,1);
-}
-@keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
-.card-bolas{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;
-  min-height:clamp(44px,13vw,72px)}
-.card-bolas svg{width:clamp(34px,10vw,54px);height:auto;display:block}
-.card-hint{font-size:clamp(11px,3.2vw,14px);opacity:.55;margin-bottom:14px}
-.card-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-.card-actions button{
+.btn-next{
   border:none;border-radius:18px;padding:11px 20px;cursor:pointer;touch-action:manipulation;
   font-family:'Fredoka',sans-serif;font-weight:600;font-size:clamp(14px,4vw,18px);color:#fff;
   box-shadow:0 4px 0 rgba(0,0,0,.18);
+  pointer-events:auto;background:#2E9B63;
 }
-.card-actions button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
-.btn-again{background:#8D82A8}
-.btn-next{background:#2E9B63}
+.btn-next:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
 
 @media (max-width:700px){
   .mascota-dock{width:clamp(92px,25vw,170px)}
@@ -240,7 +228,6 @@ main{position:fixed;inset:0;z-index:2;flex:0 0 auto;min-height:0;
   .play-rug{bottom:15%;height:12%}
 }
 @media (prefers-reduced-motion:reduce){
-  .card-box{animation:none}
   .cesta.pista{animation:none}
   .mascota{animation:none !important}
 }
