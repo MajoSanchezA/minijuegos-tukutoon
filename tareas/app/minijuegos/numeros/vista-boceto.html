@@ -48,10 +48,10 @@
       touch-action: none; overflow: visible;
     }
     .trace-svg { display: block; width: 100%; height: 100%; overflow: visible; touch-action: none; }
-    .trace-base { fill: none; stroke: rgba(43, 130, 177, .54); stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 12 23; }
-    .trace-progress { fill: none; stroke: #43d3ef; stroke-width: 21; stroke-linecap: round; stroke-linejoin: round; opacity: 0; filter: drop-shadow(0 0 7px rgba(67, 211, 239, .5)); }
-    .trace-completed { fill: none; stroke: #43d3ef; stroke-width: 18; stroke-linecap: round; stroke-linejoin: round; opacity: .9; }
-    .path-guide { fill: none; stroke: transparent; stroke-width: 130; stroke-linecap: round; stroke-linejoin: round; }
+    .trace-base { fill: none; stroke: rgba(43, 130, 177, .54); stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 8 17; }
+    .trace-progress { fill: none; stroke: #43d3ef; stroke-width: 14; stroke-linecap: round; stroke-linejoin: round; opacity: 0; filter: drop-shadow(0 0 4px rgba(67, 211, 239, .45)); }
+    .trace-completed { fill: none; stroke: #43d3ef; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; opacity: .9; }
+    .path-guide { fill: none; stroke: transparent; stroke-width: 54; stroke-linecap: round; stroke-linejoin: round; }
     .cursor-image { pointer-events: none; opacity: 1; transition: opacity .12s ease; }
     .number-area.drawing { cursor: none; }
     .number-area.complete { cursor: pointer; }
@@ -104,23 +104,48 @@
       var root = 'assets/WebP/';
       var numbers = [1, 2, 3, 4, 5];
       var svgNS = 'http://www.w3.org/2000/svg';
-      var pathOverrides = {
-        1: ['M352 395 L505 199', 'M505 199 L505 830'],
-        2: ['M334 326 C334 217 505 171 609 239 C713 308 672 416 568 507 L328 807', 'M328 807 L698 807'],
-        3: ['M339 308 C370 199 630 185 646 312 C661 430 531 503 448 507', 'M448 507 C557 503 698 553 687 666 C677 789 422 848 328 739'],
-        4: ['M583 199 L302 598', 'M302 598 L698 598', 'M583 199 L583 830'],
-        5: ['M360 212 L651 212', 'M360 212 L360 457', 'M360 457 C505 394 698 448 687 630 C677 789 453 852 334 748']
+      var strokeAssets = {
+        1: [
+          { asset: 'num_1_trazado_.webp', x: 0, y: 0, width: 197, height: 186, d: 'M14 159 L182 17' },
+          { asset: 'num_1_trazado_2.webp', x: 97, y: 0, width: 100, height: 411, d: 'M145 15 L145 397' }
+        ],
+        2: [
+          { asset: 'num_2_trazado_1.webp', x: 0, y: 0, width: 301, height: 412, d: 'M8 166 C12 69 95 4 185 6 C270 8 311 77 296 146 C286 195 222 238 112 310 L13 405' },
+          { asset: 'num_2_trazado_2.webp', x: 0, y: 316, width: 317, height: 100, d: 'M15 366 L301 366' }
+        ],
+        3: [
+          { asset: 'num_3_trazado_1.webp', x: 17, y: 0, width: 285, height: 242, d: 'M39 58 C77 -8 202 -12 259 40 C320 95 278 187 177 199' },
+          { asset: 'num_3_trazado_2.webp', x: 0, y: 176, width: 311, height: 246, d: 'M177 199 C268 191 310 232 300 285 C286 359 189 394 105 374 C58 363 24 338 8 306' }
+        ],
+        4: [
+          { asset: 'num_4_trazado_1.webp', x: 0, y: 0, width: 148, height: 293, d: 'M15 279 L75 18' },
+          { asset: 'num_4_trazado_2.webp', x: 0, y: 201, width: 299, height: 92, d: 'M17 247 L282 247' },
+          { asset: 'num_4_trazado_3.webp', x: 199, y: 2, width: 100, height: 409, d: 'M249 8 L249 401' }
+        ],
+        5: [
+          { asset: 'num_5_trazado_1.webp', x: 26, y: 0, width: 239, height: 99, d: 'M45 49 L245 49' },
+          { asset: 'num_5_trazado_2.webp', x: 7, y: 0, width: 128, height: 261, d: 'M82 18 C72 86 55 170 43 250' },
+          { asset: 'num_5_trazado_3.webp', x: 0, y: 139, width: 273, height: 278, d: 'M252 240 C288 290 270 356 207 386 C132 417 44 389 10 330' }
+        ]
       };
-      var sampleStep = 10;
+      var numberSizes = {
+        1: { width: 197, height: 411 },
+        2: { width: 317, height: 416 },
+        3: { width: 311, height: 422 },
+        4: { width: 299, height: 411 },
+        5: { width: 273, height: 417 }
+      };
+      var sampleStep = 4;
       var lookAhead = 24;
-      var tolerance = 100;
+      var tolerance = 34;
+      var maskWidth = 74;
       var activePointer = null;
       var svg;
-      var mask;
       var paths = [];
       var progress = [];
       var activeIndex = 0;
       var revealGroup;
+      var geometryGroup;
       var cursor;
       var paintVersion = 0;
       var selected = 1;
@@ -155,25 +180,21 @@
         paths = [];
         progress = [];
 
-        var entry = NUMEROS.filter(function (item) { return item.letter === String(currentNumber); })[0];
         var outlineName = 'num_' + currentNumber + '_borde.webp';
-        var fillName = 'num_' + currentNumber + '_relleno.webp';
         var image = new Image();
         image.onload = function () {
           if (version !== paintVersion) return;
           var frameHeight = 626;
-          var frameWidth = frameHeight * image.naturalWidth / image.naturalHeight;
+          var size = numberSizes[currentNumber];
+          var frameWidth = frameHeight * size.width / size.height;
           var frameX = (1000 - frameWidth) / 2;
           var frameY = 199;
 
           svg = node('svg', { class: 'trace-svg', viewBox: '0 0 1000 1000', preserveAspectRatio: 'none', 'aria-hidden': 'true' });
           var defs = node('defs');
-          mask = node('mask', { id: 'reveal-mask', maskUnits: 'userSpaceOnUse', x: '0', y: '0', width: '1000', height: '1000' });
-          mask.appendChild(node('rect', { x: '0', y: '0', width: '1000', height: '1000', fill: 'black' }));
           revealGroup = node('g');
-          var colored = raster(fillName, frameX, frameY, frameWidth, frameHeight, { mask: 'url(#reveal-mask)' });
-          revealGroup.appendChild(colored);
-          defs.appendChild(mask);
+          geometryGroup = node('g', { transform: 'translate(' + frameX + ' ' + frameY + ') scale(' + (frameWidth / size.width) + ' ' + (frameHeight / size.height) + ')' });
+          revealGroup.appendChild(geometryGroup);
           svg.appendChild(defs);
 
           var guideLayer = raster('num_' + currentNumber + '_guias.webp', 231, 119, 538, 762, { class: 'guide-image', opacity: '1' });
@@ -181,17 +202,31 @@
           svg.appendChild(raster(outlineName, frameX, frameY, frameWidth, frameHeight));
           svg.appendChild(revealGroup);
 
-          var numberData = entry && entry.mayus;
-          var pathStrings = pathOverrides[currentNumber] || (numberData ? numberData.strokes : []);
-          paths = pathStrings.map(function (definition, index) {
+          paths = strokeAssets[currentNumber].map(function (stroke, index) {
+            var definition = stroke.d;
+            var maskId = 'reveal-mask-' + currentNumber + '-' + index;
+            var strokeMask = node('mask', { id: maskId, maskUnits: 'userSpaceOnUse', x: '0', y: '0', width: size.width, height: size.height });
+            strokeMask.appendChild(node('rect', { x: '0', y: '0', width: size.width, height: size.height, fill: 'black' }));
+            var maskStroke = node('path', {
+              d: definition,
+              fill: 'none',
+              stroke: 'white',
+              'stroke-width': maskWidth,
+              'stroke-linecap': 'round',
+              'stroke-linejoin': 'round',
+              'stroke-dasharray': '0 10000'
+            });
+            strokeMask.appendChild(maskStroke);
+            defs.appendChild(strokeMask);
+            geometryGroup.appendChild(raster(stroke.asset, stroke.x, stroke.y, stroke.width, stroke.height, { mask: 'url(#' + maskId + ')' }));
             var path = node('path', { d: definition, class: 'path-guide' });
             var road = node('path', { d: definition, class: index === 0 ? 'trace-base active-road' : 'trace-base' });
             var progressPath = node('path', { d: definition, class: 'trace-progress', 'stroke-dasharray': '0 10000' });
             var completed = node('path', { d: definition, class: 'trace-completed', 'stroke-dasharray': '0 10000' });
-            svg.appendChild(road);
-            svg.appendChild(progressPath);
-            svg.appendChild(completed);
-            svg.appendChild(path);
+            geometryGroup.appendChild(road);
+            geometryGroup.appendChild(progressPath);
+            geometryGroup.appendChild(completed);
+            geometryGroup.appendChild(path);
             var length = path.getTotalLength();
             var points = [];
             for (var l = 0; l < length; l += sampleStep) {
@@ -200,26 +235,14 @@
             }
             var last = path.getPointAtLength(length);
             points.push({ x: last.x, y: last.y, length: length });
-            var maskStroke = node('path', {
-              d: definition,
-              fill: 'none',
-              stroke: 'white',
-              'stroke-width': '180',
-              'stroke-linecap': 'round',
-              'stroke-linejoin': 'round',
-              'stroke-dasharray': '0 ' + (length + 1),
-              opacity: '0'
-            });
-            mask.appendChild(maskStroke);
             return { path: path, road: road, progress: progressPath, completed: completed, mask: maskStroke, length: length, points: points };
           });
 
-          cursor = raster('num_' + currentNumber + '_cursor.webp', -50, -100, 100, 120, { class: 'cursor-image' });
-          svg.appendChild(cursor);
+          cursor = raster('num_' + currentNumber + '_cursor.webp', 0, 0, 60, 72, { class: 'cursor-image' });
+          geometryGroup.appendChild(cursor);
           trace.appendChild(svg);
           if (paths.length) {
-            cursor.setAttribute('x', paths[0].points[0].x - 50);
-            cursor.setAttribute('y', paths[0].points[0].y - 100);
+            positionCursor(paths[0].points[0]);
             cursor.style.opacity = '1';
           }
           updateVisuals();
@@ -266,16 +289,24 @@
         if (guides) guides.style.opacity = activeIndex >= paths.length ? '0' : activeIndex === 0 && !(progress[0] > 0) ? '1' : '.12';
         if (activeIndex >= paths.length) {
           trace.classList.add('complete');
-          if (revealGroup) revealGroup.firstChild.removeAttribute('mask');
           cursor.style.opacity = '0';
+        } else if (activeIndex > 0 && !(progress[activeIndex] > 0)) {
+          positionCursor(paths[activeIndex].points[0]);
+          cursor.style.opacity = '1';
         }
+      }
+
+      function positionCursor(point) {
+        if (!cursor) return;
+        cursor.setAttribute('x', point.x - 36);
+        cursor.setAttribute('y', point.y - 18);
       }
 
       function pointFromEvent(event) {
         var point = svg.createSVGPoint();
         point.x = event.clientX;
         point.y = event.clientY;
-        return point.matrixTransform(svg.getScreenCTM().inverse());
+        return point.matrixTransform(geometryGroup.getScreenCTM().inverse());
       }
 
       function distance(a, b) {
@@ -323,13 +354,14 @@
         }
         if (best > startAt || bestDistance <= tolerance * tolerance) {
           progress[activeIndex] = data.points[best].length;
-          cursor.setAttribute('x', data.points[best].x - 50);
-          cursor.setAttribute('y', data.points[best].y - 100);
+          positionCursor(data.points[best]);
           cursor.style.opacity = '1';
           updateVisuals();
-          if (progress[activeIndex] >= data.length - sampleStep) {
+          var endTolerance = Math.max(sampleStep * 2, tolerance * .65);
+          if (progress[activeIndex] >= data.length - endTolerance) {
             progress[activeIndex] = data.length;
             activeIndex++;
+            activePointer = null;
             trace.classList.remove('drawing');
             updateVisuals();
           }
